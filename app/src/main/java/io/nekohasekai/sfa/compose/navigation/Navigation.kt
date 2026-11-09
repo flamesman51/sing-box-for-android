@@ -5,7 +5,6 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -40,7 +39,6 @@ import io.nekohasekai.sfa.compose.screen.settings.TailscaleFontPickerScreen
 import io.nekohasekai.sfa.compose.screen.settings.TailscaleGhosttyConfigEditorScreen
 import io.nekohasekai.sfa.compose.screen.settings.TailscaleTerminalConfigScreen
 import io.nekohasekai.sfa.compose.screen.settings.TailscaleThemePickerScreen
-import io.nekohasekai.sfa.compose.screen.smart.LocalSmartInsightsNavigator
 import io.nekohasekai.sfa.compose.screen.smart.SMART_INSIGHTS_ROUTE
 import io.nekohasekai.sfa.compose.screen.smart.SmartInsightsScreen
 import io.nekohasekai.sfa.compose.screen.smart.smartInsightsRoute
@@ -120,23 +118,21 @@ fun NavHost(
         modifier = modifier,
     ) {
         composable(Screen.Dashboard.route) {
-            CompositionLocalProvider(LocalSmartInsightsNavigator provides { tag -> navController.navigate(smartInsightsRoute(tag)) }) {
-                if (dashboardViewModel != null) {
-                    DashboardScreen(
-                        serviceStatus = serviceStatus,
-                        showStartFab = showStartFab,
-                        showStatusBar = showStatusBar,
-                        onOpenNewProfile = onOpenNewProfile,
-                        viewModel = dashboardViewModel,
-                    )
-                } else {
-                    DashboardScreen(
-                        serviceStatus = serviceStatus,
-                        showStartFab = showStartFab,
-                        showStatusBar = showStatusBar,
-                        onOpenNewProfile = onOpenNewProfile,
-                    )
-                }
+            if (dashboardViewModel != null) {
+                DashboardScreen(
+                    serviceStatus = serviceStatus,
+                    showStartFab = showStartFab,
+                    showStatusBar = showStatusBar,
+                    onOpenNewProfile = onOpenNewProfile,
+                    viewModel = dashboardViewModel,
+                )
+            } else {
+                DashboardScreen(
+                    serviceStatus = serviceStatus,
+                    showStartFab = showStartFab,
+                    showStatusBar = showStatusBar,
+                    onOpenNewProfile = onOpenNewProfile,
+                )
             }
         }
 
@@ -158,21 +154,21 @@ fun NavHost(
         }
 
         composable(Screen.Groups.route) {
-            CompositionLocalProvider(LocalSmartInsightsNavigator provides { tag -> navController.navigate(smartInsightsRoute(tag)) }) {
-                if (groupsViewModel != null) {
-                    GroupsCard(
-                        serviceStatus = serviceStatus,
-                        viewModel = groupsViewModel,
-                        showTopBar = true,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                } else {
-                    GroupsCard(
-                        serviceStatus = serviceStatus,
-                        showTopBar = true,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
+            if (groupsViewModel != null) {
+                GroupsCard(
+                    serviceStatus = serviceStatus,
+                    onSmartInsights = { tag -> navController.navigate(smartInsightsRoute(tag)) },
+                    viewModel = groupsViewModel,
+                    showTopBar = true,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                GroupsCard(
+                    serviceStatus = serviceStatus,
+                    onSmartInsights = { tag -> navController.navigate(smartInsightsRoute(tag)) },
+                    showTopBar = true,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
 

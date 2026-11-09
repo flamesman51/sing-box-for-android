@@ -76,7 +76,6 @@ import io.nekohasekai.sfa.compose.model.Group
 import io.nekohasekai.sfa.compose.model.GroupItem
 import io.nekohasekai.sfa.compose.screen.dashboard.groups.GroupsUiState
 import io.nekohasekai.sfa.compose.screen.dashboard.groups.GroupsViewModel
-import io.nekohasekai.sfa.compose.screen.smart.LocalSmartInsightsNavigator
 import io.nekohasekai.sfa.compose.topbar.LocalScaffoldPadding
 import io.nekohasekai.sfa.compose.topbar.OverrideTopBar
 import io.nekohasekai.sfa.compose.util.rememberSheetDismissFromContentOnlyIfGestureStartedAtTopModifier
@@ -87,6 +86,7 @@ import io.nekohasekai.sfa.utils.CommandClient
 @Composable
 fun GroupsCard(
     serviceStatus: Status,
+    onSmartInsights: (String) -> Unit,
     commandClient: CommandClient? = null,
     viewModel: GroupsViewModel? = null,
     showTopBar: Boolean = false,
@@ -186,6 +186,7 @@ fun GroupsCard(
             onItemSelected = onItemSelected,
             onUrlTest = onUrlTest,
             onItemUrlTest = onItemUrlTest,
+            onSmartInsights = onSmartInsights,
             listHeaderContent = listHeaderContent,
             asSheet = asSheet,
         )
@@ -204,6 +205,7 @@ private fun GroupsCardContent(
     onItemSelected: (String, String) -> Unit,
     onUrlTest: (String) -> Unit,
     onItemUrlTest: (String) -> Unit,
+    onSmartInsights: (String) -> Unit,
     listHeaderContent: (@Composable () -> Unit)? = null,
     asSheet: Boolean = false,
     modifier: Modifier = Modifier,
@@ -269,6 +271,7 @@ private fun GroupsCardContent(
                             isTesting = uiState.testingGroups.contains(group.tag),
                             onToggleExpanded = { onToggleExpanded(group.tag) },
                             onUrlTest = { onUrlTest(group.tag) },
+                            onSmartInsights = { onSmartInsights(group.tag) },
                             modifier = headerModifier,
                         )
                     }
@@ -365,6 +368,7 @@ private fun GroupHeader(
     isTesting: Boolean,
     onToggleExpanded: () -> Unit,
     onUrlTest: () -> Unit,
+    onSmartInsights: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -413,8 +417,7 @@ private fun GroupHeader(
                 )
             }
             if (group.type == "smart") {
-                val navigateToInsights = LocalSmartInsightsNavigator.current
-                IconButton(onClick = { navigateToInsights(group.tag) }, modifier = Modifier.size(40.dp)) {
+                IconButton(onClick = onSmartInsights, modifier = Modifier.size(40.dp)) {
                     Icon(Icons.Default.Insights, contentDescription = stringResource(R.string.smart_insights))
                 }
             }

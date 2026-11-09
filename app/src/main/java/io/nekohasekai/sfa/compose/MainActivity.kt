@@ -130,6 +130,7 @@ import io.nekohasekai.sfa.compose.screen.dashboard.DashboardViewModel
 import io.nekohasekai.sfa.compose.screen.dashboard.GroupsCard
 import io.nekohasekai.sfa.compose.screen.dashboard.groups.GroupsViewModel
 import io.nekohasekai.sfa.compose.screen.log.LogViewModel
+import io.nekohasekai.sfa.compose.screen.smart.smartInsightsRoute
 import io.nekohasekai.sfa.compose.screen.tools.OpenConnectStatusViewModel
 import io.nekohasekai.sfa.compose.screen.tools.OpenVPNStatusViewModel
 import io.nekohasekai.sfa.compose.screen.tools.TaildropSendManager
@@ -1405,6 +1406,10 @@ class MainActivity :
                     // Groups content
                     GroupsCard(
                         serviceStatus = currentServiceStatus,
+                        onSmartInsights = { tag ->
+                            showGroupsSheet = false
+                            navController.navigate(smartInsightsRoute(tag))
+                        },
                         commandClient = dashboardViewModel.commandClient,
                         viewModel = groupsViewModel,
                         listHeaderContent = {
