@@ -1,0 +1,124 @@
+name: Build SFA Smart
+
+on:
+  push:
+    branches: [smart]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Android app
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          submodules: recursive
+      - name: Checkout smart core
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          repository: flamesman51/sing-box-extended
+          ref: smart
+          path: core
+          fetch-depth: 0
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.8
+          cache-dependency-path: core/go.sum
+      - name: Setup JDK 17
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Setup Android NDK
+        id: ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r28
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-37.1" "build-tools;36.0.0"
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+        with:
+          cache-provider: basic
+      - name: Build arm64 libbox
+        working-directory: core
+        env:
+          ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
+        run: |
+          make lib_install
+          export PATH="$PATH:$(go env GOPATH)/bin"
+          go run ./cmd/internal/build_libbox -target android -platform android/arm64
+      - name: Copy Android libraries
+        run: |
+          mkdir -p app/libs
+          cp core/*.aar app/libs/
+      - name: Set app version and update metadata
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path("version.properties")
+          props = dict(line.split("=", 1) for line in path.read_text().splitlines() if "=" in line)
+          run = int(os.environ["RUN_NUMBER"])
+          assert run > 0
+          props["VERSION_CODE"] = str(int(props["VERSION_CODE"]) + run)
+          if os.environ["REF_TYPE"] == "tag":
+              props["VERSION_NAME"] = os.environ["REF_NAME"].removeprefix("v")
+          else:
+              props["VERSION_NAME"] += f"-smart.{run}"
+          assert props["VERSION_NAME"] and "/" not in props["VERSION_NAME"]
+          path.write_text("".join(f"{key}={value}\n" for key, value in props.items()))
+          dist = Path("dist")
+          dist.mkdir(exist_ok=True)
+          (dist / "SFA-version-metadata.json").write_text(json.dumps({
+              "version_code": int(props["VERSION_CODE"]),
+              "version_name": props["VERSION_NAME"],
+          }) + "\n")
+          PY
+      - name: Restore signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > app/release.keystore
+          test -s app/release.keystore
+      - name: Build signed other APKs
+        env:
+          ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
+          LOCAL_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}
+        run: ./gradlew :app:assembleOtherRelease :app:testOtherDebugUnitTest
+      - name: Collect arm64 and universal APKs
+        run: |
+          cp app/build/outputs/apk/other/release/*-arm64-v8a.apk dist/
+          cp app/build/outputs/apk/other/release/*-universal.apk dist/
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SFA-Smart-Android-${{ github.run_number }}
+          path: dist/
+          if-no-files-found: error
+      - name: Publish tagged release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            dist/*.apk
+            dist/SFA-version-metadata.json
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+      - name: Remove signing key
+        if: always()
+        run: rm -f app/release.keystore
