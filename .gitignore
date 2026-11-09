@@ -13,3 +13,5 @@ local.properties
 /service-account-credentials.json
 /CLAUDE.md
 /.claude/
+/app/release.keystore
+/.omp/

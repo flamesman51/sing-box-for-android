@@ -8,13 +8,14 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import io.nekohasekai.sfa.BuildConfig
 import io.nekohasekai.sfa.R
 import io.nekohasekai.sfa.bg.ServiceNotification
 import io.nekohasekai.sfa.compose.MainActivity
 import io.nekohasekai.sfa.xposed.HookModuleVersion
 
 object HookModuleUpdateNotifier {
-    private const val CHANNEL_ID = "lsposed_module_update"
+    private const val CHANNEL_ID = "${BuildConfig.APPLICATION_ID}.lsposed_module_update"
     private const val NOTIFICATION_ID = 0x5F10
 
     fun needsRestart(status: HookStatusClient.Status?): Boolean = isDowngrade(status) || isUpgrade(status)

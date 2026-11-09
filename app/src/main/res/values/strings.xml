@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
     <!-- App -->
-    <string name="app_name" translatable="false">sing-box</string>
+    <string name="app_name" translatable="false">SFA Smart</string>
     <string name="app_version_title">App version</string>
     <string name="language">Language</string>
     <string name="system_default">System default</string>
@@ -162,6 +162,7 @@
     <string name="basic_information">Basic Information</string>
     <string name="remote_configuration">Remote Configuration</string>
     <string name="last_updated_format">Last updated: %s</string>
+    <string name="profile_update_failed_format">Profile update failed: %s</string>
     <string name="content">Content</string>
     <string name="json_viewer">JSON Viewer</string>
     <string name="json_editor">JSON Editor</string>

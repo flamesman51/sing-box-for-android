@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import io.nekohasekai.sfa.BuildConfig
 import io.nekohasekai.sfa.R
 import io.nekohasekai.sfa.bg.ServiceNotification
 import io.nekohasekai.sfa.compose.MainActivity
@@ -15,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 /** Desktop notifications (OSC 9 / OSC 777) from terminal sessions. */
 object TerminalNotifier {
-    private const val CHANNEL_ID = "terminal_notifications"
+    private const val CHANNEL_ID = "${BuildConfig.APPLICATION_ID}.terminal_notifications"
     private const val NOTIFICATION_ID_BASE = 0x5F20
     private const val NOTIFICATION_ID_COUNT = 8
 

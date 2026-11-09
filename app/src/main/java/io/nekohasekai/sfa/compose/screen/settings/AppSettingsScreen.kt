@@ -97,6 +97,7 @@ import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.sfa.Application
 import io.nekohasekai.sfa.BuildConfig
 import io.nekohasekai.sfa.R
+import io.nekohasekai.sfa.bg.ServiceNotification
 import io.nekohasekai.sfa.compose.base.UiEvent
 import io.nekohasekai.sfa.compose.base.rememberApplyServiceChangeNotifier
 import io.nekohasekai.sfa.compose.component.UpdateAvailableDialog
@@ -207,12 +208,12 @@ fun AppSettingsScreen(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Application.notification.createNotificationChannel(
                 NotificationChannel(
-                    "service",
+                    ServiceNotification.notificationChannel,
                     "Service Notifications",
                     NotificationManager.IMPORTANCE_LOW,
                 ),
             )
-            val channel = Application.notification.getNotificationChannel("service")
+            val channel = Application.notification.getNotificationChannel(ServiceNotification.notificationChannel)
             notificationEnabled = channel?.importance != NotificationManager.IMPORTANCE_NONE
         } else {
             notificationEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
@@ -394,7 +395,7 @@ fun AppSettingsScreen(
                         context.startActivity(
                             Intent(AndroidSettings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
                                 putExtra(AndroidSettings.EXTRA_APP_PACKAGE, context.packageName)
-                                putExtra(AndroidSettings.EXTRA_CHANNEL_ID, "service")
+                                putExtra(AndroidSettings.EXTRA_CHANNEL_ID, ServiceNotification.notificationChannel)
                             },
                         )
                     } else {

@@ -68,7 +68,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "io.nekohasekai.sfa"
+        applicationId = "io.github.flamesman51.sfa"
         minSdk = 24
         targetSdk = 37
         versionCode = getVersionProps("VERSION_CODE").toInt()
@@ -78,7 +78,7 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("release.keystore")
+            storeFile = file(getProps("KEYSTORE_FILE").ifEmpty { "release.keystore" })
             storePassword = getProps("KEYSTORE_PASS")
             keyAlias = getProps("ALIAS_NAME")
             keyPassword = getProps("ALIAS_PASS")
@@ -344,6 +344,7 @@ dependencies {
     // Debug/Test dependencies
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+    testImplementation("junit:junit:4.13.2")
     "androidTestPlayImplementation"(composeBom24)
     "androidTestOtherImplementation"(composeBom24)
     "androidTestOtherLegacyImplementation"(composeBom21)
