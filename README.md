@@ -36,9 +36,10 @@ when importing into this fork. Only one VPN app can be active in an Android user
   permission and Android confirmation are handled visibly. Canceling verification
   or staging abandons the uncommitted installation; once commit starts, Android
   controls completion. A paused coordinator retains confirmation and failure results
-  for its next foreground visit. Pending updates clear only after the installed
-  version catches up. A stale or broken manifest cannot suppress them. Background
-  checks can be disabled.
+  for its next foreground visit. Restored unsealed sessions rewrite and sync the
+  complete verified APK before committing. Pending updates clear only after the
+  installed version catches up. A stale or broken manifest cannot suppress them.
+  Background checks can be disabled.
 - The GitHub self-updater remains selectable and uses
   [`flamesman51/sing-box-for-android` releases](https://github.com/flamesman51/sing-box-for-android/releases),
   the `other` arm64 APK, and `SFA-version-metadata.json`.

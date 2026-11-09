@@ -64,19 +64,18 @@ object SystemPackageInstaller {
             onSessionCreated(sessionId)
             cancellation?.check()
             packageInstaller.openSession(sessionId).use { session ->
-                if (existingSession == null) {
-                    session.openWrite("update.apk", 0, apkFile.length()).use { outputStream ->
-                        FileInputStream(apkFile).use { inputStream ->
-                            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-                            while (true) {
-                                cancellation?.check()
-                                val count = inputStream.read(buffer)
-                                if (count < 0) break
-                                outputStream.write(buffer, 0, count)
-                            }
+                // A restored session may contain only a partial copy; always restage from byte zero.
+                session.openWrite("update.apk", 0, apkFile.length()).use { outputStream ->
+                    FileInputStream(apkFile).use { inputStream ->
+                        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                        while (true) {
+                            cancellation?.check()
+                            val count = inputStream.read(buffer)
+                            if (count < 0) break
+                            outputStream.write(buffer, 0, count)
                         }
-                        session.fsync(outputStream)
                     }
+                    session.fsync(outputStream)
                 }
 
                 val intent = Intent(context, InstallResultReceiver::class.java).apply {
