@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "source_install_id": "android-fixture-source",
+  "trust": 0.25,
+  "applied": [
+    {
+      "network": "cell",
+      "mapped_to": "cell",
+      "members": 1,
+      "weight": 0.25
+    },
+    {
+      "network": "cell/25001",
+      "mapped_to": "cell/25001",
+      "members": 1,
+      "weight": 0.25
+    },
+    {
+      "network": "cell/25001/LTE",
+      "mapped_to": "cell/25001/LTE",
+      "members": 1,
+      "weight": 0.25
+    }
+  ],
+  "ignored": [
+    {
+      "network": "wifi/bssid:0123456789abcdef",
+      "reason": "foreign_redacted_key"
+    },
+    {
+      "network": "other",
+      "reason": "unknown_member"
+    }
+  ],
+  "replaced_previous_import": false
+}

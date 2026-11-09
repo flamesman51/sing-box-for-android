@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "exported_at": 1800000000,
+  "install_id": "android-fixture-install",
+  "redacted": true,
+  "device": {
+    "android": "",
+    "app": "",
+    "model": ""
+  },
+  "groups": {
+    "": {
+      "networks": {
+        "cell": {
+          "type": "cellular",
+          "label": null,
+          "carrier": "Fixture Carrier",
+          "radio": "LTE",
+          "last_seen": 1800000000
+        },
+        "cell/25001": {
+          "type": "cellular",
+          "label": null,
+          "carrier": "Fixture Carrier",
+          "radio": "LTE",
+          "last_seen": 1800000000
+        },
+        "cell/25001/LTE": {
+          "type": "cellular",
+          "label": null,
+          "carrier": "Fixture Carrier",
+          "radio": "LTE",
+          "last_seen": 1800000000
+        }
+      },
+      "stats": [
+        {
+          "network": "cell",
+          "server_identity": "a",
+          "S": 1,
+          "W": 1,
+          "rtt_p50_ms": 120,
+          "rtt_p90_ms": 120,
+          "download_mbps": 48.1,
+          "upload_mbps": 12.5,
+          "throughput_at": 1800000000,
+          "hours": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        },
+        {
+          "network": "cell/25001",
+          "server_identity": "a",
+          "S": 1,
+          "W": 1,
+          "rtt_p50_ms": 120,
+          "rtt_p90_ms": 120,
+          "download_mbps": 48.1,
+          "upload_mbps": 12.5,
+          "throughput_at": 1800000000,
+          "hours": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        },
+        {
+          "network": "cell/25001/LTE",
+          "server_identity": "a",
+          "S": 1,
+          "W": 1,
+          "rtt_p50_ms": 120,
+          "rtt_p90_ms": 120,
+          "download_mbps": 48.1,
+          "upload_mbps": 12.5,
+          "throughput_at": 1800000000,
+          "hours": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        }
+      ]
+    }
+  }
+}

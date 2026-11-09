@@ -1,0 +1,80 @@
+{
+  "networks": [
+    {
+      "carrier": "Fixture Carrier",
+      "key": "cell",
+      "label": "Fixture Carrier LTE",
+      "last_seen": 1800000000,
+      "members": [
+        {
+          "download_mbps": 48.1,
+          "rtt_ms": 120,
+          "stability": 0.9142857142857144,
+          "tag": "a",
+          "weight": 1
+        },
+        {
+          "download_mbps": null,
+          "rtt_ms": null,
+          "stability": 0.9,
+          "tag": "b",
+          "weight": 0
+        }
+      ],
+      "radio": "LTE",
+      "type": "cellular",
+      "weight": 1
+    },
+    {
+      "carrier": "Fixture Carrier",
+      "key": "cell/25001",
+      "label": "Fixture Carrier LTE",
+      "last_seen": 1800000000,
+      "members": [
+        {
+          "download_mbps": 48.1,
+          "rtt_ms": 120,
+          "stability": 0.926530612244898,
+          "tag": "a",
+          "weight": 1
+        },
+        {
+          "download_mbps": null,
+          "rtt_ms": null,
+          "stability": 0.9,
+          "tag": "b",
+          "weight": 0
+        }
+      ],
+      "radio": "LTE",
+      "type": "cellular",
+      "weight": 1
+    },
+    {
+      "carrier": "Fixture Carrier",
+      "key": "cell/25001/LTE",
+      "label": "Fixture Carrier LTE",
+      "last_seen": 1800000000,
+      "members": [
+        {
+          "download_mbps": 48.1,
+          "rtt_ms": 120,
+          "stability": 0.9370262390670554,
+          "tag": "a",
+          "weight": 1
+        },
+        {
+          "download_mbps": null,
+          "rtt_ms": null,
+          "stability": 0.9,
+          "tag": "b",
+          "weight": 0
+        }
+      ],
+      "radio": "LTE",
+      "type": "cellular",
+      "weight": 1
+    }
+  ],
+  "version": 1
+}
