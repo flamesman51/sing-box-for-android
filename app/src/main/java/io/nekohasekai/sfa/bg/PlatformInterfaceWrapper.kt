@@ -11,6 +11,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import io.nekohasekai.libbox.BridgeOptions
 import io.nekohasekai.libbox.BridgeSession
+import io.nekohasekai.libbox.CellularState
 import io.nekohasekai.libbox.ConnectionOwner
 import io.nekohasekai.libbox.InterfaceUpdateListener
 import io.nekohasekai.libbox.Libbox
@@ -46,6 +47,23 @@ interface PlatformInterfaceWrapper : PlatformInterface {
     override fun usePlatformAutoDetectInterfaceControl(): Boolean = true
 
     override fun autoDetectInterfaceControl(fd: Int) {
+    }
+    override fun bindInterfaceControl(fd: Int, interfaceName: String) {
+        check(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) { "android: interface binding requires Android 6" }
+        val network = Application.connectivity.allNetworks.firstOrNull { network ->
+            val capabilities = Application.connectivity.getNetworkCapabilities(network)
+            capabilities != null &&
+                !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN) &&
+                Application.connectivity.getLinkProperties(network)?.interfaceName == interfaceName
+        } ?: error("android: network interface not found: $interfaceName")
+        autoDetectInterfaceControl(fd)
+        val descriptor = ParcelFileDescriptor.adoptFd(fd)
+        try {
+            network.bindSocket(descriptor.fileDescriptor)
+        } finally {
+            // Go owns the socket, including when binding fails.
+            descriptor.detachFd()
+        }
     }
 
     override fun openTun(options: TunOptions): Int {
@@ -177,6 +195,14 @@ interface PlatformInterfaceWrapper : PlatformInterface {
         }
         return WIFIState(ssid, wifiInfo.bssid)
     }
+
+    override fun readCellularState(): CellularState? = SmartPlatform.readCellularState()
+
+    override fun systemCountryCode(): String = SmartPlatform.systemCountryCode()
+
+    override fun isPowerSaveMode(): Boolean = SmartPlatform.isPowerSaveMode()
+
+    override fun systemTimezoneOffsetSeconds(): Int = SmartPlatform.systemTimezoneOffsetSeconds()
 
     override fun localDNSTransport(): LocalDNSTransport? = LocalResolver
 
