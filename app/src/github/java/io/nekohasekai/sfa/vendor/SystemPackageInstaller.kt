@@ -56,7 +56,8 @@ object SystemPackageInstaller {
         }
         cancellation?.check()
         val sessionId = existingSession?.sessionId ?: packageInstaller.createSession(params)
-        if (existingSession?.isSealed == true) {
+        // API 24-25 cannot query sealing; a sealed session then fails openWrite and is abandoned below.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && existingSession?.isSealed == true) {
             onSessionCreated(sessionId)
             return sessionId
         }
