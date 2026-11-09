@@ -288,6 +288,13 @@ fun ProfilesCard(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 ProfileInfoRow(profile = selectedProfile)
+                selectedProfile?.typed?.lastUpdateError?.let { error ->
+                    Text(
+                        text = stringResource(R.string.profile_update_failed_format, error),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 

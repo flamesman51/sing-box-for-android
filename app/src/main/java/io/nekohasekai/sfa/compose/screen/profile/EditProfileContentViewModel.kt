@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.Date
 
 data class EditProfileContentUiState(
     val isLoading: Boolean = false,
@@ -194,7 +195,12 @@ class EditProfileContentViewModel(private val profileId: Long, initialIsReadOnly
 
                 // Save to file without validation
                 profile?.let { p ->
-                    File(p.typed.path).writeText(currentContent)
+                    val file = File(p.typed.path)
+                    if (!file.exists() || file.readText() != currentContent) {
+                        file.writeText(currentContent)
+                        p.typed.lastUpdated = Date()
+                        ProfileManager.update(p)
+                    }
                 }
 
                 _uiState.update {

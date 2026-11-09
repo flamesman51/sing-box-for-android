@@ -385,6 +385,14 @@ fun EditProfileScreen(
                                 }
                             }
 
+                            uiState.lastUpdateError?.let { error ->
+                                Text(
+                                    text = stringResource(R.string.profile_update_failed_format, error),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            }
+
                             OutlinedTextField(
                                 value = uiState.remoteUrl,
                                 onValueChange = viewModel::updateRemoteUrl,

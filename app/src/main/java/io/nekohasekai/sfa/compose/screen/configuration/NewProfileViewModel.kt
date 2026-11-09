@@ -6,7 +6,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.sfa.R
-import io.nekohasekai.sfa.bg.UpdateProfileWork
 import io.nekohasekai.sfa.database.Profile
 import io.nekohasekai.sfa.database.ProfileManager
 import io.nekohasekai.sfa.database.TypedProfile
@@ -20,7 +19,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.InputStream
-import java.util.Date
 
 data class NewProfileUiState(
     val name: String = "",
@@ -286,7 +284,6 @@ class NewProfileViewModel(application: Application) : AndroidViewModel(applicati
                 remoteURL = state.remoteUrl
                 autoUpdate = state.autoUpdate
                 autoUpdateInterval = state.autoUpdateInterval
-                lastUpdated = Date()
             }
 
         val profile =
@@ -305,14 +302,10 @@ class NewProfileViewModel(application: Application) : AndroidViewModel(applicati
         val configContent = content
 
         configFile.writeText(configContent)
+        typedProfile.markUpdateSuccess(contentChanged = true)
 
         // Create profile in database and select it
         ProfileManager.create(profile, andSelect = true)
-
-        // Reconfigure updater if auto-update is enabled
-        if (state.autoUpdate) {
-            UpdateProfileWork.reconfigureUpdater()
-        }
 
         return profile
     }

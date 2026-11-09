@@ -37,6 +37,10 @@ class TypedProfile() : Parcelable {
     var type = Type.Local
     var remoteURL: String = ""
     var lastUpdated: Date = Date(0)
+
+    // Successful checks advance the cadence even when the content is unchanged.
+    var lastChecked: Date = Date(0)
+    var lastUpdateError: String? = null
     var autoUpdate: Boolean = false
     var autoUpdateInterval = 60
 
@@ -50,19 +54,41 @@ class TypedProfile() : Parcelable {
         if (version >= 1) {
             autoUpdateInterval = reader.readInt()
         }
+        if (version >= 2) {
+            lastChecked = Date(reader.readLong())
+            lastUpdateError = reader.readString()
+        } else {
+            lastChecked = lastUpdated
+        }
     }
 
     override fun writeToParcel(writer: Parcel, flags: Int) {
-        writer.writeInt(1)
+        writer.writeInt(2)
         writer.writeString(path)
         writer.writeInt(type.ordinal)
         writer.writeString(remoteURL)
         writer.writeInt(if (autoUpdate) 1 else 0)
         writer.writeLong(lastUpdated.time)
         writer.writeInt(autoUpdateInterval)
+        writer.writeLong(lastChecked.time)
+        writer.writeString(lastUpdateError)
     }
 
     override fun describeContents(): Int = 0
+
+    fun nextUpdateDelayMillis(nowMillis: Long): Long {
+        val intervalMillis = autoUpdateInterval.coerceAtLeast(15) * 60_000L
+        val lastCheckMillis = maxOf(lastChecked.time, lastUpdated.time)
+        return (intervalMillis - (nowMillis - lastCheckMillis)).coerceAtLeast(0L)
+    }
+
+    fun markUpdateSuccess(contentChanged: Boolean, checkedAt: Date = Date()) {
+        lastChecked = checkedAt
+        if (contentChanged) {
+            lastUpdated = checkedAt
+        }
+        lastUpdateError = null
+    }
 
     companion object CREATOR : Parcelable.Creator<TypedProfile> {
         override fun createFromParcel(parcel: Parcel): TypedProfile = TypedProfile(parcel)

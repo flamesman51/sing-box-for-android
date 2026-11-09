@@ -1,11 +1,16 @@
 package io.nekohasekai.sfa.database
 
 import androidx.room.Room
+import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.sfa.Application
+import io.nekohasekai.sfa.bg.UpdateProfileWork
 import io.nekohasekai.sfa.constant.Path
+import io.nekohasekai.sfa.utils.HTTPClient
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import java.io.File
 
 @Suppress("RedundantSuspendModifier")
 object ProfileManager {
@@ -46,9 +51,7 @@ object ProfileManager {
         if (andSelect) {
             Settings.selectedProfile = profile.id
         }
-        for (callback in callbacks.toList()) {
-            callback()
-        }
+        notifyProfilesChanged()
         return profile
     }
 
@@ -56,9 +59,7 @@ object ProfileManager {
         try {
             return instance.profileDao().update(profile)
         } finally {
-            for (callback in callbacks.toList()) {
-                callback()
-            }
+            notifyProfilesChanged()
         }
     }
 
@@ -66,9 +67,7 @@ object ProfileManager {
         try {
             return instance.profileDao().update(profiles)
         } finally {
-            for (callback in callbacks.toList()) {
-                callback()
-            }
+            notifyProfilesChanged()
         }
     }
 
@@ -76,9 +75,7 @@ object ProfileManager {
         try {
             return instance.profileDao().delete(profile)
         } finally {
-            for (callback in callbacks.toList()) {
-                callback()
-            }
+            notifyProfilesChanged()
         }
     }
 
@@ -86,9 +83,43 @@ object ProfileManager {
         try {
             return instance.profileDao().delete(profiles)
         } finally {
-            for (callback in callbacks.toList()) {
-                callback()
+            notifyProfilesChanged()
+        }
+    }
+
+    suspend fun updateRemote(profile: Profile): Boolean {
+        val contentChanged =
+            try {
+                val content = HTTPClient().use { it.getString(profile.typed.remoteURL) }
+                Libbox.checkConfig(content)
+                val file = File(profile.typed.path)
+                val changed = !file.exists() || file.readText() != content
+                if (changed) {
+                    file.writeText(content)
+                }
+                changed
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                profile.typed.lastUpdateError = e.message ?: e.toString()
+                try {
+                    update(profile)
+                } catch (saveError: CancellationException) {
+                    throw saveError
+                } catch (saveError: Exception) {
+                    e.addSuppressed(saveError)
+                }
+                throw e
             }
+        profile.typed.markUpdateSuccess(contentChanged)
+        update(profile)
+        return contentChanged
+    }
+
+    private suspend fun notifyProfilesChanged() {
+        UpdateProfileWork.reconfigureUpdater()
+        for (callback in callbacks.toList()) {
+            callback()
         }
     }
 

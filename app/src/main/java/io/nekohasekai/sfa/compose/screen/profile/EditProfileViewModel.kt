@@ -8,12 +8,11 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.sfa.R
-import io.nekohasekai.sfa.bg.UpdateProfileWork
 import io.nekohasekai.sfa.database.Profile
 import io.nekohasekai.sfa.database.ProfileManager
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.database.TypedProfile
-import io.nekohasekai.sfa.utils.HTTPClient
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +34,7 @@ data class EditProfileUiState(
     val autoUpdate: Boolean = false,
     val autoUpdateInterval: Int = 60,
     val lastUpdated: Date? = null,
+    val lastUpdateError: String? = null,
     // Original values for change detection
     val originalName: String = "",
     val originalIcon: String? = null,
@@ -90,6 +90,7 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
                         autoUpdateInterval = typedProfile.autoUpdateInterval,
                         originalAutoUpdateInterval = typedProfile.autoUpdateInterval,
                         lastUpdated = typedProfile.lastUpdated,
+                        lastUpdateError = typedProfile.lastUpdateError,
                         isLoading = false,
                     )
                 }
@@ -191,7 +192,7 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
 
     fun saveChanges() {
         val state = _uiState.value
-        val profile = state.profile ?: return
+        val profileId = state.profile?.id ?: return
 
         if (state.autoUpdateIntervalError != null) {
             return
@@ -201,27 +202,24 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
             _uiState.update { it.copy(isSaving = true) }
 
             try {
+                val profile = ProfileManager.get(profileId) ?: throw IllegalArgumentException("Profile not found")
                 // Update profile object
                 profile.name = state.name
                 profile.icon = state.icon
                 profile.typed.remoteURL = state.remoteUrl
 
-                // Handle auto-update changes
-                val autoUpdateChanged = state.autoUpdate != state.originalAutoUpdate
                 profile.typed.autoUpdate = state.autoUpdate
                 profile.typed.autoUpdateInterval = state.autoUpdateInterval
 
                 // Save to database
                 ProfileManager.update(profile)
 
-                // Reconfigure updater if auto-update was enabled
-                if (autoUpdateChanged && state.autoUpdate) {
-                    UpdateProfileWork.reconfigureUpdater()
-                }
-
                 // Update UI state with new original values
                 _uiState.update {
                     it.copy(
+                        profile = profile,
+                        lastUpdated = profile.typed.lastUpdated,
+                        lastUpdateError = profile.typed.lastUpdateError,
                         originalName = state.name,
                         originalIcon = state.icon,
                         originalRemoteUrl = state.remoteUrl,
@@ -252,46 +250,33 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
             _uiState.update { it.copy(isUpdating = true) }
 
             try {
-                var selectedProfileUpdated = false
-
-                // Fetch remote config
-                val content = HTTPClient().use { it.getString(profile.typed.remoteURL) }
-                Libbox.checkConfig(content)
-
-                // Check if content changed
-                val file = File(profile.typed.path)
-                if (!file.exists() || file.readText() != content) {
-                    file.writeText(content)
-                    if (profile.id == Settings.selectedProfile) {
-                        selectedProfileUpdated = true
-                    }
-                }
-
-                // Update last updated time
-                profile.typed.lastUpdated = Date()
-                ProfileManager.update(profile)
+                val contentChanged = ProfileManager.updateRemote(profile)
 
                 // Update UI state with success indicator
                 _uiState.update {
                     it.copy(
                         lastUpdated = profile.typed.lastUpdated,
+                        lastUpdateError = null,
                         isUpdating = false,
                         showUpdateSuccess = true,
                     )
                 }
 
                 // Reload service if needed
-                if (selectedProfileUpdated) {
+                if (contentChanged && profile.id == Settings.selectedProfile) {
                     try {
                         Libbox.newStandaloneCommandClient().serviceReload()
                     } catch (e: Exception) {
                         // Service reload errors are not critical
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
                         isUpdating = false,
+                        lastUpdateError = profile.typed.lastUpdateError,
                         errorMessage = e.message,
                     )
                 }

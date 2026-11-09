@@ -13,9 +13,7 @@ import io.nekohasekai.sfa.Application
 import io.nekohasekai.sfa.database.ProfileManager
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.database.TypedProfile
-import io.nekohasekai.sfa.utils.HTTPClient
-import java.io.File
-import java.util.Date
+import kotlinx.coroutines.CancellationException
 import java.util.concurrent.TimeUnit
 
 class UpdateProfileWork {
@@ -24,10 +22,12 @@ class UpdateProfileWork {
         private const val TAG = "UpdateProfileWork"
 
         suspend fun reconfigureUpdater() {
-            runCatching {
+            try {
                 reconfigureUpdater0()
-            }.onFailure {
-                Log.e(TAG, "reconfigureUpdater", it)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "reconfigureUpdater", e)
             }
         }
 
@@ -40,18 +40,15 @@ class UpdateProfileWork {
                 return
             }
 
-            var minDelay =
-                remoteProfiles.minByOrNull { it.typed.autoUpdateInterval }!!.typed.autoUpdateInterval.toLong()
-            val nowSeconds = System.currentTimeMillis() / 1000L
-            val minInitDelay =
-                remoteProfiles.minOf { (it.typed.autoUpdateInterval * 60) - (nowSeconds - (it.typed.lastUpdated.time / 1000L)) }
-            if (minDelay < 15) minDelay = 15
+            val minDelay = remoteProfiles.minOf { it.typed.autoUpdateInterval.coerceAtLeast(15).toLong() }
+            val nowMillis = System.currentTimeMillis()
+            val minInitDelay = remoteProfiles.minOf { it.typed.nextUpdateDelayMillis(nowMillis) }
             WorkManager.getInstance(Application.application).enqueueUniquePeriodicWork(
                 WORK_NAME,
                 ExistingPeriodicWorkPolicy.UPDATE,
                 PeriodicWorkRequest.Builder(UpdateTask::class.java, minDelay, TimeUnit.MINUTES)
                     .apply {
-                        if (minInitDelay > 0) setInitialDelay(minInitDelay, TimeUnit.SECONDS)
+                        if (minInitDelay > 0) setInitialDelay(minInitDelay, TimeUnit.MILLISECONDS)
                         setBackoffCriteria(BackoffPolicy.LINEAR, 15, TimeUnit.MINUTES)
                     }
                     .build(),
@@ -69,23 +66,15 @@ class UpdateProfileWork {
             var success = true
             val selectedProfile = Settings.selectedProfile
             for (profile in remoteProfiles) {
-                val lastSeconds =
-                    (System.currentTimeMillis() - profile.typed.lastUpdated.time) / 1000L
-                if (lastSeconds < profile.typed.autoUpdateInterval * 60) {
+                if (profile.typed.nextUpdateDelayMillis(System.currentTimeMillis()) > 0) {
                     continue
                 }
                 try {
-                    val content = HTTPClient().use { it.getString(profile.typed.remoteURL) }
-                    Libbox.checkConfig(content)
-                    val file = File(profile.typed.path)
-                    if (file.readText() != content) {
-                        File(profile.typed.path).writeText(content)
-                        if (profile.id == selectedProfile) {
-                            selectedProfileUpdated = true
-                        }
+                    if (ProfileManager.updateRemote(profile) && profile.id == selectedProfile) {
+                        selectedProfileUpdated = true
                     }
-                    profile.typed.lastUpdated = Date()
-                    ProfileManager.update(profile)
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     Log.e(TAG, "update profile ${profile.name}", e)
                     success = false

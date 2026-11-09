@@ -15,8 +15,8 @@ import io.nekohasekai.sfa.database.TypedProfile
 import io.nekohasekai.sfa.utils.AppLifecycleObserver
 import io.nekohasekai.sfa.utils.CommandClient
 import io.nekohasekai.sfa.utils.CommandTarget
-import io.nekohasekai.sfa.utils.HTTPClient
 import io.nekohasekai.sfa.utils.RemoteControlManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,9 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONException
-import java.io.File
 import java.util.Collections
-import java.util.Date
 
 enum class CardGroup(val pairGroup: CardPairGroup? = null) {
     ClashMode,
@@ -353,21 +351,7 @@ class DashboardViewModel :
             }
 
             try {
-                // Fetch remote config
-                val content = HTTPClient().use { it.getString(profile.typed.remoteURL) }
-                Libbox.checkConfig(content)
-
-                // Check if content changed
-                val file = File(profile.typed.path)
-                var contentChanged = false
-                if (!file.exists() || file.readText() != content) {
-                    file.writeText(content)
-                    contentChanged = true
-                }
-
-                // Update last updated time
-                profile.typed.lastUpdated = Date()
-                ProfileManager.update(profile)
+                val contentChanged = ProfileManager.updateRemote(profile)
 
                 // Reload profiles
                 loadProfiles()
@@ -389,6 +373,8 @@ class DashboardViewModel :
                         sendGlobalEvent(UiEvent.RequestReconnectService)
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 sendErrorMessage("Failed to update profile: ${e.message}")
                 // Clear updating state on error
@@ -418,7 +404,10 @@ class DashboardViewModel :
         // Update user order in database
         viewModelScope.launch(Dispatchers.IO) {
             currentProfiles.forEachIndexed { index, profile ->
-                profile.userOrder = index.toLong()
+                // Preserve update results saved since the dashboard last loaded.
+                val currentProfile = ProfileManager.get(profile.id) ?: return@forEachIndexed
+                currentProfile.userOrder = index.toLong()
+                currentProfiles[index] = currentProfile
             }
             ProfileManager.update(currentProfiles)
         }

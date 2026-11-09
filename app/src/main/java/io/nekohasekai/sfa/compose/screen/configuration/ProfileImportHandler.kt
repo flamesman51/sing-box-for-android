@@ -252,7 +252,6 @@ class ProfileImportHandler(private val context: Context) {
                 remoteURL = url
                 autoUpdate = true
                 autoUpdateInterval = 60
-                lastUpdated = Date()
             }
 
         val profile =
