@@ -40,6 +40,26 @@ when importing into this fork. Only one VPN app can be active in an Android user
   [`flamesman51/sing-box-for-android` releases](https://github.com/flamesman51/sing-box-for-android/releases),
   the `other` arm64 APK, and `SFA-version-metadata.json`.
 
+## Smart selector
+
+Profiles can use the core's `smart` outbound group (see the core's
+`docs/configuration/outbound/smart.md`); `urltest` profiles behave as before.
+
+- **Settings → Smart**: country for the built-in direct-connectivity checks (automatic
+  from network, SIM, timezone, then locale; never IP lookup), an optional per-network
+  history helper (precise and background location, phone state; everything works
+  without them, history just stays coarser), and the "all servers unreachable"
+  notification toggle.
+- **Selector insights**, from a Smart group's card or Tools: selected path and state,
+  network and direct connectivity, member table, speed-test budget, per-network
+  history, recent events and 24 h charts. It polls the running core every 2 s only
+  while visible.
+- **Export / import / reset**: exports are redacted by default; a raw export includes
+  network names and cell identifiers and needs explicit confirmation. Imports (up to
+  2 MiB) add bounded priors weighted by how similar the source phone is (same model and
+  carrier 0.5, same carrier 0.25, else 0.1) and show what was applied. Reset clears
+  learned history of the shown group only.
+
 ## Building and signing
 
 Use JDK 17, Android SDK platform 37.1, build-tools 36.0.0, NDK
