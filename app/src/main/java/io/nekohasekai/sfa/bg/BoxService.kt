@@ -360,6 +360,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
             try {
                 closeService()
                 startup?.join()
+                closeService()
                 val pfd = fileDescriptor
                 if (pfd != null) {
                     pfd.close()

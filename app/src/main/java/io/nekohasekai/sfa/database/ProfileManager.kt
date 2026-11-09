@@ -90,7 +90,7 @@ object ProfileManager {
     suspend fun updateRemote(profile: Profile): Boolean {
         val contentChanged =
             try {
-                val content = HTTPClient().use { it.getString(profile.typed.remoteURL) }
+                val content = HTTPClient().use { it.getProfile(profile.typed.remoteURL) }
                 Libbox.checkConfig(content)
                 val file = File(profile.typed.path)
                 val changed = !file.exists() || file.readText() != content
@@ -101,9 +101,16 @@ object ProfileManager {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                profile.typed.lastUpdateError = e.message ?: e.toString()
                 try {
-                    update(profile)
+                    val currentTyped = instance.profileDao().updateRemoteError(
+                        profile.id,
+                        profile.typed.remoteURL,
+                        e.message ?: e.toString(),
+                    )
+                    if (currentTyped != null) {
+                        profile.typed = currentTyped
+                        notifyProfilesChanged()
+                    }
                 } catch (saveError: CancellationException) {
                     throw saveError
                 } catch (saveError: Exception) {

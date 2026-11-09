@@ -7,6 +7,7 @@ import androidx.room.Entity
 import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.TypeConverters
 import androidx.room.Update
 import kotlinx.parcelize.Parcelize
@@ -42,6 +43,15 @@ class Profile(
 
         @Query("SELECT * FROM profiles WHERE id = :profileId")
         fun get(profileId: Long): Profile?
+
+        @Transaction
+        fun updateRemoteError(profileId: Long, remoteUrl: String, error: String): TypedProfile? {
+            val current = get(profileId) ?: return null
+            if (current.typed.type != TypedProfile.Type.Remote || current.typed.remoteURL != remoteUrl) return null
+            current.typed.lastUpdateError = error
+            update(current)
+            return current.typed
+        }
 
         @Query("select * from profiles order by userOrder asc")
         fun list(): List<Profile>
