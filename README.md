@@ -33,9 +33,12 @@ when importing into this fork. Only one VPN app can be active in an Android user
   an app-update notification, and the VPN notification expose a pending update.
   Notification denial or channel changes do not remove the in-app fallback.
 - Installation is user-coordinated and never stops the VPN first. Unknown-app
-  permission and Android confirmation are handled visibly. Pending updates clear
-  only after the installed version catches up. A stale or broken manifest cannot
-  suppress them. Background checks can be disabled.
+  permission and Android confirmation are handled visibly. Canceling verification
+  or staging abandons the uncommitted installation; once commit starts, Android
+  controls completion. A paused coordinator retains confirmation and failure results
+  for its next foreground visit. Pending updates clear only after the installed
+  version catches up. A stale or broken manifest cannot suppress them. Background
+  checks can be disabled.
 - The GitHub self-updater remains selectable and uses
   [`flamesman51/sing-box-for-android` releases](https://github.com/flamesman51/sing-box-for-android/releases),
   the `other` arm64 APK, and `SFA-version-metadata.json`.

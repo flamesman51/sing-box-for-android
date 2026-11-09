@@ -3,6 +3,8 @@ package io.nekohasekai.sfa.update
 import androidx.compose.runtime.mutableStateOf
 import io.nekohasekai.sfa.BuildConfig
 import io.nekohasekai.sfa.database.Settings
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 
 object UpdateState {
@@ -57,20 +59,20 @@ object UpdateState {
         downloadError.value = null
     }
 
-    fun loadFromCache() {
+    suspend fun loadFromCache() = withContext(Dispatchers.IO) {
         if (UpdateSource.fromString(Settings.updateSource) == UpdateSource.SERVER) {
             ServerUpdates.initialize()
             ServerUpdates.reconcileInstalled()
             setUpdate(serverUpdateInfo())
-            return
+            return@withContext
         }
         val json = Settings.cachedUpdateInfo
-        if (json.isBlank()) return
+        if (json.isBlank()) return@withContext
 
-        val info = UpdateInfo.fromJson(json) ?: return
+        val info = UpdateInfo.fromJson(json) ?: return@withContext
         if (info.versionCode <= BuildConfig.VERSION_CODE) {
             clearCache()
-            return
+            return@withContext
         }
 
         updateInfo.value = info

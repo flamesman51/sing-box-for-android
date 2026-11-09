@@ -21,12 +21,13 @@ object SystemPackageInstaller {
         commit(context, apkFile, null) {}
     }
 
-    fun installServer(context: Context, ready: ReadyServerUpdate, existingSessionId: Int = -1, onSessionCreated: (Int) -> Unit): Int {
+    internal fun installServer(context: Context, ready: ReadyServerUpdate, existingSessionId: Int = -1, cancellation: InstallCancellation, onSessionCreated: (Int) -> Unit): Int {
+        cancellation.check()
         val apkFile = ServerUpdateChecker.verifiedReadyApk(context)
         check(apkFile != null && apkFile.absolutePath == ready.path && ServerUpdates.state.value.ready == ready) {
             context.getString(R.string.server_update_unavailable)
         }
-        return commit(context, apkFile, ready, existingSessionId, onSessionCreated)
+        return commit(context, apkFile, ready, existingSessionId, cancellation, onSessionCreated)
     }
 
     private fun commit(
@@ -34,6 +35,7 @@ object SystemPackageInstaller {
         apkFile: File,
         ready: ReadyServerUpdate?,
         existingSessionId: Int = -1,
+        cancellation: InstallCancellation? = null,
         onSessionCreated: (Int) -> Unit,
     ): Int {
         val packageInstaller = context.packageManager.packageInstaller
@@ -52,17 +54,26 @@ object SystemPackageInstaller {
         } else {
             null
         }
+        cancellation?.check()
         val sessionId = existingSession?.sessionId ?: packageInstaller.createSession(params)
         if (existingSession?.isSealed == true) {
             onSessionCreated(sessionId)
             return sessionId
         }
         try {
+            onSessionCreated(sessionId)
+            cancellation?.check()
             packageInstaller.openSession(sessionId).use { session ->
                 if (existingSession == null) {
                     session.openWrite("update.apk", 0, apkFile.length()).use { outputStream ->
                         FileInputStream(apkFile).use { inputStream ->
-                            inputStream.copyTo(outputStream)
+                            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                            while (true) {
+                                cancellation?.check()
+                                val count = inputStream.read(buffer)
+                                if (count < 0) break
+                                outputStream.write(buffer, 0, count)
+                            }
                         }
                         session.fsync(outputStream)
                     }
@@ -83,8 +94,11 @@ object SystemPackageInstaller {
                 check(ready == null || ServerUpdates.state.value.ready == ready) {
                     context.getString(R.string.server_update_unavailable)
                 }
-                onSessionCreated(sessionId)
-                session.commit(pendingIntent.intentSender)
+                if (cancellation == null) {
+                    session.commit(pendingIntent.intentSender)
+                } else {
+                    cancellation.commit { session.commit(pendingIntent.intentSender) }
+                }
             }
         } catch (exception: Exception) {
             runCatching { packageInstaller.abandonSession(sessionId) }

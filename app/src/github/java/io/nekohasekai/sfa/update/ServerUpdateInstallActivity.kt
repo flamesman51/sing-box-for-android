@@ -34,10 +34,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import io.nekohasekai.sfa.R
 import io.nekohasekai.sfa.compose.theme.Theme
+import io.nekohasekai.sfa.vendor.InstallCancellation
 import io.nekohasekai.sfa.vendor.SystemPackageInstaller
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import java.lang.ref.WeakReference
 
@@ -55,15 +58,38 @@ class ServerUpdateInstallModel : ViewModel() {
     var confirmation: Intent? = null
     var confirmationLaunched = false
     var error by mutableStateOf<Int?>(null)
+    var resultStatus: Int? = null
+    private var cancellation = InstallCancellation()
+    private var preparationJob: Job? = null
+
+    fun recordResult(sessionId: Int, ready: ReadyServerUpdate?, status: Int, confirmation: Intent?): Boolean {
+        if (sessionId < 0 || this.sessionId != sessionId || this.ready != ready) return false
+        resultStatus = status
+        this.confirmation = if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) confirmation else null
+        committed = true
+        resumeSession = false
+        return true
+    }
+
+    fun cancelInstall() {
+        cancellation.cancel()
+        preparationJob?.cancel()
+    }
+
+    override fun onCleared() {
+        cancelInstall()
+        super.onCleared()
+    }
 
     fun install(context: Context, identity: ReadyServerUpdate) {
         if (preparing || (committed && !resumeSession)) return
         preparing = true
         resumeSession = false
-        viewModelScope.launch {
+        val signal = InstallCancellation().also { cancellation = it }
+        preparationJob = viewModelScope.launch {
             try {
-                withContext(Dispatchers.IO) {
-                    SystemPackageInstaller.installServer(context, identity, sessionId) { sessionId = it }
+                runInterruptible(Dispatchers.IO) {
+                    SystemPackageInstaller.installServer(context, identity, sessionId, signal) { sessionId = it }
                 }
                 committed = true
             } catch (exception: CancellationException) {
@@ -82,23 +108,18 @@ class ServerUpdateInstallModel : ViewModel() {
 class ServerUpdateInstallActivity : AppCompatActivity() {
     companion object {
         private var visible = WeakReference<ServerUpdateInstallActivity>(null)
+        private var coordinator = WeakReference<ServerUpdateInstallModel>(null)
 
         fun deliverResult(sessionId: Int, ready: ReadyServerUpdate?, status: Int, confirmation: Intent?): Boolean {
+            val model = coordinator.get() ?: return false
+            if (!model.recordResult(sessionId, ready, status, confirmation)) return false
             val activity = visible.get() ?: return false
-            if (!activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) ||
-                activity.model.sessionId != sessionId || activity.model.ready != ready
+            if (activity.model !== model || !activity.stateInitialized ||
+                !activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
             ) {
                 return false
             }
-            when (status) {
-                PackageInstaller.STATUS_PENDING_USER_ACTION -> {
-                    if (confirmation == null) return false
-                    activity.model.confirmation = confirmation
-                    activity.launchConfirmation()
-                }
-                PackageInstaller.STATUS_SUCCESS -> activity.finish()
-                else -> activity.model.error = R.string.server_update_install_failed
-            }
+            activity.continueCoordinator()
             return true
         }
     }
@@ -117,6 +138,7 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         model = ViewModelProvider(this)[ServerUpdateInstallModel::class.java]
+        coordinator = WeakReference(model)
         if (!model.initialized) {
             model.initialized = true
             model.ready = ServerUpdateNotifier.readyIdentity(intent)
@@ -127,6 +149,8 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
             model.waitingForPermission = savedInstanceState?.getBoolean("waitingForPermission") ?: false
             model.confirmationLaunched = savedInstanceState?.getBoolean("confirmationLaunched") ?: false
             model.confirmation = savedInstanceState?.confirmationIntent("confirmation") ?: intent.confirmationIntent(Intent.EXTRA_INTENT)
+            model.resultStatus = savedInstanceState?.getInt("resultStatus", Int.MIN_VALUE)?.takeUnless { it == Int.MIN_VALUE }
+            model.error = savedInstanceState?.getInt("error")?.takeUnless { it == 0 }
             model.resumeSession = model.sessionId >= 0 && model.confirmation == null && !model.confirmationLaunched
         }
         lifecycleScope.launch {
@@ -136,9 +160,7 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
                     ServerUpdates.initialize()
                 }
                 stateInitialized = true
-                if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-                    if (model.confirmation != null) launchConfirmation() else continueInstall()
-                }
+                continueCoordinator()
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
@@ -200,7 +222,7 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         visible = WeakReference(this)
-        if (model.confirmation != null) launchConfirmation() else continueInstall()
+        continueCoordinator()
     }
 
     override fun onPause() {
@@ -217,7 +239,9 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
             model.committed = true
             model.confirmationLaunched = false
             model.confirmation = intent.confirmationIntent(Intent.EXTRA_INTENT)
-            if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) launchConfirmation()
+            model.resultStatus = PackageInstaller.STATUS_PENDING_USER_ACTION
+            model.error = null
+            continueCoordinator()
         } else if (intent.action == ServerUpdateNotifier.ACTION_INSTALL && !model.preparing &&
             (!model.committed || model.error != null)
         ) {
@@ -227,7 +251,8 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
             model.confirmation = null
             model.confirmationLaunched = false
             model.error = null
-            if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) continueInstall()
+            model.resultStatus = null
+            continueCoordinator()
         }
     }
 
@@ -237,7 +262,14 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
         outState.putBoolean("waitingForPermission", model.waitingForPermission)
         outState.putBoolean("confirmationLaunched", model.confirmationLaunched)
         outState.putParcelable("confirmation", model.confirmation)
+        outState.putInt("resultStatus", model.resultStatus ?: Int.MIN_VALUE)
+        outState.putInt("error", model.error ?: 0)
         super.onSaveInstanceState(outState)
+    }
+
+    override fun finish() {
+        if (::model.isInitialized) model.cancelInstall()
+        super.finish()
     }
 
     override fun onDestroy() {
@@ -247,6 +279,25 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
             }
         }
         super.onDestroy()
+    }
+
+    private fun continueCoordinator() {
+        if (!stateInitialized || !lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) return
+        val status = model.resultStatus
+        model.resultStatus = null
+        when (status) {
+            null -> Unit
+            PackageInstaller.STATUS_PENDING_USER_ACTION -> {
+                if (model.confirmation == null) model.error = R.string.server_update_confirmation_unavailable
+            }
+            PackageInstaller.STATUS_SUCCESS -> {
+                finish()
+                return
+            }
+            else -> model.error = R.string.server_update_install_failed
+        }
+        if (model.error != null) return
+        if (model.confirmation != null) launchConfirmation() else continueInstall()
     }
 
     private fun continueInstall() {
