@@ -3,6 +3,7 @@ package io.nekohasekai.sfa.bg
 import android.app.Service
 import android.content.Intent
 import io.nekohasekai.libbox.Notification
+import io.nekohasekai.sfa.compose.screen.smart.prepareSmartNotification
 
 class ProxyService :
     Service(),
@@ -15,7 +16,9 @@ class ProxyService :
 
     override fun onDestroy() = service.onDestroy()
 
-    override fun sendNotification(notification: Notification) = service.sendNotification(notification)
+    override fun sendNotification(notification: Notification) {
+        prepareSmartNotification(notification)?.let(service::sendNotification)
+    }
 
     override fun cancelNotification(identifier: String, typeID: Int) = service.cancelNotification(identifier, typeID)
 }

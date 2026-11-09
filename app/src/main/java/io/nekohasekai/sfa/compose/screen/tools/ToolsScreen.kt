@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Usb
@@ -56,6 +57,7 @@ import io.nekohasekai.sfa.bg.OOMReportManager
 import io.nekohasekai.sfa.bg.PowerReportManager
 import io.nekohasekai.sfa.compose.component.RemoteControlMenuItems
 import io.nekohasekai.sfa.compose.component.rememberRemoteServers
+import io.nekohasekai.sfa.compose.screen.smart.smartInsightsRoute
 import io.nekohasekai.sfa.compose.screen.usbip.USBIPStatusViewModel
 import io.nekohasekai.sfa.compose.topbar.LocalScaffoldPadding
 import io.nekohasekai.sfa.compose.topbar.OverrideTopBar
@@ -126,6 +128,13 @@ fun ToolsScreen(
             .padding(scaffoldPadding)
             .padding(top = 8.dp, bottom = if (showStatusBar) STATUS_BAR_CONTENT_PADDING else 8.dp),
     ) {
+        Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.smart_insights)) },
+                leadingContent = { Icon(Icons.Default.Insights, contentDescription = null) },
+                modifier = Modifier.clickable { navController.navigate(smartInsightsRoute()) },
+            )
+        }
         val tailscaleEndpoints = tailscaleState.endpoints
         val openConnectEndpoints = openConnectState.endpoints
         val openVPNEndpoints = openVPNState.endpoints

@@ -11,6 +11,7 @@ import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.libbox.Notification
 import io.nekohasekai.libbox.TunOptions
 import io.nekohasekai.sfa.R
+import io.nekohasekai.sfa.compose.screen.smart.prepareSmartNotification
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.ktx.toIpPrefix
 import io.nekohasekai.sfa.ktx.toList
@@ -188,7 +189,9 @@ class VPNService :
         return pfd.fd
     }
 
-    override fun sendNotification(notification: Notification) = service.sendNotification(notification)
+    override fun sendNotification(notification: Notification) {
+        prepareSmartNotification(notification)?.let(service::sendNotification)
+    }
 
     override fun cancelNotification(identifier: String, typeID: Int) = service.cancelNotification(identifier, typeID)
 }
