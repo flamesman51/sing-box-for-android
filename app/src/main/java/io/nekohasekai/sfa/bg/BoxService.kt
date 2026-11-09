@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
+import android.net.VpnService
 import android.os.Build
 import android.os.IBinder
 import android.os.ParcelFileDescriptor
@@ -27,6 +28,7 @@ import io.nekohasekai.libbox.OverrideOptions
 import io.nekohasekai.libbox.PlatformInterface
 import io.nekohasekai.libbox.SystemProxyStatus
 import io.nekohasekai.sfa.Application
+import io.nekohasekai.sfa.BuildConfig
 import io.nekohasekai.sfa.R
 import io.nekohasekai.sfa.compose.MainActivity
 import io.nekohasekai.sfa.constant.Action
@@ -36,13 +38,16 @@ import io.nekohasekai.sfa.database.ProfileManager
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.ktx.hasPermission
 import io.nekohasekai.sfa.vendor.Vendor
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -52,20 +57,36 @@ class BoxService(private val service: Service, private val platformInterface: Pl
     companion object {
         private const val PROFILE_UPDATE_INTERVAL = 15L * 60 * 1000 // 15 minutes in milliseconds
         private const val TAG = "BoxService"
+        private const val EXTRA_START_REASON = "start_reason"
 
         @OptIn(DelicateCoroutinesApi::class)
-        fun start() = GlobalScope.launch(Dispatchers.Main.immediate) {
+        fun start(reason: ServiceStartReason = ServiceStartReason.User) = GlobalScope.launch(Dispatchers.Main.immediate) {
             Settings.dataStore.initialize()
-            val intent = Intent(Application.application, Settings.serviceClass())
+            val intent =
+                Intent(Application.application, Settings.serviceClass())
+                    .putExtra(EXTRA_START_REASON, reason.name)
             ContextCompat.startForegroundService(Application.application, intent)
         }
 
+        @OptIn(DelicateCoroutinesApi::class)
         fun stop() {
-            Application.application.sendBroadcast(
-                Intent(Action.SERVICE_CLOSE).setPackage(
-                    Application.application.packageName,
-                ),
-            )
+            GlobalScope.launch(Dispatchers.Main.immediate) {
+                Settings.dataStore.initialize()
+                Settings.shouldRun = ServiceStartPolicy.shouldRunAfterStop(ServiceStopReason.User)
+                Settings.dataStore.flush()
+                Application.application.sendBroadcast(
+                    Intent(Action.SERVICE_CLOSE).setPackage(
+                        Application.application.packageName,
+                    ),
+                )
+            }
+        }
+
+        internal fun startReason(intent: Intent?): ServiceStartReason = when {
+            intent == null -> ServiceStartReason.StickyRestart
+            intent.action == VpnService.SERVICE_INTERFACE -> ServiceStartReason.AlwaysOn
+            intent.getStringExtra(EXTRA_START_REASON) == ServiceStartReason.Boot.name -> ServiceStartReason.Boot
+            else -> ServiceStartReason.User
         }
     }
 
@@ -77,6 +98,12 @@ class BoxService(private val service: Service, private val platformInterface: Pl
     private lateinit var commandServer: CommandServer
     private val idleModeScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val idleModeUpdates = Channel<Boolean>(Channel.UNLIMITED)
+    private var startupJob: Job? = null
+    private var shutdownJob: Job? = null
+
+    // A stop invalidates start requests that are still loading preferences.
+    private var stopGeneration = 0
+    private var lastStartId = 0
 
     init {
         idleModeScope.launch {
@@ -166,6 +193,8 @@ class BoxService(private val service: Service, private val platformInterface: Pl
                         }
                     },
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 stopAndAlert(Alert.CreateService, e.message)
                 return
@@ -184,31 +213,35 @@ class BoxService(private val service: Service, private val platformInterface: Pl
                 }
             }
 
-            status.postValue(Status.Started)
             withContext(Dispatchers.Main) {
+                status.value = Status.Started
                 notification.show(lastProfileName, R.string.status_started)
             }
             notification.start()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             stopAndAlert(Alert.StartService, e.message)
             return
         }
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
     override fun serviceStop() {
-        notification.close()
-        status.postValue(Status.Starting)
-        val pfd = fileDescriptor
-        if (pfd != null) {
-            pfd.close()
-            fileDescriptor = null
+        GlobalScope.launch(Dispatchers.Main.immediate) {
+            stopService()
         }
-        closeService()
     }
 
     override fun serviceReload() {
         runBlocking {
-            serviceReload0()
+            try {
+                serviceReload0()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                stopAndAlert(Alert.CreateService, e.message)
+            }
         }
     }
 
@@ -246,6 +279,8 @@ class BoxService(private val service: Service, private val platformInterface: Pl
                     }
                 },
             )
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             stopAndAlert(Alert.CreateService, e.message)
             return
@@ -286,38 +321,79 @@ class BoxService(private val service: Service, private val platformInterface: Pl
     }
 
     @OptIn(DelicateCoroutinesApi::class)
-    private fun stopService() {
-        if (status.value != Status.Started) return
+    private fun stopService(
+        reason: ServiceStopReason? = ServiceStopReason.User,
+        alert: Alert? = null,
+        message: String? = null,
+    ) {
+        if (reason != null) {
+            stopGeneration++
+        }
+        if (status.value == Status.Stopping) {
+            if (reason != null) {
+                val previousShutdown = shutdownJob
+                shutdownJob = GlobalScope.launch(Dispatchers.IO) {
+                    Settings.dataStore.initialize()
+                    Settings.shouldRun = ServiceStartPolicy.shouldRunAfterStop(reason)
+                    Settings.dataStore.flush()
+                    previousShutdown?.join()
+                }
+            }
+            return
+        }
         status.value = Status.Stopping
+        // Preserve newer start requests that arrive while teardown is in progress.
+        val stoppingStartId = lastStartId
+        val startup = startupJob
+        startup?.cancel()
         if (receiverRegistered) {
             service.unregisterReceiver(receiver)
             receiverRegistered = false
         }
         notification.close()
-        GlobalScope.launch(Dispatchers.IO) {
-            val pfd = fileDescriptor
-            if (pfd != null) {
-                pfd.close()
-                fileDescriptor = null
+        shutdownJob = GlobalScope.launch(Dispatchers.IO) {
+            Settings.dataStore.initialize()
+            if (reason != null) {
+                Settings.shouldRun = ServiceStartPolicy.shouldRunAfterStop(reason)
+                Settings.dataStore.flush()
             }
-            DefaultNetworkMonitor.stop()
-            closeService()
-            commandServer.apply {
-                close()
-//                Seq.destroyRef(refnum)
-            }
-            Libbox.discardPowerReportDraft()
-            PowerReportManager.refresh()
-            Settings.startedByUser = false
-            Settings.dataStore.flush()
-            withContext(Dispatchers.Main) {
-                status.value = Status.Stopped
-                service.stopSelf()
+            try {
+                closeService()
+                startup?.join()
+                val pfd = fileDescriptor
+                if (pfd != null) {
+                    pfd.close()
+                    fileDescriptor = null
+                }
+                DefaultNetworkMonitor.stop()
+                if (::commandServer.isInitialized) {
+                    commandServer.apply {
+                        close()
+//                        Seq.destroyRef(refnum)
+                    }
+                }
+                Libbox.discardPowerReportDraft()
+                PowerReportManager.refresh()
+            } finally {
+                withContext(Dispatchers.Main) {
+                    if (alert != null) {
+                        binder.broadcast { callback ->
+                            callback.onServiceAlert(alert.ordinal, message)
+                        }
+                    }
+                    status.value = Status.Stopped
+                    if (stoppingStartId == 0) {
+                        service.stopSelf()
+                    } else {
+                        service.stopSelf(stoppingStartId)
+                    }
+                }
             }
         }
     }
 
     private fun closeService() {
+        if (!::commandServer.isInitialized) return
         runCatching {
             commandServer.closeService()
         }.onFailure {
@@ -326,37 +402,16 @@ class BoxService(private val service: Service, private val platformInterface: Pl
     }
 
     private suspend fun stopAndAlert(type: Alert, message: String? = null) {
-        Settings.startedByUser = false
-        Settings.dataStore.flush()
-        val pfd = fileDescriptor
-        if (pfd != null) {
-            pfd.close()
-            fileDescriptor = null
-        }
-        DefaultNetworkMonitor.stop()
-        if (::commandServer.isInitialized) {
-            closeService()
-            commandServer.close()
-        }
         withContext(Dispatchers.Main) {
-            if (receiverRegistered) {
-                service.unregisterReceiver(receiver)
-                receiverRegistered = false
-            }
-            notification.close()
-            binder.broadcast { callback ->
-                callback.onServiceAlert(type.ordinal, message)
-            }
-            status.value = Status.Stopped
-            service.stopSelf()
+            stopService(ServiceStopReason.FatalConfiguration, type, message)
         }
     }
 
     @OptIn(DelicateCoroutinesApi::class)
     @Suppress("SameReturnValue")
-    internal fun onStartCommand(): Int {
-        if (status.value != Status.Stopped) return Service.START_NOT_STICKY
-        status.value = Status.Starting
+    internal fun onStartCommand(reason: ServiceStartReason, startId: Int): Int {
+        lastStartId = startId
+        val generation = stopGeneration
 
         if (!receiverRegistered) {
             ContextCompat.registerReceiver(
@@ -373,33 +428,68 @@ class BoxService(private val service: Service, private val platformInterface: Pl
             receiverRegistered = true
         }
 
-        GlobalScope.launch(Dispatchers.IO) {
-            Settings.startedByUser = true
-            try {
-                startCommandServer()
-            } catch (e: Exception) {
-                stopAndAlert(Alert.StartCommandServer, e.message)
+        GlobalScope.launch(Dispatchers.Main.immediate) {
+            Settings.dataStore.initialize()
+            shutdownJob?.join()
+            if (generation != stopGeneration) {
+                service.stopSelf(startId)
                 return@launch
             }
-            startService()
+            val persistedShouldRun = Settings.shouldRun
+            if (!ServiceStartPolicy.shouldRun(reason, persistedShouldRun)) {
+                if (status.value == Status.Stopped) {
+                    service.stopSelf(startId)
+                } else {
+                    stopService(reason = null)
+                }
+                return@launch
+            }
+            Settings.shouldRun = true
+            if (status.value != Status.Stopped) {
+                Settings.dataStore.flush()
+                return@launch
+            }
+            status.value = Status.Starting
+            startupJob = coroutineContext[Job]
+            Settings.dataStore.flush()
+            withContext(Dispatchers.IO) {
+                try {
+                    startCommandServer()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    stopAndAlert(Alert.StartCommandServer, e.message)
+                    return@withContext
+                }
+                ensureActive()
+                startService()
+            }
         }
-        return Service.START_NOT_STICKY
+        return Service.START_STICKY
     }
 
     internal fun onBind(): IBinder = binder
 
     internal fun onDestroy() {
+        stopGeneration++
+        if (status.value != Status.Stopped) {
+            stopService(reason = null)
+        }
+        if (receiverRegistered) {
+            service.unregisterReceiver(receiver)
+            receiverRegistered = false
+        }
         idleModeUpdates.cancel()
         idleModeScope.cancel()
         binder.close()
     }
 
     internal fun onRevoke() {
-        stopService()
+        stopService(ServiceStopReason.Revoke)
     }
 
     internal fun sendNotification(notification: Notification) {
-        val channel = "notification-${notification.typeID}"
+        val channel = "${BuildConfig.APPLICATION_ID}.notification-${notification.typeID}"
         val builder =
             NotificationCompat.Builder(service, channel).setShowWhen(false)
                 .setContentTitle(notification.title).setContentText(notification.body)
