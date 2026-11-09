@@ -110,6 +110,8 @@ import io.nekohasekai.sfa.compose.base.GlobalEventBus
 import io.nekohasekai.sfa.compose.base.SelectableMessageDialog
 import io.nekohasekai.sfa.compose.base.UiEvent
 import io.nekohasekai.sfa.compose.component.RemoteStatusBar
+import io.nekohasekai.sfa.compose.component.ServerUpdateBanner
+import io.nekohasekai.sfa.compose.component.ServerUpdateForegroundReminder
 import io.nekohasekai.sfa.compose.component.ServiceStatusBar
 import io.nekohasekai.sfa.compose.component.SnackbarHost
 import io.nekohasekai.sfa.compose.component.UpdateAvailableDialog
@@ -146,6 +148,7 @@ import io.nekohasekai.sfa.constant.Status
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.ktx.hasPermission
 import io.nekohasekai.sfa.ktx.launchCustomTab
+import io.nekohasekai.sfa.update.UpdateSource
 import io.nekohasekai.sfa.update.UpdateState
 import io.nekohasekai.sfa.utils.RemoteControlManager
 import io.nekohasekai.sfa.vendor.Vendor
@@ -635,7 +638,9 @@ class MainActivity :
         }
 
         // Handle update check prompt dialog (shown only once on first launch)
-        var showUpdateCheckPrompt by remember { mutableStateOf(!Settings.updateCheckPrompted) }
+        var showUpdateCheckPrompt by remember {
+            mutableStateOf(!Settings.updateCheckPrompted && UpdateSource.fromString(Settings.updateSource) != UpdateSource.SERVER)
+        }
         if (showUpdateCheckPrompt) {
             AlertDialog(
                 onDismissRequest = {
@@ -686,6 +691,7 @@ class MainActivity :
         // Handle update available dialog
         val updateInfo by UpdateState.updateInfo
         val shouldShowUpdateDialog = updateInfo != null &&
+            UpdateSource.fromString(Settings.updateSource) != UpdateSource.SERVER &&
             updateInfo!!.versionCode > Settings.lastShownUpdateVersion
         var showUpdateDialog by remember { mutableStateOf(true) }
 
@@ -720,6 +726,7 @@ class MainActivity :
                 },
             )
         }
+        ServerUpdateForegroundReminder()
 
         // Download progress dialog
         if (showDownloadDialog) {
@@ -1015,7 +1022,10 @@ class MainActivity :
         }
 
         val topBarContent: @Composable () -> Unit = {
-            topBarOverride?.invoke()
+            Column {
+                topBarOverride?.invoke()
+                ServerUpdateBanner()
+            }
         }
 
         val scaffoldContent: @Composable (PaddingValues) -> Unit = { paddingValues ->

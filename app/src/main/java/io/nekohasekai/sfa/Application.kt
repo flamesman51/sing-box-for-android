@@ -22,6 +22,8 @@ import io.nekohasekai.sfa.bg.UpdateProfileWork
 import io.nekohasekai.sfa.compose.screen.tools.TaildropFiles
 import io.nekohasekai.sfa.constant.Bugs
 import io.nekohasekai.sfa.database.Settings
+import io.nekohasekai.sfa.update.ServerUpdateNotifier
+import io.nekohasekai.sfa.update.ServerUpdates
 import io.nekohasekai.sfa.utils.AppLifecycleObserver
 import io.nekohasekai.sfa.utils.HookModuleUpdateNotifier
 import io.nekohasekai.sfa.utils.HookStatusClient
@@ -67,6 +69,10 @@ class Application : Application() {
         @Suppress("OPT_IN_USAGE")
         GlobalScope.launch(Dispatchers.IO) {
             Settings.dataStore.initialize()
+            ServerUpdates.initialize()
+            ServerUpdates.reconcileInstalled()
+            ServerUpdateNotifier.refresh(this@Application)
+            Vendor.scheduleAutoUpdate()
             HookStatusClient.register(this@Application)
             PrivilegeSettingsClient.register(this@Application)
             initialize(baseDir, workingDir, tempDir)

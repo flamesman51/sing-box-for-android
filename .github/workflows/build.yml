@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: sfa-smart-release
+  cancel-in-progress: false
+
 jobs:
   android:
     runs-on: ubuntu-latest
@@ -26,6 +30,9 @@ jobs:
           ref: smart
           path: core
           fetch-depth: 0
+      - name: Record core revision
+        run: |
+          printf 'Core commit: %s\n' "$(git -C core rev-parse HEAD)" > core-revision.txt
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -62,6 +69,7 @@ jobs:
       - name: Set app version and update metadata
         env:
           RUN_NUMBER: ${{ github.run_number }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
         run: |
@@ -74,7 +82,9 @@ jobs:
           props = dict(line.split("=", 1) for line in path.read_text().splitlines() if "=" in line)
           run = int(os.environ["RUN_NUMBER"])
           assert run > 0
-          props["VERSION_CODE"] = str(int(props["VERSION_CODE"]) + run)
+          attempt = int(os.environ["RUN_ATTEMPT"])
+          assert attempt > 0
+          props["VERSION_CODE"] = str((int(props["VERSION_CODE"]) + run) * 10 + min(attempt, 9))
           if os.environ["REF_TYPE"] == "tag":
               props["VERSION_NAME"] = os.environ["REF_NAME"].removeprefix("v")
           else:
@@ -100,10 +110,8 @@ jobs:
           ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
           LOCAL_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}
         run: ./gradlew :app:assembleOtherRelease :app:testOtherDebugUnitTest
-      - name: Collect arm64 and universal APKs
-        run: |
-          cp app/build/outputs/apk/other/release/*-arm64-v8a.apk dist/
-          cp app/build/outputs/apk/other/release/*-universal.apk dist/
+      - name: Collect arm64 APK
+        run: cp app/build/outputs/apk/other/release/*-arm64-v8a.apk dist/
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -114,6 +122,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v3
         with:
+          body_path: core-revision.txt
           files: |
             dist/*.apk
             dist/SFA-version-metadata.json

@@ -1,6 +1,6 @@
 # SFA Smart
 
-Personal Android fork of SFA for Pixel 8a, using the `smart` branch of
+Personal Android fork of SFA, using the `smart` branch of
 [`flamesman51/sing-box-extended`](https://github.com/flamesman51/sing-box-extended).
 The application ID is `io.github.flamesman51.sfa`; the Kotlin namespace remains
 `io.nekohasekai.sfa`. It installs alongside the stock SFA/SFA-extended app with
@@ -23,10 +23,22 @@ when importing into this fork. Only one VPN app can be active in an Android user
   edits, and deletion. WorkManager is inexact. “Last updated” records a content
   change, not an unchanged download; the last successful check controls update
   cadence. Background update errors are retained and shown in the profile editor.
-- The GitHub self-updater uses
+- Family-server updates are the default. A successful HTTPS remote-profile fetch
+  discovers `X-SFA-Smart-Update` against the final HTTPS response URL and pins the
+  first accepted origin. Other origins cannot replace that pin. Settings → Updates
+  shows the pinned origin and can forget it without hiding an already pending update.
+- The daily check downloads immutable, size/hash/package/version/signer-verified
+  APKs on unmetered networks, or any connected network after 48 hours. **Download
+  now** overrides the network wait. A persistent in-app banner, a daily reminder,
+  an app-update notification, and the VPN notification expose a pending update.
+  Notification denial or channel changes do not remove the in-app fallback.
+- Installation is user-coordinated and never stops the VPN first. Unknown-app
+  permission and Android confirmation are handled visibly. Pending updates clear
+  only after the installed version catches up. A stale or broken manifest cannot
+  suppress them. Background checks can be disabled.
+- The GitHub self-updater remains selectable and uses
   [`flamesman51/sing-box-for-android` releases](https://github.com/flamesman51/sing-box-for-android/releases),
-  the `other` arm64 APK (or universal fallback), and `SFA-version-metadata.json`.
-  It does not offer these arm64-only builds to non-arm64 devices.
+  the `other` arm64 APK, and `SFA-version-metadata.json`.
 
 ## Building and signing
 
@@ -51,17 +63,18 @@ The release signing properties are `KEYSTORE_FILE`, `KEYSTORE_PASS`, `ALIAS_NAME
 and `ALIAS_PASS`, loaded from gitignored `local.properties` or base64-encoded
 `LOCAL_PROPERTIES`. `KEYSTORE_FILE` accepts an absolute path or a path relative
 to `app/`; it defaults to `release.keystore`. Use your own signing key, for example
-`KEYSTORE_FILE=/home/senpo/.local/share/sfa-smart/release.keystore`.
+`KEYSTORE_FILE=/path/to/release.keystore`.
 No signing key is tracked by this fork.
 
 `.github/workflows/build.yml` checks out this app revision and
 `flamesman51/sing-box-extended@smart`, builds arm64 AARs and signed `other` APKs,
-runs JVM tests, and uploads arm64/universal APKs with update metadata. Its secrets
-are `KEYSTORE_BASE64` (keystore) and `LOCAL_PROPERTIES` (signing properties).
+runs JVM tests, and uploads the arm64 APK with update metadata. Its secrets are
+`KEYSTORE_BASE64` (keystore) and `LOCAL_PROPERTIES` (signing properties).
 Non-tag builds append `-smart.N` using the workflow run number; tag `v*` builds use
-the tag without `v` and publish a GitHub release. Version codes are the checked-in
-base code plus the workflow run number. The universal APK contains only arm64 core
-code because this workflow builds only `android/arm64`.
+the tag without `v` and publish a GitHub release with the core commit in its notes.
+Version codes use `(VERSION_CODE + run_number) * 10 + min(run_attempt, 9)`.
+Release runs are serialized. Only arm64 APKs are published because the nominal
+universal APK contains arm64-only libbox.
 
 ## Documentation
 

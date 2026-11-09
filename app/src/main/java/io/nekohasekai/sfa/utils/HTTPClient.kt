@@ -1,7 +1,10 @@
 package io.nekohasekai.sfa.utils
 
+import android.util.Log
 import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.sfa.ktx.unwrap
+import io.nekohasekai.sfa.update.ServerUpdatePolicy
+import io.nekohasekai.sfa.update.ServerUpdates
 import java.io.Closeable
 import java.util.Locale
 
@@ -23,12 +26,21 @@ class HTTPClient : Closeable {
         client.modernTLS()
     }
 
-    fun getString(url: String): String {
+    fun getProfile(url: String): String {
         val request = client.newRequest()
         request.setUserAgent(userAgent)
         request.setURL(url)
         val response = request.execute()
-        return response.content.unwrap
+        val content = response.content.unwrap
+        runCatching {
+            val finalUrl = ServerUpdatePolicy.profileDiscoveryUrl(url, response.getURL())
+            if (finalUrl != null) {
+                ServerUpdates.discover(finalUrl, response.getHeader("X-SFA-Smart-Update"))
+            }
+        }.onFailure {
+            Log.w("HTTPClient", "Ignoring invalid app-update discovery")
+        }
+        return content
     }
 
     override fun close() {

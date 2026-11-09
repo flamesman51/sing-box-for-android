@@ -11,10 +11,18 @@ import io.nekohasekai.sfa.R
 import io.nekohasekai.sfa.bg.RootClient
 import io.nekohasekai.sfa.compose.screen.qrscan.QRCodeCropArea
 import io.nekohasekai.sfa.database.Settings
+import io.nekohasekai.sfa.update.ServerUpdateChecker
+import io.nekohasekai.sfa.update.ServerUpdateNotifier
+import io.nekohasekai.sfa.update.ServerUpdateWork
+import io.nekohasekai.sfa.update.ServerUpdates
 import io.nekohasekai.sfa.update.UpdateCheckException
 import io.nekohasekai.sfa.update.UpdateInfo
+import io.nekohasekai.sfa.update.UpdateSource
 import io.nekohasekai.sfa.update.UpdateState
 import io.nekohasekai.sfa.update.UpdateTrack
+import io.nekohasekai.sfa.update.checkFDroidUpdate
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 object Vendor : VendorInterface {
     private const val TAG = "Vendor"
@@ -64,8 +72,15 @@ object Vendor : VendorInterface {
             .setTitle(R.string.check_update)
             .setMessage(message)
             .setPositiveButton(R.string.update) { _, _ ->
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(updateInfo.releaseUrl))
-                activity.startActivity(intent)
+                if (UpdateSource.fromString(Settings.updateSource) == UpdateSource.SERVER) {
+                    if (ServerUpdates.state.value.ready != null) {
+                        activity.startActivity(ServerUpdateNotifier.installIntent(activity))
+                    } else {
+                        ServerUpdateWork.enqueueDownload(activity, downloadNow = true)
+                    }
+                } else {
+                    activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(updateInfo.releaseUrl)))
+                }
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
@@ -94,16 +109,24 @@ object Vendor : VendorInterface {
     ): ImageAnalysis.Analyzer? = null
 
     override val hasCustomUpdate = true
+    override val updateSources = listOf(UpdateSource.SERVER, UpdateSource.GITHUB)
 
-    override fun checkUpdateAsync(): UpdateInfo? {
-        val track = UpdateTrack.fromString(Settings.updateTrack)
-        return GitHubUpdateChecker().use { checker ->
-            checker.checkUpdate(track, Settings.githubToken)
+    override fun checkUpdateAsync(): UpdateInfo? = when (UpdateSource.fromString(Settings.updateSource)) {
+        UpdateSource.SERVER -> ServerUpdateChecker.check(Application.application).also {
+            ServerUpdateWork.enqueueDownload(Application.application)
+            ServerUpdateNotifier.refresh(Application.application)
+        }
+        UpdateSource.FDROID -> checkFDroidUpdate(Application.application)
+        UpdateSource.GITHUB -> {
+            val track = UpdateTrack.fromString(Settings.updateTrack)
+            GitHubUpdateChecker().use { checker ->
+                checker.checkUpdate(track, Settings.githubToken)
+            }
         }
     }
 
     override fun scheduleAutoUpdate() {
-        UpdateWorker.schedule(io.nekohasekai.sfa.Application.application)
+        ServerUpdateWork.schedule(Application.application)
     }
 
     override suspend fun verifySilentInstallMethod(method: String): Boolean = when (method) {
@@ -115,6 +138,16 @@ object Vendor : VendorInterface {
     }
 
     override suspend fun downloadAndInstall(context: android.content.Context, downloadUrl: String) {
+        if (UpdateSource.fromString(Settings.updateSource) == UpdateSource.SERVER) {
+            if (ServerUpdates.state.value.ready != null) {
+                withContext(Dispatchers.Main) {
+                    context.startActivity(ServerUpdateNotifier.installIntent(context).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                }
+            } else {
+                ServerUpdateWork.enqueueDownload(context, downloadNow = true)
+            }
+            return
+        }
         val cachedApk = UpdateState.cachedApkFile.value
         val apkFile = if (cachedApk != null && cachedApk.exists() && cachedApk.length() > 0) {
             cachedApk

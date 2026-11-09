@@ -1,5 +1,6 @@
 package io.nekohasekai.sfa.bg
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -22,10 +23,19 @@ import io.nekohasekai.sfa.compose.MainActivity
 import io.nekohasekai.sfa.constant.Action
 import io.nekohasekai.sfa.constant.Status
 import io.nekohasekai.sfa.database.Settings
+import io.nekohasekai.sfa.update.ReadyServerUpdate
+import io.nekohasekai.sfa.update.ServerUpdateNotifier
+import io.nekohasekai.sfa.update.ServerUpdateNotifier.putReadyIdentity
+import io.nekohasekai.sfa.update.ServerUpdates
 import io.nekohasekai.sfa.utils.CommandClient
-import kotlinx.coroutines.DelicateCoroutinesApi
+import io.nekohasekai.sfa.vendor.Vendor
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class ServiceNotification(private val status: MutableLiveData<Status>, private val service: Service) :
@@ -45,41 +55,44 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
         }
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val commandClient =
-        CommandClient(GlobalScope, CommandClient.ConnectionType.Status, this, localOnly = true)
+        CommandClient(scope, CommandClient.ConnectionType.Status, this, localOnly = true)
     private var receiverRegistered = false
+    private var readyObserver: Job? = null
+    private var active = false
+    private var contentText = ""
+    private var installIdentity: ReadyServerUpdate? = null
+    private var installPendingIntent: PendingIntent? = null
+    private val expandedStyle = NotificationCompat.BigTextStyle()
 
+    private val mainIntent by lazy {
+        PendingIntent.getActivity(
+            service,
+            0,
+            Intent(service, MainActivity::class.java).setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
+            flags,
+        )
+    }
+
+    private val stopAction by lazy {
+        NotificationCompat.Action.Builder(
+            0,
+            service.getText(R.string.stop),
+            PendingIntent.getBroadcast(
+                service,
+                0,
+                Intent(Action.SERVICE_CLOSE).setPackage(service.packageName),
+                flags,
+            ),
+        ).build()
+    }
     private val notificationBuilder by lazy {
         NotificationCompat.Builder(service, notificationChannel).setShowWhen(false).setOngoing(true)
             .setContentTitle(service.getString(R.string.app_name)).setOnlyAlertOnce(true)
             .setSmallIcon(R.drawable.ic_menu)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .setContentIntent(
-                PendingIntent.getActivity(
-                    service,
-                    0,
-                    Intent(
-                        service,
-                        MainActivity::class.java,
-                    ).setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
-                    flags,
-                ),
-            )
-            .setPriority(NotificationCompat.PRIORITY_LOW).apply {
-                addAction(
-                    NotificationCompat.Action.Builder(
-                        0,
-                        service.getText(R.string.stop),
-                        PendingIntent.getBroadcast(
-                            service,
-                            0,
-                            Intent(Action.SERVICE_CLOSE).setPackage(service.packageName),
-                            flags,
-                        ),
-                    ).build(),
-                )
-            }
+            .setPriority(NotificationCompat.PRIORITY_LOW)
     }
 
     fun show(lastProfileName: String, @StringRes contentTextId: Int) {
@@ -92,12 +105,17 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
                 ),
             )
         }
-        service.startForeground(
-            notificationId,
-            notificationBuilder
-                .setContentTitle(lastProfileName.takeIf { it.isNotBlank() } ?: service.getString(R.string.app_name))
-                .setContentText(service.getString(contentTextId)).build(),
-        )
+        active = true
+        contentText = service.getString(contentTextId)
+        notificationBuilder.setContentTitle(lastProfileName.takeIf { it.isNotBlank() } ?: service.getString(R.string.app_name))
+        service.startForeground(notificationId, render())
+        if (readyObserver == null) {
+            readyObserver = scope.launch {
+                ServerUpdates.state.map { Triple(it.ready, it.pending?.versionCode, it.pending?.artifact?.sha256) }.distinctUntilChanged().collect {
+                    if (active) Application.notificationManager.notify(notificationId, render())
+                }
+            }
+        }
     }
 
     suspend fun start() {
@@ -120,13 +138,46 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
         receiverRegistered = true
     }
 
+    private fun render(): Notification {
+        val snapshot = ServerUpdates.state.value
+        val ready = snapshot.ready?.takeIf {
+            Vendor.hasCustomUpdate && it.versionCode == snapshot.pending?.versionCode && it.sha256 == snapshot.pending?.artifact?.sha256
+        }
+        if (ready != installIdentity) {
+            installIdentity = ready
+            installPendingIntent = ready?.let {
+                PendingIntent.getActivity(
+                    service,
+                    0,
+                    ServerUpdateNotifier.installIntent(service).apply { putReadyIdentity(it) },
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+            }
+        }
+        val content = if (ready != null) {
+            contentText + "\n" + service.getString(R.string.server_update_ready_notice)
+        } else {
+            contentText
+        }
+        notificationBuilder.clearActions().addAction(stopAction)
+            .setContentText(content)
+            .setStyle(expandedStyle.bigText(content))
+            .setContentIntent(installPendingIntent ?: mainIntent)
+        if (ready != null) {
+            notificationBuilder.addAction(0, service.getText(R.string.update), installPendingIntent)
+        }
+        return notificationBuilder.build()
+    }
+
     override fun updateStatus(status: StatusMessage) {
         val content =
             Libbox.formatBytes(status.uplink) + "/s ↑\t" + Libbox.formatBytes(status.downlink) + "/s ↓"
-        Application.notificationManager.notify(
-            notificationId,
-            notificationBuilder.setContentText(content).build(),
-        )
+        scope.launch {
+            if (active) {
+                contentText = content
+                Application.notificationManager.notify(notificationId, render())
+            }
+        }
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -142,6 +193,9 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
     }
 
     fun close() {
+        active = false
+        readyObserver?.cancel()
+        readyObserver = null
         commandClient.disconnect()
         ServiceCompat.stopForeground(service, ServiceCompat.STOP_FOREGROUND_REMOVE)
         if (receiverRegistered) {

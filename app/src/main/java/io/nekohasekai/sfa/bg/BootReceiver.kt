@@ -4,6 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import io.nekohasekai.sfa.database.Settings
+import io.nekohasekai.sfa.update.ServerUpdateNotifier
+import io.nekohasekai.sfa.update.ServerUpdates
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -23,6 +25,11 @@ class BootReceiver : BroadcastReceiver() {
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 Settings.dataStore.initialize()
+                ServerUpdates.initialize()
+                if (intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+                    ServerUpdates.reconcileInstalled()
+                    ServerUpdateNotifier.refresh(context)
+                }
                 if (Settings.shouldRun) {
                     CrashReportManager.refresh()
                     if (CrashReportManager.unreadCount.value > 0) {

@@ -26,9 +26,14 @@ object UpdateState {
     val installStatus = mutableStateOf<InstallStatus>(InstallStatus.Idle)
 
     fun setUpdate(info: UpdateInfo?) {
-        updateInfo.value = info
-        hasUpdate.value = info != null
-        saveToCache(info)
+        val effectiveInfo = if (info == null && UpdateSource.fromString(Settings.updateSource) == UpdateSource.SERVER) {
+            serverUpdateInfo()
+        } else {
+            info
+        }
+        updateInfo.value = effectiveInfo
+        hasUpdate.value = effectiveInfo != null
+        saveToCache(effectiveInfo)
     }
 
     fun setInstallStatus(status: InstallStatus) {
@@ -53,6 +58,12 @@ object UpdateState {
     }
 
     fun loadFromCache() {
+        if (UpdateSource.fromString(Settings.updateSource) == UpdateSource.SERVER) {
+            ServerUpdates.initialize()
+            ServerUpdates.reconcileInstalled()
+            setUpdate(serverUpdateInfo())
+            return
+        }
         val json = Settings.cachedUpdateInfo
         if (json.isBlank()) return
 
@@ -74,6 +85,19 @@ object UpdateState {
                 Settings.cachedApkPath = ""
             }
         }
+    }
+
+    private fun serverUpdateInfo(): UpdateInfo? {
+        val pending = ServerUpdates.state.value.pending ?: return null
+        return UpdateInfo(
+            versionCode = pending.versionCode,
+            versionName = pending.versionName,
+            downloadUrl = pending.artifact.url,
+            releaseUrl = "",
+            releaseNotes = pending.notes,
+            isPrerelease = false,
+            fileSize = pending.artifact.size,
+        )
     }
 
     private fun saveToCache(info: UpdateInfo?) {

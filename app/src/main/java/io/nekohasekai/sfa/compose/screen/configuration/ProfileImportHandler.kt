@@ -9,6 +9,7 @@ import io.nekohasekai.sfa.R
 import io.nekohasekai.sfa.database.Profile
 import io.nekohasekai.sfa.database.ProfileManager
 import io.nekohasekai.sfa.database.TypedProfile
+import io.nekohasekai.sfa.utils.HTTPClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -259,12 +260,15 @@ class ProfileImportHandler(private val context: Context) {
                 userOrder = ProfileManager.nextOrder()
             }
 
-        // Create empty config file for remote profile
+        val content = HTTPClient().use { it.getProfile(url) }
+        Libbox.checkConfig(content)
+
         val fileID = ProfileManager.nextFileID()
         val configDirectory = File(context.filesDir, "configs").also { it.mkdirs() }
         val configFile = File(configDirectory, "$fileID.json")
-        configFile.writeText("{}")
+        configFile.writeText(content)
         typedProfile.path = configFile.path
+        typedProfile.markUpdateSuccess(contentChanged = true)
 
         // Create profile in database and select it
         ProfileManager.create(profile, andSelect = true)

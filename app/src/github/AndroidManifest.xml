@@ -5,6 +5,12 @@
     <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
 
     <application>
+        <activity
+            android:name=".update.ServerUpdateInstallActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true" />
+
         <receiver
             android:name=".vendor.InstallResultReceiver"
             android:exported="false">

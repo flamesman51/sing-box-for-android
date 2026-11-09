@@ -1,0 +1,163 @@
+package io.nekohasekai.sfa.compose.component
+
+import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import io.nekohasekai.sfa.R
+import io.nekohasekai.sfa.update.ServerUpdateNotifier
+import io.nekohasekai.sfa.update.ServerUpdateSnapshot
+import io.nekohasekai.sfa.update.ServerUpdateWork
+import io.nekohasekai.sfa.update.ServerUpdates
+import io.nekohasekai.sfa.vendor.Vendor
+import java.util.concurrent.TimeUnit
+
+private fun ServerUpdateSnapshot.isReady(): Boolean = ready != null &&
+    ready.versionCode == pending?.versionCode && ready.sha256 == pending?.artifact?.sha256
+
+@Composable
+fun ServerUpdateBanner() {
+    if (!Vendor.hasCustomUpdate) return
+    val snapshot by ServerUpdates.state.collectAsState()
+    val context = LocalContext.current
+    LaunchedEffect(snapshot.ready, snapshot.pending?.versionCode) {
+        ServerUpdateNotifier.refresh(context)
+    }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var degraded by remember { mutableStateOf(ServerUpdateNotifier.notificationsDegraded(context)) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                degraded = ServerUpdateNotifier.notificationsDegraded(context)
+                ServerUpdateNotifier.refresh(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    val pending = snapshot.pending ?: return
+    Surface(color = MaterialTheme.colorScheme.primaryContainer) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                stringResource(
+                    if (snapshot.isReady()) R.string.server_update_ready_title else R.string.server_update_pending_notice,
+                    pending.versionName,
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            ServerUpdateAction(snapshot)
+            if (degraded) {
+                Text(stringResource(R.string.server_update_notifications_degraded), style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = { context.startActivity(ServerUpdateNotifier.notificationSettingsIntent(context)) }) {
+                    Text(stringResource(R.string.server_update_notification_settings))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ServerUpdateForegroundReminder() {
+    if (!Vendor.hasCustomUpdate) return
+    val snapshot by ServerUpdates.state.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var resumed by remember { mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) }
+    var showReminder by remember { mutableStateOf(false) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            resumed = event == Lifecycle.Event.ON_RESUME ||
+                lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(resumed, snapshot.pending?.versionCode) {
+        if (snapshot.pending == null) {
+            showReminder = false
+        } else if (resumed) {
+            val now = System.currentTimeMillis()
+            val lastReminder = ServerUpdates.state.value.lastReminderAtMillis
+            if (lastReminder == 0L || now - lastReminder >= TimeUnit.HOURS.toMillis(24)) {
+                ServerUpdates.markReminderShown(now)
+                showReminder = true
+            }
+        }
+    }
+    if (showReminder && resumed && snapshot.pending != null) {
+        ServerUpdateAvailableDialog(onDismiss = { showReminder = false })
+    }
+}
+
+@Composable
+fun ServerUpdateAvailableDialog(onDismiss: () -> Unit) {
+    val snapshot by ServerUpdates.state.collectAsState()
+    val pending = snapshot.pending
+    if (pending == null) {
+        LaunchedEffect(Unit) { onDismiss() }
+        return
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.server_update_reminder_title)) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    stringResource(
+                        if (snapshot.isReady()) R.string.server_update_ready_title else R.string.server_update_pending_notice,
+                        pending.versionName,
+                    ),
+                )
+                pending.notes?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+            }
+        },
+        confirmButton = { ServerUpdateAction(snapshot, onDismiss) },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
+        },
+    )
+}
+
+@Composable
+private fun ServerUpdateAction(snapshot: ServerUpdateSnapshot, onAction: () -> Unit = {}) {
+    val context = LocalContext.current
+    TextButton(onClick = {
+        if (snapshot.isReady()) {
+            context.startActivity(ServerUpdateNotifier.installIntent(context))
+        } else {
+            ServerUpdateWork.enqueueDownload(context, downloadNow = true)
+            Toast.makeText(context, R.string.server_update_download_queued, Toast.LENGTH_LONG).show()
+        }
+        onAction()
+    }) {
+        Text(stringResource(if (snapshot.isReady()) R.string.server_update_install else R.string.server_update_download_now))
+    }
+}

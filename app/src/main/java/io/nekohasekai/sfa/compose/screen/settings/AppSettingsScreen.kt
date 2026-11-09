@@ -106,6 +106,8 @@ import io.nekohasekai.sfa.compose.topbar.OverrideTopBar
 import io.nekohasekai.sfa.constant.Status
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.ktx.clipboardText
+import io.nekohasekai.sfa.update.ServerUpdateWork
+import io.nekohasekai.sfa.update.ServerUpdates
 import io.nekohasekai.sfa.update.UpdateCheckException
 import io.nekohasekai.sfa.update.UpdateSource
 import io.nekohasekai.sfa.update.UpdateState
@@ -147,6 +149,7 @@ fun AppSettingsScreen(
     val hasUpdate by UpdateState.hasUpdate
     val updateInfo by UpdateState.updateInfo
     val isChecking by UpdateState.isChecking
+    val serverUpdateState by ServerUpdates.state.collectAsState()
     var showSourceDialog by remember { mutableStateOf(false) }
     var currentSource by remember { mutableStateOf(Settings.updateSource) }
     var showTrackDialog by remember { mutableStateOf(false) }
@@ -245,6 +248,11 @@ fun AppSettingsScreen(
                 UpdateState.clear()
                 scope.launch(Dispatchers.IO) {
                     Settings.updateSource = source
+                    Vendor.scheduleAutoUpdate()
+                    if (UpdateSource.fromString(source) == UpdateSource.SERVER) {
+                        ServerUpdateWork.enqueueCheck(context)
+                    }
+                    UpdateState.loadFromCache()
                 }
                 showSourceDialog = false
             },
@@ -471,6 +479,8 @@ fun AppSettingsScreen(
                 bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
             ),
     ) {
+        io.nekohasekai.sfa.compose.screen.smart.SmartSettingsSection()
+
         // Info Card
         Card(
             modifier =
@@ -803,23 +813,25 @@ fun AppSettingsScreen(
         ) {
             Column {
                 val isFDroid = UpdateSource.fromString(currentSource) == UpdateSource.FDROID
+                val isServer = UpdateSource.fromString(currentSource) == UpdateSource.SERVER
+                val isGitHub = UpdateSource.fromString(currentSource) == UpdateSource.GITHUB
                 val updateItemCount =
                     run {
                         var count = 0
                         if (Vendor.updateSources.size > 1) {
                             count += 1
                         }
-                        if (Vendor.hasCustomUpdate) {
+                        if (Vendor.hasCustomUpdate && !isServer) {
                             count += 1
                         }
-                        if (Vendor.hasCustomUpdate && !isFDroid) {
+                        if (Vendor.hasCustomUpdate && isGitHub) {
                             count += 1
                         }
                         if (isFDroid) {
                             count += 1
                         }
                         count += 1
-                        if (Vendor.hasCustomUpdate) {
+                        if (Vendor.hasCustomUpdate && !isServer) {
                             count += 1
                             if (silentInstallEnabled) {
                                 count += 1
@@ -832,6 +844,7 @@ fun AppSettingsScreen(
                             }
                         }
                         if (Vendor.hasCustomUpdate) {
+                            count += 1
                             count += 1
                         }
                         count
@@ -859,6 +872,7 @@ fun AppSettingsScreen(
                         },
                         supportingContent = {
                             val sourceName = when (UpdateSource.fromString(currentSource)) {
+                                UpdateSource.SERVER -> stringResource(R.string.update_source_server)
                                 UpdateSource.GITHUB -> stringResource(R.string.update_source_github)
                                 UpdateSource.FDROID -> stringResource(R.string.update_source_fdroid)
                             }
@@ -882,6 +896,29 @@ fun AppSettingsScreen(
                 }
 
                 if (Vendor.hasCustomUpdate) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.update_server_origin)) },
+                        supportingContent = {
+                            Text(serverUpdateState.origin ?: stringResource(R.string.update_server_not_pinned))
+                        },
+                        trailingContent = {
+                            TextButton(
+                                enabled = serverUpdateState.origin != null,
+                                onClick = {
+                                    scope.launch(Dispatchers.IO) {
+                                        ServerUpdates.forgetServer()
+                                    }
+                                },
+                            ) {
+                                Text(stringResource(R.string.update_server_forget))
+                            }
+                        },
+                        modifier = updateItemModifier(),
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    )
+                }
+
+                if (Vendor.hasCustomUpdate && !isServer) {
                     ListItem(
                         headlineContent = {
                             Text(
@@ -918,7 +955,7 @@ fun AppSettingsScreen(
                     )
                 }
 
-                if (Vendor.hasCustomUpdate && !isFDroid) {
+                if (Vendor.hasCustomUpdate && isGitHub) {
                     ListItem(
                         headlineContent = {
                             Text(
@@ -1036,7 +1073,7 @@ fun AppSettingsScreen(
                     ),
                 )
 
-                if (Vendor.hasCustomUpdate) {
+                if (Vendor.hasCustomUpdate && !isServer) {
                     ListItem(
                         headlineContent = {
                             Text(
@@ -1226,7 +1263,7 @@ fun AppSettingsScreen(
                         },
                         supportingContent = {
                             Text(
-                                stringResource(R.string.auto_update_description),
+                                stringResource(if (isServer) R.string.server_update_auto_description else R.string.auto_update_description),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -1386,10 +1423,15 @@ private fun UpdateSourceDialog(
     onSourceSelected: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val sources = listOf(
-        "github" to stringResource(R.string.update_source_github),
-        "fdroid" to stringResource(R.string.update_source_fdroid),
-    )
+    val sources = Vendor.updateSources.map { source ->
+        source.name.lowercase(Locale.ROOT) to stringResource(
+            when (source) {
+                UpdateSource.SERVER -> R.string.update_source_server
+                UpdateSource.GITHUB -> R.string.update_source_github
+                UpdateSource.FDROID -> R.string.update_source_fdroid
+            },
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,

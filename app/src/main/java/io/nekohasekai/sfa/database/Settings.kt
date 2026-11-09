@@ -43,7 +43,7 @@ object Settings {
     // Keep the existing key so updates preserve boot and restart intent.
     var shouldRun by dataStore.boolean(SettingsKey.STARTED_BY_USER)
 
-    var updateSource by dataStore.string(SettingsKey.UPDATE_SOURCE) { "github" }
+    var updateSource by dataStore.string(SettingsKey.UPDATE_SOURCE) { "server" }
     var checkUpdateEnabled by dataStore.boolean(SettingsKey.CHECK_UPDATE_ENABLED) { false }
     var updateCheckPrompted by dataStore.boolean(SettingsKey.UPDATE_CHECK_PROMPTED) { false }
     var updateTrack by dataStore.string(SettingsKey.UPDATE_TRACK) {
@@ -68,7 +68,7 @@ object Settings {
     }
     var fdroidMirrorUrl by dataStore.string(SettingsKey.FDROID_MIRROR_URL) { "https://f-droid.org/repo" }
     var fdroidCustomMirrors by dataStore.stringSet(SettingsKey.FDROID_CUSTOM_MIRRORS) { emptySet() }
-    var autoUpdateEnabled by dataStore.boolean(SettingsKey.AUTO_UPDATE_ENABLED) { false }
+    var autoUpdateEnabled by dataStore.boolean(SettingsKey.AUTO_UPDATE_ENABLED) { true }
     var dynamicNotification by dataStore.boolean(SettingsKey.DYNAMIC_NOTIFICATION) { true }
     var disableDeprecatedWarnings by dataStore.boolean(SettingsKey.DISABLE_DEPRECATED_WARNINGS) { false }
 
@@ -136,6 +136,10 @@ object Settings {
     var cachedUpdateInfo by dataStore.string(SettingsKey.CACHED_UPDATE_INFO) { "" }
     var cachedApkPath by dataStore.string(SettingsKey.CACHED_APK_PATH) { "" }
     var lastShownUpdateVersion by dataStore.int(SettingsKey.LAST_SHOWN_UPDATE_VERSION) { 0 }
+
+    // Update state must be committed before publishing readiness and must not enter device backups.
+    val serverUpdateStateFile: File
+        get() = File(Application.application.noBackupFilesDir, SettingsKey.SERVER_UPDATE_STATE)
 
     fun serviceClass(): Class<*> = when (serviceMode) {
         ServiceMode.VPN -> VPNService::class.java

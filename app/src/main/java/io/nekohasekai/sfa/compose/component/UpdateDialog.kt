@@ -21,13 +21,23 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import io.nekohasekai.sfa.R
+import io.nekohasekai.sfa.database.Settings
+import io.nekohasekai.sfa.update.ServerUpdates
 import io.nekohasekai.sfa.update.UpdateInfo
+import io.nekohasekai.sfa.update.UpdateSource
 import org.kodein.emoji.Emoji
 import org.kodein.emoji.EmojiTemplateCatalog
 import org.kodein.emoji.all
 
 @Composable
 fun UpdateAvailableDialog(updateInfo: UpdateInfo, onDismiss: () -> Unit, onUpdate: () -> Unit) {
+    val pending = ServerUpdates.state.value.pending
+    if (UpdateSource.fromString(Settings.updateSource) == UpdateSource.SERVER ||
+        (pending != null && pending.versionCode == updateInfo.versionCode && pending.artifact.url == updateInfo.downloadUrl)
+    ) {
+        ServerUpdateAvailableDialog(onDismiss)
+        return
+    }
     val context = LocalContext.current
     val emojiCatalog = remember { EmojiTemplateCatalog(Emoji.all()) }
 
