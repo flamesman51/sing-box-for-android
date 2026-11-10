@@ -60,10 +60,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
 import io.nekohasekai.sfa.R
+import io.nekohasekai.sfa.bg.ManagedAppScan
 import io.nekohasekai.sfa.bg.RootClient
 import io.nekohasekai.sfa.compose.base.UiEvent
 import io.nekohasekai.sfa.compose.base.rememberApplyServiceChangeNotifier
-import io.nekohasekai.sfa.compose.screen.profileoverride.PerAppProxyScanner
 import io.nekohasekai.sfa.compose.topbar.LocalScaffoldPadding
 import io.nekohasekai.sfa.compose.topbar.OverrideTopBar
 import io.nekohasekai.sfa.constant.Status
@@ -105,19 +105,17 @@ fun ProfileOverrideScreen(
     val notifyApplyChange = rememberApplyServiceChangeNotifier(serviceStatus)
 
     fun scanAndSaveManagedList(shouldNotify: Boolean = false) {
+        val regions = managedRegions
+        val enableManagedMode = managedModeEnabled
         isScanning = true
         scope.launch {
-            withContext(Dispatchers.IO) {
-                Settings.perAppProxyManagedMode = managedModeEnabled
-                Settings.perAppProxyManagedRegions = managedRegions.map { it.name }.toSet()
-            }
-            val managedApps = PerAppProxyScanner.scanAllManagedApps(managedRegions)
-            withContext(Dispatchers.IO) {
-                Settings.perAppProxyManagedList = managedApps
-            }
-            isScanning = false
-            if (shouldNotify) {
-                notifyApplyChange(UiEvent.ApplyServiceChange.Mode.Reload)
+            try {
+                ManagedAppScan.update(regions, enableManagedMode)
+                if (shouldNotify) {
+                    notifyApplyChange(UiEvent.ApplyServiceChange.Mode.Reload)
+                }
+            } finally {
+                isScanning = false
             }
         }
     }

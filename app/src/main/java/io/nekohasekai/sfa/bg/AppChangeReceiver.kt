@@ -6,7 +6,6 @@ import android.content.Intent
 import android.util.Log
 import android.widget.Toast
 import io.nekohasekai.sfa.R
-import io.nekohasekai.sfa.compose.screen.profileoverride.PerAppProxyScanner
 import io.nekohasekai.sfa.database.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,8 +45,7 @@ class AppChangeReceiver : BroadcastReceiver() {
 
     private suspend fun rescanAllApps() {
         Log.d(TAG, "rescanning all apps")
-        val managedApps = PerAppProxyScanner.scanAllManagedApps()
-        Settings.perAppProxyManagedList = managedApps
-        Log.d(TAG, "rescan complete, found ${managedApps.size} managed apps")
+        ManagedAppScan.update()
+        Log.d(TAG, "managed rescan complete")
     }
 }

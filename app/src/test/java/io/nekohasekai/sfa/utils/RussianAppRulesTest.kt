@@ -57,4 +57,24 @@ class RussianAppRulesTest {
             assertEquals(regions, AppScanRegion.fromSettings(regions.map { it.name }.toSet()))
         }
     }
+
+    @Test
+    fun managedScanPublishesOnlyTheCurrentEnabledRegionSnapshot() {
+        val choices = listOf(setOf(AppScanRegion.China), setOf(AppScanRegion.Russia), AppScanRegion.entries.toSet())
+        for (snapshot in choices) {
+            for (current in choices) {
+                assertEquals(snapshot == current, shouldPublishManagedScan(snapshot, current, true))
+                assertFalse(shouldPublishManagedScan(snapshot, current, false))
+            }
+        }
+    }
+
+    @Test
+    fun dexParsingRejectsOversizedAndUnknownEntries() {
+        assertTrue(canParseAppDex(0))
+        assertTrue(canParseAppDex(MAX_SCANNED_DEX_BYTES))
+        assertFalse(canParseAppDex(MAX_SCANNED_DEX_BYTES + 1))
+        assertFalse(canParseAppDex(-1))
+        assertFalse(canParseAppDex(Long.MAX_VALUE))
+    }
 }

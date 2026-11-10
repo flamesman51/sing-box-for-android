@@ -89,13 +89,18 @@ import io.nekohasekai.sfa.constant.Status
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.ktx.clipboardText
 import io.nekohasekai.sfa.utils.AppScanRegion
+import io.nekohasekai.sfa.utils.MAX_SCANNED_DEX_BYTES
 import io.nekohasekai.sfa.utils.RussianAppRules
+import io.nekohasekai.sfa.utils.canParseAppDex
 import io.nekohasekai.sfa.vendor.PackageQueryManager
 import io.nekohasekai.sfa.vendor.PrivilegedAccessRequiredException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
@@ -1322,9 +1327,10 @@ object PerAppProxyScanner {
         val packages = JSONObject(content).getJSONArray("packages")
         RussianAppRules((0 until packages.length()).map { packages.getString(it) }.toSet())
     }
+    private val dexParseSlots = Semaphore(2)
 
     suspend fun scanAllManagedApps(
-        regions: Set<AppScanRegion> = AppScanRegion.fromSettings(Settings.perAppProxyManagedRegions),
+        regions: Set<AppScanRegion>,
     ): Set<String> = withContext(Dispatchers.Default) {
         val packageManagerFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             PackageManager.MATCH_UNINSTALLED_PACKAGES or
@@ -1356,7 +1362,7 @@ object PerAppProxyScanner {
         managedApps.toSet()
     }
 
-    fun scanPackage(packageInfo: PackageInfo, regions: Set<AppScanRegion>): Boolean {
+    suspend fun scanPackage(packageInfo: PackageInfo, regions: Set<AppScanRegion>): Boolean {
         val packageName = packageInfo.packageName
         if (packageName == Application.application.packageName) return false
         val scanChina = AppScanRegion.China in regions
@@ -1405,34 +1411,34 @@ object PerAppProxyScanner {
                     ) {
                         continue
                     }
-                    if (chinaCandidate && !hasFirebase && packageEntry.size > 15000000) {
+                    if (chinaCandidate && !hasFirebase && packageEntry.size > MAX_SCANNED_DEX_BYTES) {
                         Log.d(
                             "PerAppProxyScanner",
                             "Confirm $packageName due to large dex file",
                         )
                         return true
                     }
-                    val input = it.getInputStream(packageEntry).buffered()
-                    val dexFile =
-                        try {
-                            DexBackedDexFile.fromInputStream(null, input)
-                        } catch (e: Exception) {
-                            Log.e("PerAppProxyScanner", "Error reading dex file", e)
-                            return false
+                    if (!canParseAppDex(packageEntry.size)) continue
+                    val matched = dexParseSlots.withPermit {
+                        it.getInputStream(packageEntry).buffered().use { input ->
+                            val dexFile = DexBackedDexFile.fromInputStream(null, input)
+                            dexFile.classes.any { clazz ->
+                                val clazzName =
+                                    clazz.type.substring(1, clazz.type.length - 1).replace("/", ".")
+                                        .replace("$", ".")
+                                (chinaCandidate && !hasFirebase && clazzName.matches(chinaAppRegex)) ||
+                                    (scanRussia && russianRules.matchesClass(clazzName))
+                            }
                         }
-                    for (clazz in dexFile.classes) {
-                        val clazzName =
-                            clazz.type.substring(1, clazz.type.length - 1).replace("/", ".")
-                                .replace("$", ".")
-                        if ((chinaCandidate && !hasFirebase && clazzName.matches(chinaAppRegex)) ||
-                            (scanRussia && russianRules.matchesClass(clazzName))
-                        ) {
-                            Log.d("PerAppProxyScanner", "Match $clazzName in $packageName")
-                            return true
-                        }
+                    }
+                    if (matched) {
+                        Log.d("PerAppProxyScanner", "Match SDK class in $packageName")
+                        return true
                     }
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("PerAppProxyScanner", "Error scanning package $packageName", e)
         }

@@ -32,8 +32,9 @@ when importing into this fork. Only one VPN app can be active in an Android user
   warning. Only one Android allow/deny list is ever applied. Include mode always
   includes this VPN app, even with an empty selection; exclude mode never excludes it.
 - Managed Mode can bypass Chinese apps, Russian apps, or both. Existing installs
-  retain China-only behavior. Region chips persist the selection and rescan when
-  changed; package install/removal broadcasts also refresh the managed list.
+  retain China-only behavior. Region changes are published only with their completed
+  scan result; leaving the screen cancels the change without replacing stored
+  regions or lists. UI scans and package-change rescans share one process-wide lock.
   The app selector's **Scan** menu offers both groups separately.
   Russian detection combines `app/src/main/assets/ru-apps.json` (413 exact package
   names verified against store listings on 2026-11-04) with specific AppMetrica,
@@ -41,6 +42,8 @@ when importing into this fork. Only one VPN app can be active in an Android user
   It does not infer Russian apps from generic `ru.*`, Yandex, or VK prefixes, DEX
   size, or the absence of Firebase. SDK detection can still match international
   apps using those SDKs; manual per-app selection remains available.
+  DEX parsing is limited to two concurrent files of at most 15 MB each. Russian
+  detection in larger files relies on exact-package and manifest-component checks.
 - Remote-profile mutations reconfigure WorkManager, including imports, interval-only
   edits, and deletion. WorkManager is inexact. “Last updated” records the last
   successful check, including an unchanged download, and controls update cadence.
