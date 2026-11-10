@@ -37,6 +37,7 @@ import io.nekohasekai.sfa.constant.Status
 import io.nekohasekai.sfa.database.ProfileManager
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.diagnostics.DiagnosticsJournal
+import io.nekohasekai.sfa.diagnostics.DiagnosticsProjection
 import io.nekohasekai.sfa.diagnostics.DiagnosticsWork
 import io.nekohasekai.sfa.ktx.hasPermission
 import io.nekohasekai.sfa.vendor.Vendor
@@ -212,7 +213,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                stopAndAlert(Alert.CreateService, e.message)
+                stopAndAlert(Alert.CreateService, e.message, e)
                 return
             }
 
@@ -241,7 +242,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            stopAndAlert(Alert.StartService, e.message)
+            stopAndAlert(Alert.StartService, e.message, e)
             return
         }
     }
@@ -260,7 +261,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                stopAndAlert(Alert.CreateService, e.message)
+                stopAndAlert(Alert.CreateService, e.message, e)
             }
         }
     }
@@ -307,7 +308,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            stopAndAlert(Alert.CreateService, e.message)
+            stopAndAlert(Alert.CreateService, e.message, e)
             return
         }
 
@@ -433,8 +434,9 @@ class BoxService(private val service: Service, private val platformInterface: Pl
         }
     }
 
-    private suspend fun stopAndAlert(type: Alert, message: String? = null) {
-        DiagnosticsJournal.record("vpn_start_failed", mapOf("reason" to activeStartReason.name, "failure" to type.name, "message" to message), profileId = diagnosticsProfileId, profileSource = diagnosticsProfileSource)
+    private suspend fun stopAndAlert(type: Alert, message: String? = null, error: Throwable? = null) {
+        val failure = error?.let(DiagnosticsProjection::failure) ?: mapOf("type" to type.name)
+        DiagnosticsJournal.record("vpn_start_failed", mapOf("reason" to activeStartReason.name, "failure" to type.name) + failure, profileId = diagnosticsProfileId, profileSource = diagnosticsProfileSource)
         Log.e(TAG, "VPN start failed: ${type.name}")
         DiagnosticsWork.enqueue(service)
         withContext(Dispatchers.Main) {
@@ -505,7 +507,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {
-                        stopAndAlert(Alert.StartCommandServer, e.message)
+                        stopAndAlert(Alert.StartCommandServer, e.message, e)
                         return@withContext
                     }
                     ensureActive()
@@ -514,7 +516,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                stopAndAlert(Alert.StartService, error.message)
+                stopAndAlert(Alert.StartService, error.message, error)
             }
         }
         return Service.START_STICKY

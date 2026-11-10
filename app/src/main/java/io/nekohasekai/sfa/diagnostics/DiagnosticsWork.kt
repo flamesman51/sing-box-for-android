@@ -113,7 +113,14 @@ object DiagnosticsWork {
         override suspend fun doWork(): Result = uploadLock.withLock {
             withContext(Dispatchers.IO) {
                 try {
-                    Application.application.coreReady.await()
+                    val coreReady = try {
+                        Application.application.coreReady.await()
+                        true
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (_: Exception) {
+                        false
+                    }
                     DiagnosticsJournal.flush()
                     if (!Settings.sendDiagnostics) return@withContext Result.success()
                     val destination = DiagnosticsJournal.selectedDestination() ?: run {
@@ -127,12 +134,12 @@ object DiagnosticsWork {
                             buildJsonObject {
                                 put("version_name", BuildConfig.VERSION_NAME)
                                 put("version_code", BuildConfig.VERSION_CODE)
-                                put("core_version", Libbox.version())
+                                put("core_version", if (coreReady) Libbox.version() else "unknown")
                                 put("android_sdk", Build.VERSION.SDK_INT)
                                 put("device_model", Build.MODEL)
                             },
                         )
-                        val smart = if (BoxService.activeDiagnosticsProfileId == destination.profileId &&
+                        val smart = if (coreReady && BoxService.activeDiagnosticsProfileId == destination.profileId &&
                             BoxService.activeDiagnosticsProfileSource == destination.source
                         ) {
                             DiagnosticsSnapshot.smart().takeIf {
@@ -142,7 +149,7 @@ object DiagnosticsWork {
                         } else {
                             null
                         }
-                        val crashes = DiagnosticsSnapshot.crashes(store.unsentDiscoveries(destination.owner))
+                        val crashes = if (coreReady) DiagnosticsSnapshot.crashes(store.unsentDiscoveries(destination.owner)) else emptyList()
                         batch = store.prepare(destination.owner, app, smart, crashes)
                     }
                     repeat(8) {
@@ -153,7 +160,7 @@ object DiagnosticsWork {
                         val status = post(destination.url, body)
                         Log.i("DiagnosticsReport", "report_id=${pending.id} bytes=${body.size} status=$status")
                         currentCoroutineContext().ensureActive()
-                        when (store.respond(pending.id, status)) {
+                        when (store.respond(destination.owner, pending.id, status)) {
                             DiagnosticsStore.Outcome.RETRY -> return@withContext Result.retry()
                             DiagnosticsStore.Outcome.ACKNOWLEDGED, DiagnosticsStore.Outcome.DISCARDED, DiagnosticsStore.Outcome.SPLIT -> {
                                 batch = store.pending(destination.owner)

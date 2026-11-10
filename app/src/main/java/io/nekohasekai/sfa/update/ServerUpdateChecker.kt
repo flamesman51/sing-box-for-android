@@ -7,6 +7,7 @@ import android.os.Build
 import android.util.Log
 import io.nekohasekai.sfa.BuildConfig
 import io.nekohasekai.sfa.diagnostics.DiagnosticsJournal
+import io.nekohasekai.sfa.diagnostics.DiagnosticsProjection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
 import java.io.File
@@ -46,7 +47,7 @@ object ServerUpdateChecker {
                 throw exception
             } catch (error: Exception) {
                 ServerUpdatePolicy.checkInterrupted()
-                DiagnosticsJournal.record("update_failed", mapOf("stage" to "check", "message" to error.message))
+                DiagnosticsJournal.record("update_failed", mapOf("stage" to "check") + DiagnosticsProjection.failure(error))
                 Log.w("ServerUpdates", "Server update check failed; retaining pending update")
             }
         }
@@ -107,7 +108,7 @@ object ServerUpdateChecker {
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                DiagnosticsJournal.record("update_failed", mapOf("stage" to "download", "message" to error.message))
+                DiagnosticsJournal.record("update_failed", mapOf("stage" to "download") + DiagnosticsProjection.failure(error))
                 throw error
             } finally {
                 if (temporary.exists() && !temporary.delete()) Log.w("ServerUpdates", "Could not remove temporary update artifact")

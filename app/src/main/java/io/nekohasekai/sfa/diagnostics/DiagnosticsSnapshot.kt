@@ -104,7 +104,7 @@ internal object DiagnosticsSnapshot {
             if (tags.isCompleted || groups == null) return
             val found = mutableListOf<String>()
             var seen = 0
-            while (groups.hasNext() && seen++ < 256 && found.size < 32) {
+            while (groups.hasNext() && seen++ < 256 && found.size < DiagnosticsProjection.MAX_SMART_GROUPS) {
                 val group = groups.next()
                 if (group.type == "smart") found += group.tag
             }

@@ -63,20 +63,25 @@ enable reporting without a qualifying fetch. Report uploads use HTTPS and never
 follow redirects. The profile URL is a credential: it is used for transport, never
 included in a report.
 
-Reports contain app/core versions, Android SDK and device model, scrubbed VPN and
-update events, selector health/selection/throughput/budgets, and bounded scrubbed
-crash metadata and stack frames. They never contain configuration files, private
-keys, raw log tails, browsing or connection destinations, DNS names, Wi-Fi names,
-BSSIDs, or network identifiers. The server receiving a report can still see the
-connection's source address.
+Reports contain app/core versions, Android SDK and device model, VPN and update
+events with fixed categories and numbers, and selector health/selection/throughput/
+budgets. Failures and crashes include an exception class or core error type and a
+fixed category, never an exception or panic message. Stack traces contain only
+strictly validated JVM frames or the core's scrubbed Go function/file pairs.
+Reports never contain configuration files, private keys, raw log tails, browsing
+or connection destinations, DNS names, Wi-Fi names, BSSIDs, or network identifiers.
+The server receiving a report can still see the connection's source address.
 
 WorkManager requests a network-constrained upload every six hours and an expedited
 one-off after a new crash/OOM report, VPN startup failure, or installed update.
 Android may delay either request. Local events are capped at 1,000 entries and
 512 KiB. Each schema-1 JSON upload is at most 768 KiB of UTF-8, including at most
-five crashes and 256 KiB of events. Pending batches keep their report ID across
-retries; successful uploads acknowledge only their own records. A server's 413
-response splits a batch instead of discarding it; transient failures back off.
+five crashes and 256 KiB of events. Selector snapshots are capped at four groups,
+32 members and four recent panics per group, with 2 KiB of frames per panic; each
+snapshot remains whole. Pending queues belong to each profile destination and keep
+their report IDs across retries and profile switches. Successful uploads acknowledge
+only their own records. A server's 413 response divides events and crashes, placing
+the entire selector snapshot in exactly one fragment; transient failures back off.
 
 ## Smart selector
 

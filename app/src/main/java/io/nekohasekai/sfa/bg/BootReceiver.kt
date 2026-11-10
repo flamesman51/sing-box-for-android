@@ -8,6 +8,7 @@ import io.nekohasekai.sfa.Application
 import io.nekohasekai.sfa.BuildConfig
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.diagnostics.DiagnosticsJournal
+import io.nekohasekai.sfa.diagnostics.DiagnosticsProjection
 import io.nekohasekai.sfa.diagnostics.DiagnosticsWork
 import io.nekohasekai.sfa.update.ServerUpdateNotifier
 import io.nekohasekai.sfa.update.ServerUpdates
@@ -61,7 +62,7 @@ class BootReceiver : BroadcastReceiver() {
                     ServerUpdateNotifier.refresh(context)
                 }
             } catch (error: Exception) {
-                DiagnosticsJournal.record("boot_receiver", mapOf("action" to action, "decision" to "failed", "message" to error.message))
+                DiagnosticsJournal.record("boot_receiver", mapOf("action" to action, "decision" to "failed") + DiagnosticsProjection.failure(error))
                 Log.e("BootReceiver", "VPN restart receiver failed")
             } finally {
                 Settings.dataStore.flush()

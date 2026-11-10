@@ -4,22 +4,26 @@ import java.io.Reader
 
 object DiagnosticsScrubber {
     private val url = Regex("(?i)\\b[a-z][a-z0-9+.-]*://[^\\s<>\\\"']+")
-    private val ipv4 = Regex("(?<![\\w.])(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(?![\\w.])")
+    private val ipv4 = Regex("(?<![\\w])(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(?![\\w])")
     private val ipv6 = Regex("(?i)(?<![a-z0-9])(?:[a-f0-9]{0,4}:){2,}[a-f0-9:.]*(?:%[a-z0-9_.-]+)?")
     private val host = Regex("(?i)(?<![\\w])(?:[\\p{L}\\p{N}_-]+\\.)+[\\p{L}][\\p{L}\\p{N}_-]*(?![\\w])|\\blocalhost\\b")
     private val path = Regex("(?<![\\w])(?:[A-Za-z]:[\\\\/]|/)[^\\s<>\\\"']+")
     private val namedHost = Regex("(?i)(\\b(?:host|hostname|server|address)\\s*[=:]\\s*)[^\\s,;<>]+")
-    private val jvm = Regex("^at\\s+([A-Za-z0-9_.$]+)\\(([^():]+):([0-9]+)\\)$")
-    private val location = Regex("^(.+\\.(?:go|kt|java|c|h|s|cpp)):(\\d+)(?:\\s.*)?$")
-    private val function = Regex("[A-Za-z_$][A-Za-z0-9_.$()*/<>-]*")
-    private val basename = Regex("[A-Za-z0-9_.-]+")
-    private val normalized = Regex("^([A-Za-z_$][A-Za-z0-9_.$()*<>-]*) ([A-Za-z0-9_.-]+):([0-9]+)$")
+    private const val JVM_IDENTIFIER = "[A-Za-z_$][A-Za-z0-9_$]*"
+    private const val GO_IDENTIFIER = "[A-Za-z_][A-Za-z0-9_]*"
+    private val jvm = Regex("at (?:$JVM_IDENTIFIER\\.)+$JVM_IDENTIFIER\\($JVM_IDENTIFIER\\.(?:kt|java):[0-9]{1,10}\\)")
+    private val goFunction = Regex("$GO_IDENTIFIER\\.(?:\\(\\*?$GO_IDENTIFIER\\)\\.)?$GO_IDENTIFIER(?:\\.$GO_IDENTIFIER)*")
+    private val goLocation = Regex("$GO_IDENTIFIER\\.go:[0-9]{1,10}")
 
     fun text(value: String, maxBytes: Int = 512): String {
         var result = url.replace(value.take(64 * 1024), "<url>")
         result = ipv6.replace(result) {
             val address = it.value.substringBefore('%')
-            if ("::" in address || address.count { character -> character == ':' } == 7) "<ip>" else it.value
+            if ("::" in address || address.count { character -> character == ':' } == 7) {
+                "<ip>" + it.value.takeLastWhile { character -> character == '.' }
+            } else {
+                it.value
+            }
         }
         result = ipv4.replace(result, "<ip>")
         result = host.replace(result, "<host>")
@@ -45,30 +49,15 @@ object DiagnosticsScrubber {
         var readChars = 0
         var frameBytes = 0
         val line = StringBuilder()
+        var overflow = false
         fun accept(raw: String) {
             val trimmed = raw.trim()
-            val javaFrame = jvm.matchEntire(trimmed)
-            val normalizedFrame = normalized.matchEntire(trimmed)
-            var frame: String? = null
-            if (normalizedFrame != null) {
-                frame = normalizedFrame.value
-                pending = null
-            } else if (javaFrame != null) {
-                val file = javaFrame.groupValues[2].substringAfterLast('/').substringAfterLast('\\')
-                if (basename.matches(file)) frame = "${javaFrame.groupValues[1]} $file:${javaFrame.groupValues[3]}"
-                pending = null
-            } else {
-                val fileFrame = location.matchEntire(trimmed)
-                if (fileFrame != null) {
-                    val file = fileFrame.groupValues[1].substringAfterLast('/').substringAfterLast('\\')
-                    if (pending != null && basename.matches(file)) frame = "$pending $file:${fileFrame.groupValues[2]}"
-                    pending = null
-                } else {
-                    val opening = trimmed.lastIndexOf('(')
-                    val symbol = if (opening > 0 && trimmed.endsWith(')')) trimmed.substring(0, opening).substringAfterLast('/') else ""
-                    pending = symbol.takeIf { function.matches(it) }
-                }
+            val frame = when {
+                jvm.matches(trimmed) -> trimmed
+                pending != null && goLocation.matches(trimmed) -> "$pending\n$trimmed"
+                else -> null
             }
+            pending = if (goFunction.matches(trimmed)) trimmed else null
             if (frame != null) {
                 val bytes = frame.toByteArray(Charsets.UTF_8).size + if (frames.isEmpty()) 0 else 1
                 if (frameBytes + bytes <= maxBytes) {
@@ -78,19 +67,24 @@ object DiagnosticsScrubber {
                 }
             }
         }
-        // Scan a bounded prefix for frames; never retain or return raw log lines.
+        // Only complete validated frames survive; raw exception and log lines never do.
         while (readChars < 256 * 1024 && frameBytes < maxBytes) {
             val next = reader.read()
-            if (next == -1) break
+            if (next == -1) {
+                if (!overflow && line.isNotEmpty()) accept(line.toString())
+                break
+            }
             readChars++
             if (next == '\n'.code) {
-                accept(line.toString())
+                if (overflow) pending = null else accept(line.toString())
                 line.setLength(0)
+                overflow = false
             } else if (line.length < 4096) {
                 line.append(next.toChar())
+            } else {
+                overflow = true
             }
         }
-        if (line.isNotEmpty()) accept(line.toString())
         return frames.toString()
     }
 }

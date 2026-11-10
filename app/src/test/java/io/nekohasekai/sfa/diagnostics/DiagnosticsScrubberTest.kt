@@ -17,21 +17,61 @@ class DiagnosticsScrubberTest {
     }
 
     @Test
-    fun keepsOnlyJvmAndGoFunctionsAndBasenameLocations() {
+    fun removesPunctuatedAndIpv4MappedAddresses() {
+        for (address in listOf("192.0.2.10", "::ffff:192.0.2.10", "2001:db8::192.0.2.10")) {
+            for (suffix in listOf(".", ",", ";", ")", "]", ":443")) {
+                val result = DiagnosticsScrubber.text("connect [$address$suffix")
+                assertFalse(result, result.contains("192.0.2.10"))
+                assertFalse(result, result.contains("ffff"))
+                assertFalse(result, result.contains("2001:db8"))
+                assertTrue(result, result.contains("<ip>"))
+            }
+        }
+        assertEquals("connect <ip>.", DiagnosticsScrubber.text("connect 192.0.2.10."))
+    }
+
+    @Test
+    fun keepsOnlyStrictJvmAndAlreadyScrubbedGoFrames() {
         val frames = DiagnosticsScrubber.stack(
             """
             java.lang.IllegalStateException: https://secret.example/token
                 at io.example.Worker.run(Worker.kt:42)
+            group.(*Smart).probe
+            smart_probe.go:113
+            debug.Stack
+            stack.go:26
             goroutine 8 [running]:
             example.org/private/group.(*Smart).probe(0xc0000123, {0x123, 0x456})
                 /home/private/project/group/smart_probe.go:113 +0x42
             log text containing a password
             """.trimIndent(),
         )
-        assertEquals("io.example.Worker.run Worker.kt:42\ngroup.(*Smart).probe smart_probe.go:113", frames)
+        assertEquals("at io.example.Worker.run(Worker.kt:42)\ngroup.(*Smart).probe\nsmart_probe.go:113\ndebug.Stack\nstack.go:26", frames)
         assertEquals(frames, DiagnosticsScrubber.stack(frames))
         assertFalse(frames.contains("private"))
         assertFalse(frames.contains("0xc"))
         assertFalse(frames.contains("secret"))
+    }
+
+    @Test
+    fun rejectsExceptionTextDisguisedAsFramesAndNonIdentifierLocations() {
+        val value = """
+            dial private.example:443
+            Unable to resolve host "myrouter"
+            192.0.2.10.
+            dial private.example:443
+            at io.example.Worker.run(/private/Worker.kt:42)
+            at io.example.Worker.run(Worker.kt:42) secret
+            at io.example.Worker.run(192.0.2.10:443)
+            group.(*Smart).probe
+            /private/smart.go:42
+            group.(*Smart).probe
+            dial private.example:443
+            smart.go:42
+            at io.example.Worker.run(Worker.kt:42)
+        """.trimIndent()
+        assertEquals("at io.example.Worker.run(Worker.kt:42)", DiagnosticsScrubber.stack(value))
+        assertEquals("", DiagnosticsScrubber.stack("group.run\n${"a".repeat(4097)}\nsmart.go:1"))
+        assertEquals("", DiagnosticsScrubber.stack("group.run\nsmart.go:1", 8))
     }
 }

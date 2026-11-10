@@ -41,7 +41,7 @@ object UpdateState {
 
     fun setInstallStatus(status: InstallStatus) {
         installStatus.value = status
-        if (status is InstallStatus.Failed) DiagnosticsJournal.record("update_failed", mapOf("stage" to "install", "message" to status.error))
+        if (status is InstallStatus.Failed) DiagnosticsJournal.record("update_failed", mapOf("stage" to "install", "type" to "InstallError", "category" to "other"))
     }
 
     fun clear() {

@@ -35,6 +35,7 @@ import androidx.lifecycle.viewModelScope
 import io.nekohasekai.sfa.R
 import io.nekohasekai.sfa.compose.theme.Theme
 import io.nekohasekai.sfa.diagnostics.DiagnosticsJournal
+import io.nekohasekai.sfa.diagnostics.DiagnosticsProjection
 import io.nekohasekai.sfa.vendor.InstallCancellation
 import io.nekohasekai.sfa.vendor.SystemPackageInstaller
 import kotlinx.coroutines.CancellationException
@@ -96,7 +97,7 @@ class ServerUpdateInstallModel : ViewModel() {
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
-                DiagnosticsJournal.record("update_failed", mapOf("stage" to "install", "message" to exception.message))
+                DiagnosticsJournal.record("update_failed", mapOf("stage" to "install") + DiagnosticsProjection.failure(exception))
                 Log.e("ServerUpdateInstall", "Failed to prepare update session", exception)
                 error = R.string.server_update_install_failed
             } finally {

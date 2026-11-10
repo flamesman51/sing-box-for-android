@@ -4,13 +4,20 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
+import java.net.UnknownHostException
 
 class DiagnosticsProjectionTest {
+    @get:Rule val temporary = TemporaryFolder()
+
     @Test
     fun projectsOnlyApprovedSmartFieldsAndToleratesOldCore() {
         val raw = Json.parseToJsonElement(
@@ -49,7 +56,7 @@ class DiagnosticsProjectionTest {
     }
 
     @Test
-    fun scrubsCrashMessageAndProjectsFramesInsteadOfRawMetadata() {
+    fun dropsCrashMessagesAndProjectsFramesInsteadOfRawMetadata() {
         val metadata = Json.parseToJsonElement(
             """{"exceptionName":"java.lang.IllegalStateException",
           "exceptionReason":"dial https://private.example/token 192.0.2.3","appMarketingVersion":"1.0","coreVersion":"1.13.0",
@@ -61,22 +68,25 @@ class DiagnosticsProjectionTest {
             metadata,
             DiagnosticsScrubber.stack("at io.example.Worker.run(Worker.kt:42)"),
         )
-        assertEquals(setOf("kind", "at", "type", "message", "stack", "app_version", "core_version"), crash.keys)
-        assertTrue(crash.toString().contains("Worker.kt:42"))
+        assertEquals(setOf("kind", "at", "type", "category", "stack", "app_version", "core_version"), crash.keys)
         for (secret in listOf("private.example", "192.0.2.3", "/private", "PrivateSSID", "private-key")) assertFalse(crash.toString().contains(secret))
-        assertTrue(crash["message"].toString().toByteArray().size < 512)
+        assertTrue(crash.toString().contains("Worker.kt:42"))
+        assertEquals("\"IllegalStateException\"", crash["type"].toString())
+        assertEquals("\"other\"", crash["category"].toString())
     }
 
     @Test
-    fun boundsPanicMessagesAndDropsUnknownNestedFields() {
+    fun dropsPanicMessagesAndDropsUnknownNestedFields() {
         val raw = Json.parseToJsonElement(
             """{"group":"smart","panics":{"total":2,"recent":[{"at":"2026-01-02T03:04:05Z",
           "site":"probe","message":"${"я".repeat(600)} https://private.example/token",
           "stack":"at io.example.Worker.run(Worker.kt:42)","SSID":"PrivateSSID"}]}}""",
         ).jsonObject
         val recent = (DiagnosticsProjection.smartGroup(raw)["panics"]!!.jsonObject["recent"] as JsonArray)[0].jsonObject
-        assertTrue((recent["message"] as kotlinx.serialization.json.JsonPrimitive).content.toByteArray().size <= 512)
         assertFalse(recent.toString().contains("PrivateSSID"))
+        assertFalse(recent.containsKey("message"))
+        assertEquals("\"CorePanic\"", recent["type"].toString())
+        assertEquals("\"libbox\"", recent["category"].toString())
     }
 
     @Test
@@ -98,5 +108,64 @@ class DiagnosticsProjectionTest {
         assertEquals("\"install\"", detail["stage"].toString())
         assertEquals("7", detail["start_id"].toString())
         assertEquals(6, detail.size)
+    }
+
+    @Test
+    fun eventDetailsAcceptOnlyEnumsAndNumbersAndNeverExceptionMessages() {
+        val event = DiagnosticsProjection.event(
+            "vpn_start_failed",
+            DiagnosticsProjection.failure(UnknownHostException("Unable to resolve host \"myrouter\"")) + mapOf(
+                "message" to "dial private.example:443 192.0.2.10.",
+                "reason" to "dial private.example:443",
+                "decision" to "myrouter",
+                "start_id" to 5,
+            ),
+        )
+        val detail = event["detail"]!!.jsonObject
+        assertEquals(setOf("type", "category", "start_id"), detail.keys)
+        assertEquals("\"UnknownHostException\"", detail["type"].toString())
+        assertEquals("\"network\"", detail["category"].toString())
+        assertEquals(event, DiagnosticsProjection.sanitizeEvent(event))
+        assertEquals("other", DiagnosticsProjection.failure(IllegalStateException("permission denied"))["category"])
+        assertEquals("permission", DiagnosticsProjection.failure(SecurityException("private"))["category"])
+        assertEquals("config", DiagnosticsProjection.failure(IllegalArgumentException("private"))["category"])
+        assertEquals("oom", DiagnosticsProjection.failure(OutOfMemoryError("private"))["category"])
+        assertEquals("native", DiagnosticsProjection.failure(UnsatisfiedLinkError("private"))["category"])
+    }
+
+    @Test
+    fun crashWithResolverDialAndPunctuatedAddressNeverEntersReportOrJournal() {
+        val secret = "dial private.example:443\nUnable to resolve host \"myrouter\"\n192.0.2.10."
+        val crash = DiagnosticsProjection.crash(
+            "crash_report",
+            DiagnosticsProjection.utc(),
+            buildJsonObject {
+                put("exceptionName", JsonPrimitive("java.net.UnknownHostException"))
+                put("exceptionReason", JsonPrimitive(secret))
+            },
+            "$secret\nat io.example.Worker.run(Worker.kt:42)",
+        )
+        val store = DiagnosticsStore(temporary.newFolder())
+        store.discover("owner", "crash_report", "crash")
+        store.record("owner", DiagnosticsProjection.event("vpn_start_failed", DiagnosticsProjection.failure(UnknownHostException(secret)) + mapOf("message" to secret)))
+        val report = store.prepare("owner", JsonObject(emptyMap()), null, listOf(DiagnosticsCrash(DiagnosticsStore.crashKey("crash_report", "crash"), crash)))!!
+        for (value in listOf("private.example", "myrouter", "192.0.2.10", "message")) {
+            assertFalse(report.body, report.body.contains(value))
+            assertFalse(store.eventsFile.readText().contains(value))
+        }
+        assertTrue(report.body.contains("Worker.kt:42"))
+        assertEquals(crash, DiagnosticsProjection.sanitizeCrash(crash))
+    }
+
+    @Test
+    fun preservesCoreGoStacksAndSanitizesLegacyStoredFields() {
+        val raw = Json.parseToJsonElement(
+            """{"groups":[{"group":"smart","panics":{"total":1,"recent":[{"site":"probe","message":"dial private.example:443","stack":"group.(*Smart).worker\nsmart.go:78"}]},"members":[{"tag":"node","tier":0,"state":"reachable","rtt_ms":12,"download_mbps":20,"throughput_source":"active","throughput_at":5}]}]}""",
+        ).jsonObject
+        val safe = DiagnosticsProjection.sanitizeSmart(raw)
+        assertFalse(safe.toString().contains("message"))
+        assertFalse(safe.toString().contains("private.example"))
+        assertTrue(safe.toString().contains("smart.go:78"))
+        assertEquals(safe, DiagnosticsProjection.sanitizeSmart(safe))
     }
 }

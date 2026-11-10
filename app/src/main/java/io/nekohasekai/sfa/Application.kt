@@ -23,6 +23,7 @@ import io.nekohasekai.sfa.compose.screen.tools.TaildropFiles
 import io.nekohasekai.sfa.constant.Bugs
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.diagnostics.DiagnosticsJournal
+import io.nekohasekai.sfa.diagnostics.DiagnosticsProjection
 import io.nekohasekai.sfa.diagnostics.DiagnosticsWork
 import io.nekohasekai.sfa.update.ServerUpdateNotifier
 import io.nekohasekai.sfa.update.ServerUpdates
@@ -81,19 +82,23 @@ class Application : Application() {
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 Settings.dataStore.initialize()
+                DiagnosticsJournal.preferencesReady()
+                DiagnosticsWork.schedule(this@Application)
+                if (workingDir != null) {
+                    CrashReportManager.refresh()
+                    OOMReportManager.refresh()
+                    PowerReportManager.refresh()
+                }
                 initialize(baseDir, workingDir, tempDir)
                 coreReady.complete(Unit)
                 DiagnosticsJournal.record("core_ready")
             } catch (error: Exception) {
                 coreReady.completeExceptionally(error)
-                DiagnosticsJournal.record("core_setup_failed", mapOf("message" to error.message))
+                DiagnosticsJournal.record("core_setup_failed", DiagnosticsProjection.failure(error))
+                DiagnosticsWork.enqueue(this@Application)
                 Log.e("Application", "Core initialization failed")
                 return@launch
             }
-            DiagnosticsWork.schedule(this@Application)
-            CrashReportManager.refresh()
-            OOMReportManager.refresh()
-            PowerReportManager.refresh()
             ServerUpdates.initialize()
             ServerUpdates.reconcileInstalled()
             ServerUpdateNotifier.refresh(this@Application)

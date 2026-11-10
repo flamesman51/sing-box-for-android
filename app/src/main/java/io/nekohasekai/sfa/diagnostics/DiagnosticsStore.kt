@@ -50,8 +50,30 @@ internal class DiagnosticsStore(private val directory: File) {
         return Json.parseToJsonElement(file.readText(Charsets.UTF_8)).jsonObject
     }
 
-    private fun state(): JsonObject = readObject(stateFile, MAX_STATE_BYTES) ?: JsonObject(emptyMap())
+    private fun state(): JsonObject {
+        val current = readObject(stateFile, MAX_STATE_BYTES) ?: return JsonObject(emptyMap())
+        val owner = current.string("owner") ?: return current
+        if ("batches" !in current) return current
+        // Write the owner queue first so an interrupted migration never loses the singleton.
+        if (!queueFile(owner).exists()) saveQueue(owner, batches(current))
+        return JsonObject(current - "owner" - "batches").also(::save)
+    }
     private fun save(state: JsonObject) = atomic(stateFile, state.toString())
+    private fun queueFile(owner: String): File = File(directory, "pending-${digest(owner)}.json")
+    private fun queue(owner: String): List<DiagnosticsBatch> {
+        val stored = readObject(queueFile(owner), MAX_STATE_BYTES) ?: return emptyList()
+        require(stored.string("owner") == owner)
+        val batches = batches(stored)
+        if (JsonArray(batches.map { it.stored() }) != stored["batches"]) saveQueue(owner, batches)
+        return batches
+    }
+    private fun saveQueue(owner: String, batches: List<DiagnosticsBatch>) = atomic(
+        queueFile(owner),
+        buildJsonObject {
+            put("owner", owner)
+            put("batches", JsonArray(batches.map { it.stored() }))
+        }.toString(),
+    )
     private fun atomic(file: File, content: String) {
         if (!directory.isDirectory && !directory.mkdirs()) throw IOException("Cannot create diagnostics storage")
         val bytes = content.toByteArray(Charsets.UTF_8)
@@ -67,20 +89,26 @@ internal class DiagnosticsStore(private val directory: File) {
     private fun events(): List<JsonObject> {
         if (!eventsFile.exists()) return emptyList()
         if (eventsFile.length() > MAX_JOURNAL_BYTES) throw IOException("Diagnostics journal exceeds its bound")
-        return eventsFile.useLines { lines ->
+        val stored = eventsFile.useLines { lines ->
             lines.mapNotNull { line ->
                 runCatching { Json.parseToJsonElement(line) as? JsonObject }.getOrNull()
             }.toList()
         }
+        val projected = stored.map { entry ->
+            entry.obj("event")?.let { JsonObject(entry + ("event" to DiagnosticsProjection.sanitizeEvent(it))) } ?: entry
+        }
+        if (projected != stored) atomic(eventsFile, projected.joinToString("\n", postfix = "\n"))
+        return projected
     }
 
     fun eventCount(): Int = synchronized(lock) { events().size }
 
     fun record(owner: String?, event: JsonObject) = synchronized(lock) {
+        if (owner == null) return@synchronized
         val entry = buildJsonObject {
             put("id", UUID.randomUUID().toString())
-            put("owner", owner?.let(::JsonPrimitive) ?: JsonNull)
-            put("event", event)
+            put("owner", owner)
+            put("event", DiagnosticsProjection.sanitizeEvent(event))
         }
         val line = entry.toString() + "\n"
         val bytes = line.toByteArray(Charsets.UTF_8)
@@ -101,13 +129,14 @@ internal class DiagnosticsStore(private val directory: File) {
     }
 
     fun discover(owner: String?, kind: String, id: String): Boolean = synchronized(lock) {
+        if (owner == null) return@synchronized false
         val current = state()
         val discoveries = current.array("discoveries")
         val key = crashKey(kind, id)
         if (discoveries.any { (it as? JsonObject)?.string("key") == key }) return false
         val discovery = buildJsonObject {
             put("key", key)
-            put("owner", owner?.let(::JsonPrimitive) ?: JsonNull)
+            put("owner", owner)
             put("sent", false)
         }
         save(JsonObject(current + ("discoveries" to JsonArray((discoveries + discovery).takeLast(512)))))
@@ -122,17 +151,25 @@ internal class DiagnosticsStore(private val directory: File) {
 
     private fun batches(state: JsonObject): List<DiagnosticsBatch> = state.array("batches").map { item ->
         val stored = item.jsonObject
-        DiagnosticsBatch(requireNotNull(stored.obj("body")), stored.array("events").map { (it as JsonPrimitive).content }, stored.array("crashes").map { (it as JsonPrimitive).content })
+        val body = requireNotNull(stored.obj("body"))
+        val projected = JsonObject(
+            body + mapOf(
+                "events" to JsonArray(body.array("events").map { DiagnosticsProjection.sanitizeEvent(it.jsonObject) }),
+                "crashes" to JsonArray(body.array("crashes").map { DiagnosticsProjection.sanitizeCrash(it.jsonObject) }),
+                "smart" to (body.obj("smart")?.let(DiagnosticsProjection::sanitizeSmart) ?: JsonNull),
+            ),
+        )
+        DiagnosticsBatch(projected, stored.array("events").map { (it as JsonPrimitive).content }, stored.array("crashes").map { (it as JsonPrimitive).content })
     }
 
     fun pending(owner: String): DiagnosticsBatch? = synchronized(lock) {
-        val current = state()
-        if (current.string("owner") != owner) null else batches(current).firstOrNull()
+        state()
+        queue(owner).firstOrNull()
     }
 
     fun prepare(owner: String, app: JsonObject, smart: JsonObject?, crashes: List<DiagnosticsCrash>): DiagnosticsBatch? = synchronized(lock) {
-        val current = state()
-        if (current.string("owner") == owner) batches(current).firstOrNull()?.let { return it }
+        state()
+        queue(owner).firstOrNull()?.let { return it }
         val selectedEvents = mutableListOf<JsonObject>()
         val eventIds = mutableListOf<String>()
         var eventBytes = 2
@@ -145,18 +182,11 @@ internal class DiagnosticsStore(private val directory: File) {
             eventIds += requireNotNull(entry.string("id"))
             eventBytes += size
         }
-        val selectedCrashes = crashes.take(5)
-        val groups = mutableListOf<JsonElement>()
-        var batch = newBatch(app, selectedEvents, selectedCrashes.map { it.report }, null, eventIds, selectedCrashes.map { it.key })
-        for (group in smart?.array("groups").orEmpty().take(32)) {
-            val candidate = batch.copy(envelope = JsonObject(batch.envelope + ("smart" to buildJsonObject { put("groups", JsonArray(groups + group)) })))
-            if (candidate.body.toByteArray(Charsets.UTF_8).size > MAX_BODY_BYTES) break
-            groups += group
-            batch = candidate
-        }
+        val unsent = unsentDiscoveries(owner)
+        val selectedCrashes = crashes.filter { it.key in unsent }.take(5)
+        val batch = newBatch(app, selectedEvents, selectedCrashes.map { it.report }, smart, eventIds, selectedCrashes.map { it.key })
         require(batch.body.toByteArray(Charsets.UTF_8).size <= MAX_BODY_BYTES)
-        // A cutover never acknowledges old-owner data; it remains in the bounded source journal.
-        save(JsonObject(current + mapOf("owner" to JsonPrimitive(owner), "batches" to JsonArray(listOf(batch.stored())))))
+        saveQueue(owner, listOf(batch))
         batch
     }
 
@@ -166,30 +196,31 @@ internal class DiagnosticsStore(private val directory: File) {
             put("report_id", UUID.randomUUID().toString())
             put("created_at", at)
             put("app", app)
-            put("events", JsonArray(events))
-            put("smart", smart ?: JsonNull)
-            put("crashes", JsonArray(crashes))
+            put("events", JsonArray(events.map { DiagnosticsProjection.sanitizeEvent(it.jsonObject) }))
+            put("smart", smart?.let(DiagnosticsProjection::sanitizeSmart) ?: JsonNull)
+            put("crashes", JsonArray(crashes.map { DiagnosticsProjection.sanitizeCrash(it.jsonObject) }))
         },
         eventIds,
         crashKeys,
     )
 
-    fun respond(reportId: String, status: Int): Outcome = synchronized(lock) {
+    fun respond(owner: String, reportId: String, status: Int): Outcome = synchronized(lock) {
         val current = state()
-        val queue = batches(current)
+        val queue = queue(owner)
         val batch = queue.firstOrNull()?.takeIf { it.id == reportId } ?: return Outcome.RETRY
         when {
             status in 200..299 || status == 400 -> {
                 val ids = batch.eventIds.toSet()
-                val remaining = events().filter { it.string("id") !in ids }
+                val remaining = events().filter { it.string("owner") != owner || it.string("id") !in ids }
                 atomic(eventsFile, if (remaining.isEmpty()) "" else remaining.joinToString("\n", postfix = "\n"))
                 val discoveries = current.array("discoveries").map { item ->
                     val discovery = item.jsonObject
-                    if (discovery.string("key") in batch.crashKeys) JsonObject(discovery + ("sent" to JsonPrimitive(true))) else discovery
+                    if (discovery.string("owner") == owner && discovery.string("key") in batch.crashKeys) JsonObject(discovery + ("sent" to JsonPrimitive(true))) else discovery
                 }
-                save(JsonObject(current + mapOf("batches" to JsonArray(queue.drop(1).map { it.stored() }), "discoveries" to JsonArray(discoveries))))
+                save(JsonObject(current + ("discoveries" to JsonArray(discoveries))))
+                saveQueue(owner, queue.drop(1))
                 if (status == 400) {
-                    record(current.string("owner"), DiagnosticsProjection.event("diagnostics_rejected", mapOf("status" to 400)))
+                    record(owner, DiagnosticsProjection.event("diagnostics_rejected", mapOf("status" to 400)))
                     Outcome.DISCARDED
                 } else {
                     Outcome.ACKNOWLEDGED
@@ -200,7 +231,7 @@ internal class DiagnosticsStore(private val directory: File) {
                 if (children == null) {
                     Outcome.RETRY
                 } else {
-                    save(JsonObject(current + ("batches" to JsonArray((children + queue.drop(1)).map { it.stored() }))))
+                    saveQueue(owner, children + queue.drop(1))
                     Outcome.SPLIT
                 }
             }
@@ -211,48 +242,18 @@ internal class DiagnosticsStore(private val directory: File) {
     private fun split(batch: DiagnosticsBatch): List<DiagnosticsBatch>? {
         val events = batch.envelope.array("events")
         val crashes = batch.envelope.array("crashes")
-        val groups = batch.envelope.obj("smart")?.array("groups").orEmpty()
-        val total = events.size + crashes.size + groups.size
-        if (total == 1 && groups.size == 1) {
-            val group = groups.single() as? JsonObject ?: return null
-            val members = group.array("members")
-            val recent = group.obj("panics")?.array("recent").orEmpty()
-            val count = members.size + recent.size
-            if (count >= 2) {
-                return listOf(0 until count / 2, count / 2 until count).map { range ->
-                    val fragment = JsonObject(
-                        group + mapOf(
-                            "members" to JsonArray(members.filterIndexed { index, _ -> index in range }),
-                            "panics" to (
-                                group.obj("panics")?.let {
-                                    JsonObject(it + ("recent" to JsonArray(recent.filterIndexed { index, _ -> members.size + index in range })))
-                                } ?: JsonNull
-                                ),
-                        ),
-                    )
-                    newBatch(
-                        requireNotNull(batch.envelope.obj("app")),
-                        emptyList(),
-                        emptyList(),
-                        buildJsonObject { put("groups", JsonArray(listOf(fragment))) },
-                        emptyList(),
-                        emptyList(),
-                        requireNotNull(batch.envelope.string("created_at")),
-                    )
-                }
-            }
-        }
+        val smart = batch.envelope.obj("smart")
+        val total = events.size + crashes.size + if (smart != null) 1 else 0
         if (total < 2) return null // An indivisible report stays durable and retries; 413 never acknowledges it.
         val middle = total / 2
         return listOf(0 until middle, middle until total).map { range ->
             val eventIndexes = events.indices.filter { it in range }
             val crashIndexes = crashes.indices.filter { events.size + it in range }
-            val groupIndexes = groups.indices.filter { events.size + crashes.size + it in range }
             newBatch(
                 requireNotNull(batch.envelope.obj("app")),
                 eventIndexes.map { events[it] },
                 crashIndexes.map { crashes[it] },
-                groupIndexes.takeIf { it.isNotEmpty() }?.let { buildJsonObject { put("groups", JsonArray(it.map { index -> groups[index] })) } },
+                smart?.takeIf { events.size + crashes.size in range },
                 eventIndexes.map { batch.eventIds[it] },
                 crashIndexes.map { batch.crashKeys[it] },
                 requireNotNull(batch.envelope.string("created_at")),
