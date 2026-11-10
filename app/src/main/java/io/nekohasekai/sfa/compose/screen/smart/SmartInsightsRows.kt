@@ -170,6 +170,9 @@ private fun smartTimeText(seconds: Long?): String? = formatSmartTime(LocalContex
 private fun numberText(value: Double?, resource: Int): String? = formatSmartNumber(value, stringResource(resource), appLocale())
 
 @Composable
+private fun megabytesText(value: Double?): String? = formatSmartMegabytes(value, stringResource(R.string.smart_mb_value), stringResource(R.string.smart_mb_whole_value), appLocale())
+
+@Composable
 private fun integerText(value: Double?, resource: Int): String? {
     val pattern = stringResource(resource)
     val locale = appLocale()
@@ -195,7 +198,7 @@ internal fun SmartInsightsStatusCard(status: SmartStatus) {
         val network = status.network
         val typeLabel = stringResource(smartNetworkTypeLabel(network.type))
         InsightsRow(
-            headline = safeNetworkLabel(network.label, network.carrier, typeLabel),
+            headline = safeNetworkLabel(network.label, network.carrier, stringResource(smartNetworkFallbackLabel(network.type))),
             supporting = joinParts(typeLabel, stringResource(R.string.smart_direct_summary, stringResource(smartDirectLabel(status.direct.state)))),
             modifier = Modifier.rowCorners(first = false, last = true),
             leading = { LeadingIcon(networkIcon(network.type)) },
@@ -207,6 +210,7 @@ internal fun SmartInsightsStatusCard(status: SmartStatus) {
 internal fun SmartInsightsServersCard(status: SmartStatus) {
     var expanded by rememberSaveable(status.group) { mutableStateOf(hashMapOf<String, Boolean>()) }
     val members = status.members.sortedBy { it.rank }
+    val addresses = duplicateServerAddresses(members.map { it.tag })
     InsightsCard {
         members.forEachIndexed { index, member ->
             val isExpanded = expanded[member.tag] == true
@@ -219,7 +223,7 @@ internal fun SmartInsightsServersCard(status: SmartStatus) {
             }
             InsightsRow(
                 headline = displayTag(member.tag).first,
-                supporting = joinParts(role, stringResource(smartMemberLabel(member.state)), integerText(member.rttMs, R.string.smart_rtt_value), numberText(member.downloadMbps, R.string.smart_speed_value)),
+                supporting = joinParts(addresses[member.tag], role, stringResource(smartMemberLabel(member.state)), integerText(member.rttMs, R.string.smart_rtt_value), numberText(member.downloadMbps, R.string.smart_speed_value)),
                 modifier = Modifier
                     .rowCorners(index == 0, index == members.lastIndex && !isExpanded)
                     .clickable(onClickLabel = clickLabel) { expanded = HashMap(expanded).apply { put(member.tag, !isExpanded) } }
@@ -329,11 +333,11 @@ internal fun SmartInsightsDetailsCard(status: SmartStatus) {
             leading = { LeadingIcon(Icons.Outlined.SwapVert) },
         )
         val budget = status.budget
-        val used = numberText(budget.usedMb, R.string.smart_mb_value)
-        val limit = numberText(budget.limitMb, R.string.smart_mb_value)
-        val reserved = numberText(budget.reservedMb, R.string.smart_mb_value)
-        val budgetValues = if (used != null && limit != null && reserved != null) {
-            stringResource(R.string.smart_budget_values, used, limit, stringResource(smartNetworkTypeLabel(budget.networkType)), reserved)
+        val used = megabytesText(budget.usedMb)
+        val limit = megabytesText(budget.limitMb)
+        val reserved = megabytesText(budget.reservedMb.takeIf { it != 0.0 })
+        val budgetValues = if (used != null && limit != null) {
+            stringResource(smartBudgetValuesResource(budget.reservedMb), used, limit, stringResource(smartNetworkTypeLabel(budget.networkType)), reserved.orEmpty())
         } else {
             joinParts(used, limit, stringResource(smartNetworkTypeLabel(budget.networkType)), reserved)
         }
@@ -372,17 +376,20 @@ internal fun SmartInsightsEmpty(label: Int) {
 
 @Composable
 internal fun SmartInsightsNetworksCard(networks: List<SmartNetworkHistory>) {
+    val context = LocalContext.current
+    val groups = groupSmartNetworks(networks) { context.getString(smartNetworkFallbackLabel(it)) }
     InsightsCard {
-        networks.forEachIndexed { index, network ->
+        groups.forEachIndexed { index, network ->
             val typeLabel = stringResource(smartNetworkTypeLabel(network.type))
             InsightsRow(
-                headline = safeNetworkLabel(network.label, network.carrier, typeLabel),
+                headline = network.label,
                 supporting = joinParts(
                     typeLabel,
-                    pluralStringResource(R.plurals.smart_server_count, network.members.size, network.members.size),
-                    smartTimeText(network.lastSeen)?.let { stringResource(R.string.smart_last_seen, it) },
+                    if (network.count > 1) pluralStringResource(smartNetworkCountPlural(network.type), network.count, network.count) else null,
+                    pluralStringResource(R.plurals.smart_server_count, network.servers, network.servers),
+                    smartTimeText(network.lastUsed)?.let { stringResource(R.string.smart_last_seen, it) },
                 ),
-                modifier = Modifier.rowCorners(index == 0, index == networks.lastIndex),
+                modifier = Modifier.rowCorners(index == 0, index == groups.lastIndex),
                 leading = { LeadingIcon(networkIcon(network.type)) },
             )
         }
@@ -398,20 +405,12 @@ internal fun SmartInsightsEventsCard(events: List<SmartEvent>, networks: List<Sm
     val showMore = !showAll && sorted.size > 20
     InsightsCard {
         shown.forEachIndexed { index, event ->
-            val from = event.from?.takeIf(String::isNotBlank)?.let { displayTag(it).first }
-            val to = event.to?.takeIf(String::isNotBlank)?.let { displayTag(it).first }
-            val arrow = when {
-                from != null && to != null -> "$from → $to"
-                from != null -> "$from →"
-                to != null -> "→ $to"
-                else -> null
-            }
             InsightsRow(
                 headline = stringResource(smartEventLabel(event.kind)),
                 supporting = joinParts(
-                    arrow,
+                    smartEventServers(event.from, event.to),
                     smartReasonLabel(event.reason)?.let { stringResource(it) },
-                    networkLabelForKey(event.network, networks) { context.getString(smartNetworkTypeLabel(it)) },
+                    networkLabelForKey(event.network, networks) { context.getString(smartNetworkFallbackLabel(it)) },
                 ),
                 modifier = Modifier.rowCorners(index == 0, index == shown.lastIndex && !showMore),
                 trailing = {

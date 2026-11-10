@@ -86,6 +86,7 @@
   <string name="smart_rtt_value">%d ms</string>
   <string name="smart_speed_value">%.1f Mbit/s</string>
   <string name="smart_mb_value">%,.1f MB</string>
+  <string name="smart_mb_whole_value">%,.0f MB</string>
   <string name="smart_percent_value">%d%%</string>
   <string name="smart_stability_value">%1$d%% · class %2$s</string>
   <string name="smart_speed_class_value">%1$d · %2$s · %3$s</string>
@@ -97,7 +98,8 @@
   <string name="smart_udp_route">UDP: %1$s</string>
   <string name="smart_quic_route">QUIC: %1$s</string>
   <string name="smart_budget">Speed-test data today</string>
-  <string name="smart_budget_values">%1$s of %2$s on %3$s · reserved %4$s</string>
+  <string name="smart_budget_values">%1$s of %2$s on %3$s</string>
+  <string name="smart_budget_values_reserved">%1$s of %2$s on %3$s · reserved %4$s</string>
   <string name="smart_budget_note">Speed tests only, not VPN traffic</string>
   <string name="smart_active_tests_off">Active tests disabled</string>
   <string name="smart_direct_title">Direct internet</string>
@@ -132,6 +134,8 @@
   <string name="smart_unknown">Unknown</string>
   <string name="smart_wifi">Wi‑Fi</string>
   <string name="smart_cellular">Mobile</string>
+  <string name="smart_unnamed_wifi">Unnamed Wi‑Fi network</string>
+  <string name="smart_unnamed_mobile">Unnamed mobile network</string>
   <string name="smart_ethernet">Ethernet</string>
   <string name="smart_other">Other</string>
   <string name="smart_primary">Through the current server</string>
@@ -169,6 +173,18 @@
   <plurals name="smart_server_count">
     <item quantity="one">%d server</item>
     <item quantity="other">%d servers</item>
+  </plurals>
+  <plurals name="smart_access_point_count">
+    <item quantity="one">%d access point</item>
+    <item quantity="other">%d access points</item>
+  </plurals>
+  <plurals name="smart_cell_count">
+    <item quantity="one">%d cell</item>
+    <item quantity="other">%d cells</item>
+  </plurals>
+  <plurals name="smart_connection_count">
+    <item quantity="one">%d connection</item>
+    <item quantity="other">%d connections</item>
   </plurals>
   <string name="smart_success_chart">Success (%)</string>
   <string name="smart_rtt_chart">RTT (ms)</string>

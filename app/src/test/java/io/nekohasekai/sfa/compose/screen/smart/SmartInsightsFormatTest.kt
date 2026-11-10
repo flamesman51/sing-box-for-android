@@ -20,6 +20,28 @@ class SmartInsightsFormatTest {
     }
 
     @Test
+    fun duplicateDisplayNamesIncludeOnlyTheirBracketAddresses() {
+        val first = "Shared [first]"
+        val second = "Shared [second]"
+        val unique = "Unique [third]"
+        assertEquals(mapOf(first to "first", second to "second"), duplicateServerAddresses(listOf(first, second, unique)))
+        assertEquals(mapOf(first to "first"), duplicateServerAddresses(listOf(first, "Shared")))
+        assertTrue(duplicateServerAddresses(listOf(unique)).isEmpty())
+        assertTrue(duplicateServerAddresses(listOf("Shared", "Shared []")).isEmpty())
+    }
+
+    @Test
+    fun eventServersUseAnArrowOnlyWithBothEndpoints() {
+        assertEquals("First → Second", smartEventServers("First [first]", "Second [second]"))
+        assertEquals("First", smartEventServers("First [first]", null))
+        assertEquals("Second", smartEventServers(null, "Second [second]"))
+        assertEquals("Second", smartEventServers("", "Second [second]"))
+        assertEquals("First", smartEventServers("First [first]", " "))
+        assertNull(smartEventServers(null, null))
+        assertNull(smartEventServers("", " "))
+    }
+
+    @Test
     fun safeNetworkLabelRemovesMacsAndUsesLocalizedFallbacks() {
         assertEquals("Guest", safeNetworkLabel("Guest aA:bB:cC:dD:eE:fF", "Carrier", "Wi‑Fi"))
         assertEquals("Carrier", safeNetworkLabel("AA:BB:CC:DD:EE:FF", "Carrier", "Wi‑Fi"))
@@ -27,6 +49,8 @@ class SmartInsightsFormatTest {
         assertEquals("Мобильная сеть", safeNetworkLabel(null, " ", "Мобильная сеть"))
         assertEquals("Wi‑Fi", safeNetworkLabel("wifi/bssid:0123456789abcdef", null, "Wi‑Fi"))
         assertEquals("Wi‑Fi", safeNetworkLabel("0123456789abcdef", "AA:BB:CC:DD:EE:FF", "Wi‑Fi"))
+        assertEquals("Unnamed Wi‑Fi network", safeNetworkLabel("", "", "Unnamed Wi‑Fi network"))
+        assertEquals("Мобильная сеть без имени", safeNetworkLabel(null, null, "Мобильная сеть без имени"))
     }
 
     @Test
@@ -37,6 +61,66 @@ class SmartInsightsFormatTest {
         assertNull(networkLabelForKey("missing", listOf(network)) { "Wi‑Fi" })
         assertNull(networkLabelForKey(null, listOf(network)) { "Wi‑Fi" })
     }
+
+    @Test
+    fun networkGroupsUseSafeLabelAndTypeWithMaximumCountsAndNewestFirst() {
+        val networks = listOf(
+            network("first", "wifi", "Guest AA:BB:CC:DD:EE:FF", null, 30, 2),
+            network("second", "wifi", "Guest BB:CC:DD:EE:FF:AA", null, 20, 5),
+            network("third", "cellular", "Guest", null, 40, 3),
+            network("fourth", "wifi", "Separate", null, 10, 1),
+        )
+        assertEquals(
+            listOf(
+                SmartNetworkGroup("Guest", "cellular", 1, 3, 40),
+                SmartNetworkGroup("Guest", "wifi", 2, 5, 30),
+                SmartNetworkGroup("Separate", "wifi", 1, 1, 10),
+            ),
+            groupSmartNetworks(networks) { "Fallback" },
+        )
+        assertTrue(groupSmartNetworks(emptyList()) { "Fallback" }.isEmpty())
+    }
+
+    @Test
+    fun networkGroupsAndEventsShareUnnamedNetworkFallbacks() {
+        val networks = listOf(
+            network("first", "wifi", "", "", 10, 1),
+            network("second", "wifi", "AA:BB:CC:DD:EE:FF", null, 20, 2),
+            network("third", "cellular", null, " ", 30, 1),
+            network("fourth", "other", null, null, 40, 1),
+            network("fifth", "cellular", null, "Carrier", 50, 2),
+        )
+        val fallback = { type: String ->
+            when (type) {
+                "wifi" -> "Unnamed Wi‑Fi network"
+                "cellular" -> "Unnamed mobile network"
+                else -> "Other"
+            }
+        }
+        assertEquals(
+            listOf(
+                SmartNetworkGroup("Carrier", "cellular", 1, 2, 50),
+                SmartNetworkGroup("Other", "other", 1, 1, 40),
+                SmartNetworkGroup("Unnamed mobile network", "cellular", 1, 1, 30),
+                SmartNetworkGroup("Unnamed Wi‑Fi network", "wifi", 2, 2, 20),
+            ),
+            groupSmartNetworks(networks, fallback),
+        )
+        assertEquals("Unnamed Wi‑Fi network", networkLabelForKey("first", networks, fallback))
+        assertEquals("Unnamed mobile network", networkLabelForKey("third", networks, fallback))
+        assertEquals("Other", networkLabelForKey("fourth", networks, fallback))
+    }
+
+    private fun network(key: String, type: String, label: String?, carrier: String?, lastSeen: Long, servers: Int) = SmartNetworkHistory(
+        key,
+        type,
+        label,
+        carrier,
+        null,
+        lastSeen,
+        1.0,
+        List(servers) { SmartNetworkMember("Server $it", null, 1.0, null, null) },
+    )
 
     @Test
     fun joinPartsOmitsNullAndBlankParts() {
@@ -73,6 +157,21 @@ class SmartInsightsFormatTest {
         assertNull(formatSmartNumber(null, "%.1f", Locale.US))
         assertNull(formatSmartNumber(Double.NaN, "%.1f", Locale.US))
         assertNull(formatSmartNumber(Double.POSITIVE_INFINITY, "%.1f", Locale.US))
+    }
+
+    @Test
+    fun megabytesUseWholeNumbersAtOneHundredAndLocalizedDecimalsBelow() {
+        fun format(value: Double?, locale: Locale = Locale.US): String? = formatSmartMegabytes(value, "%,.1f MB", "%,.0f MB", locale)
+        assertEquals("0.0 MB", format(0.0))
+        assertEquals("99.9 MB", format(99.9))
+        assertEquals("100 MB", format(100.0))
+        assertEquals("1,235 MB", format(1234.6))
+        assertEquals("12,5 MB", format(12.5, Locale.forLanguageTag("ru")))
+        assertEquals("1\u00a0235 MB", format(1234.6, Locale.forLanguageTag("ru")))
+        assertNull(format(null))
+        assertNull(format(Double.NaN))
+        assertNull(format(Double.POSITIVE_INFINITY))
+        assertNull(format(Double.NEGATIVE_INFINITY))
     }
 
     @Test

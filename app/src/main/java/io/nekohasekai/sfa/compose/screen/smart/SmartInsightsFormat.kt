@@ -17,14 +17,35 @@ internal fun displayTag(tag: String): Pair<String, String?> {
     return if (tag.endsWith(']') && split >= 0) tag.substring(0, split) to tag.substring(split + 2, tag.length - 1) else tag to null
 }
 
-internal fun safeNetworkLabel(label: String?, carrier: String?, typeLabel: String): String {
+internal fun duplicateServerAddresses(tags: List<String>): Map<String, String> {
+    val counts = tags.groupingBy { displayTag(it).first }.eachCount()
+    return tags.mapNotNull { tag ->
+        val (name, address) = displayTag(tag)
+        address?.takeIf { counts.getValue(name) > 1 && it.isNotBlank() }?.let { tag to it }
+    }.toMap()
+}
+
+internal fun smartEventServers(from: String?, to: String?): String? {
+    val fromName = from?.takeIf(String::isNotBlank)?.let { displayTag(it).first }
+    val toName = to?.takeIf(String::isNotBlank)?.let { displayTag(it).first }
+    return if (fromName != null && toName != null) "$fromName → $toName" else fromName ?: toName
+}
+
+internal fun safeNetworkLabel(label: String?, carrier: String?, fallbackLabel: String): String {
     fun clean(value: String?): String? = value?.replace(smartTrailingMac, "")?.trim()?.takeUnless {
         it.isBlank() || smartMac.matches(it) || smartNetworkKey.matches(it)
     }
-    return clean(label) ?: clean(carrier) ?: typeLabel
+    return clean(label) ?: clean(carrier) ?: fallbackLabel
 }
 
-internal fun networkLabelForKey(key: String?, networks: List<SmartNetworkHistory>, typeLabel: (String) -> String): String? = networks.firstOrNull { it.key == key }?.let { safeNetworkLabel(it.label, it.carrier, typeLabel(it.type)) }
+internal fun networkLabelForKey(key: String?, networks: List<SmartNetworkHistory>, fallbackLabel: (String) -> String): String? = networks.firstOrNull { it.key == key }?.let { safeNetworkLabel(it.label, it.carrier, fallbackLabel(it.type)) }
+
+internal data class SmartNetworkGroup(val label: String, val type: String, val count: Int, val servers: Int, val lastUsed: Long)
+
+internal fun groupSmartNetworks(networks: List<SmartNetworkHistory>, fallbackLabel: (String) -> String): List<SmartNetworkGroup> = networks
+    .groupBy { safeNetworkLabel(it.label, it.carrier, fallbackLabel(it.type)) to it.type }
+    .map { (key, entries) -> SmartNetworkGroup(key.first, key.second, entries.size, entries.maxOf { it.members.size }, entries.maxOf { it.lastSeen }) }
+    .sortedByDescending { it.lastUsed }
 
 internal fun joinParts(vararg parts: String?): String = parts.filterNot { it.isNullOrBlank() }.joinToString(" · ")
 
@@ -51,6 +72,10 @@ internal fun formatSmartTime(context: Context, epochSeconds: Long?, locale: Loca
 }
 
 internal fun formatSmartNumber(value: Double?, pattern: String, locale: Locale): String? = value?.takeIf(Double::isFinite)?.let { String.format(locale, pattern, it) }
+
+internal fun formatSmartMegabytes(value: Double?, decimalPattern: String, wholePattern: String, locale: Locale): String? = formatSmartNumber(value, if (value != null && value >= 100) wholePattern else decimalPattern, locale)
+
+internal fun smartBudgetValuesResource(reserved: Double): Int = if (reserved.isFinite() && reserved != 0.0) R.string.smart_budget_values_reserved else R.string.smart_budget_values
 
 internal fun smartGroupLabel(state: String): Int = when (state) {
     "starting" -> R.string.smart_starting
@@ -102,6 +127,18 @@ internal fun smartNetworkTypeLabel(type: String): Int = when (type) {
     "ethernet" -> R.string.smart_ethernet
     "other" -> R.string.smart_other
     else -> R.string.smart_unknown
+}
+
+internal fun smartNetworkFallbackLabel(type: String): Int = when (type) {
+    "wifi" -> R.string.smart_unnamed_wifi
+    "cellular" -> R.string.smart_unnamed_mobile
+    else -> smartNetworkTypeLabel(type)
+}
+
+internal fun smartNetworkCountPlural(type: String): Int = when (type) {
+    "wifi" -> R.plurals.smart_access_point_count
+    "cellular" -> R.plurals.smart_cell_count
+    else -> R.plurals.smart_connection_count
 }
 
 internal fun smartQuicLabel(mode: String): Int = when (mode) {

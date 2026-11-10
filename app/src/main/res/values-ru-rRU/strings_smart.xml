@@ -86,6 +86,7 @@
   <string name="smart_rtt_value">%d мс</string>
   <string name="smart_speed_value">%.1f Мбит/с</string>
   <string name="smart_mb_value">%,.1f МБ</string>
+  <string name="smart_mb_whole_value">%,.0f МБ</string>
   <string name="smart_percent_value">%d%%</string>
   <string name="smart_stability_value">%1$d%% · класс %2$s</string>
   <string name="smart_speed_class_value">%1$d · %2$s · %3$s</string>
@@ -97,7 +98,8 @@
   <string name="smart_udp_route">UDP: %1$s</string>
   <string name="smart_quic_route">QUIC: %1$s</string>
   <string name="smart_budget">Трафик тестов скорости сегодня</string>
-  <string name="smart_budget_values">%1$s из %2$s в сети %3$s · резерв %4$s</string>
+  <string name="smart_budget_values">%1$s из %2$s в сети %3$s</string>
+  <string name="smart_budget_values_reserved">%1$s из %2$s в сети %3$s · резерв %4$s</string>
   <string name="smart_budget_note">Только тесты скорости, не трафик VPN</string>
   <string name="smart_active_tests_off">Активные тесты выключены</string>
   <string name="smart_direct_title">Прямой интернет</string>
@@ -132,6 +134,8 @@
   <string name="smart_unknown">Неизвестно</string>
   <string name="smart_wifi">Wi‑Fi</string>
   <string name="smart_cellular">Мобильная сеть</string>
+  <string name="smart_unnamed_wifi">Сеть Wi‑Fi без имени</string>
+  <string name="smart_unnamed_mobile">Мобильная сеть без имени</string>
   <string name="smart_ethernet">Ethernet</string>
   <string name="smart_other">Другая</string>
   <string name="smart_primary">Через текущий сервер</string>
@@ -171,6 +175,24 @@
     <item quantity="few">%d сервера</item>
     <item quantity="many">%d серверов</item>
     <item quantity="other">%d сервера</item>
+  </plurals>
+  <plurals name="smart_access_point_count">
+    <item quantity="one">%d точка доступа</item>
+    <item quantity="few">%d точки доступа</item>
+    <item quantity="many">%d точек доступа</item>
+    <item quantity="other">%d точки доступа</item>
+  </plurals>
+  <plurals name="smart_cell_count">
+    <item quantity="one">%d сота</item>
+    <item quantity="few">%d соты</item>
+    <item quantity="many">%d сот</item>
+    <item quantity="other">%d соты</item>
+  </plurals>
+  <plurals name="smart_connection_count">
+    <item quantity="one">%d подключение</item>
+    <item quantity="few">%d подключения</item>
+    <item quantity="many">%d подключений</item>
+    <item quantity="other">%d подключения</item>
   </plurals>
   <string name="smart_success_chart">Успешные проверки (%)</string>
   <string name="smart_rtt_chart">RTT (мс)</string>

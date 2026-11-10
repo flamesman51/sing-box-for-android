@@ -86,6 +86,39 @@ class SmartInsightsLabelsTest {
     }
 
     @Test
+    fun unnamedNetworkFallbacksMatchEveryType() {
+        assertEquals(R.string.smart_unnamed_wifi, smartNetworkFallbackLabel("wifi"))
+        assertEquals(R.string.smart_unnamed_mobile, smartNetworkFallbackLabel("cellular"))
+        assertEquals(R.string.smart_ethernet, smartNetworkFallbackLabel("ethernet"))
+        assertEquals(R.string.smart_other, smartNetworkFallbackLabel("other"))
+        assertEquals(R.string.smart_unknown, smartNetworkFallbackLabel("unrecognized"))
+    }
+
+    @Test
+    fun networkCountPluralsMatchEveryType() {
+        assertEquals(R.plurals.smart_access_point_count, smartNetworkCountPlural("wifi"))
+        assertEquals(R.plurals.smart_cell_count, smartNetworkCountPlural("cellular"))
+        assertEquals(R.plurals.smart_connection_count, smartNetworkCountPlural("ethernet"))
+        assertEquals(R.plurals.smart_connection_count, smartNetworkCountPlural("other"))
+        assertEquals(R.plurals.smart_connection_count, smartNetworkCountPlural("unrecognized"))
+    }
+
+    @Test
+    fun budgetFormatsOmitTheReservedClauseAtZero() {
+        assertEquals(R.string.smart_budget_values, smartBudgetValuesResource(0.0))
+        assertEquals(R.string.smart_budget_values, smartBudgetValuesResource(-0.0))
+        assertEquals(R.string.smart_budget_values, smartBudgetValuesResource(Double.NaN))
+        assertEquals(R.string.smart_budget_values, smartBudgetValuesResource(Double.POSITIVE_INFINITY))
+        assertEquals(R.string.smart_budget_values_reserved, smartBudgetValuesResource(0.1))
+        val english = strings("values")
+        val russian = strings("values-ru-rRU")
+        assertEquals("1.0 MB of 100 MB on Wi‑Fi", String.format(english.getValue("smart_budget_values"), "1.0 MB", "100 MB", "Wi‑Fi"))
+        assertEquals("1.0 MB of 100 MB on Wi‑Fi · reserved 2.0 MB", String.format(english.getValue("smart_budget_values_reserved"), "1.0 MB", "100 MB", "Wi‑Fi", "2.0 MB"))
+        assertEquals("1,0 МБ из 100 МБ в сети Wi‑Fi", String.format(russian.getValue("smart_budget_values"), "1,0 МБ", "100 МБ", "Wi‑Fi"))
+        assertEquals("1,0 МБ из 100 МБ в сети Wi‑Fi · резерв 2,0 МБ", String.format(russian.getValue("smart_budget_values_reserved"), "1,0 МБ", "100 МБ", "Wi‑Fi", "2,0 МБ"))
+    }
+
+    @Test
     fun smartQuicLabelCoversEverySpecifiedValue() {
         val cases = listOf(
             "primary" to R.string.smart_primary,
@@ -186,6 +219,7 @@ class SmartInsightsLabelsTest {
             Triple("smart_rtt_value", "%d ms", "%d мс"),
             Triple("smart_speed_value", "%.1f Mbit/s", "%.1f Мбит/с"),
             Triple("smart_mb_value", "%,.1f MB", "%,.1f МБ"),
+            Triple("smart_mb_whole_value", "%,.0f MB", "%,.0f МБ"),
             Triple("smart_percent_value", "%d%%", "%d%%"),
             Triple("smart_stability_value", "%1\$d%% · class %2\$s", "%1\$d%% · класс %2\$s"),
             Triple("smart_speed_class_value", "%1\$d · %2\$s · %3\$s", "%1\$d · %2\$s · %3\$s"),
@@ -197,7 +231,8 @@ class SmartInsightsLabelsTest {
             Triple("smart_udp_route", "UDP: %1\$s", "UDP: %1\$s"),
             Triple("smart_quic_route", "QUIC: %1\$s", "QUIC: %1\$s"),
             Triple("smart_budget", "Speed-test data today", "Трафик тестов скорости сегодня"),
-            Triple("smart_budget_values", "%1\$s of %2\$s on %3\$s · reserved %4\$s", "%1\$s из %2\$s в сети %3\$s · резерв %4\$s"),
+            Triple("smart_budget_values", "%1\$s of %2\$s on %3\$s", "%1\$s из %2\$s в сети %3\$s"),
+            Triple("smart_budget_values_reserved", "%1\$s of %2\$s on %3\$s · reserved %4\$s", "%1\$s из %2\$s в сети %3\$s · резерв %4\$s"),
             Triple("smart_budget_note", "Speed tests only, not VPN traffic", "Только тесты скорости, не трафик VPN"),
             Triple("smart_active_tests_off", "Active tests disabled", "Активные тесты выключены"),
             Triple("smart_direct_title", "Direct internet", "Прямой интернет"),
@@ -269,6 +304,8 @@ class SmartInsightsLabelsTest {
             Triple("smart_reset_done", "History reset", "История сброшена"),
             Triple("smart_events", "Recent events", "Последние события"),
             Triple("smart_events_empty", "No events yet", "Событий пока нет"),
+            Triple("smart_unnamed_wifi", "Unnamed Wi‑Fi network", "Сеть Wi‑Fi без имени"),
+            Triple("smart_unnamed_mobile", "Unnamed mobile network", "Мобильная сеть без имени"),
         )
         val english = strings("values")
         val russian = strings("values-ru-rRU")
@@ -284,6 +321,16 @@ class SmartInsightsLabelsTest {
         assertEquals(mapOf("one" to "%d сервер", "few" to "%d сервера", "many" to "%d серверов", "other" to "%d сервера"), plurals("values-ru-rRU"))
     }
 
+    @Test
+    fun networkEntryCountsHaveEveryEnglishAndRussianPluralForm() {
+        assertEquals(mapOf("one" to "%d access point", "other" to "%d access points"), plurals("values", "smart_access_point_count"))
+        assertEquals(mapOf("one" to "%d cell", "other" to "%d cells"), plurals("values", "smart_cell_count"))
+        assertEquals(mapOf("one" to "%d connection", "other" to "%d connections"), plurals("values", "smart_connection_count"))
+        assertEquals(mapOf("one" to "%d точка доступа", "few" to "%d точки доступа", "many" to "%d точек доступа", "other" to "%d точки доступа"), plurals("values-ru-rRU", "smart_access_point_count"))
+        assertEquals(mapOf("one" to "%d сота", "few" to "%d соты", "many" to "%d сот", "other" to "%d соты"), plurals("values-ru-rRU", "smart_cell_count"))
+        assertEquals(mapOf("one" to "%d подключение", "few" to "%d подключения", "many" to "%d подключений", "other" to "%d подключения"), plurals("values-ru-rRU", "smart_connection_count"))
+    }
+
     private fun document(folder: String) = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(File("src/main/res/$folder/strings_smart.xml"))
 
     private fun strings(folder: String): Map<String, String> {
@@ -294,9 +341,9 @@ class SmartInsightsLabelsTest {
         }
     }
 
-    private fun plurals(folder: String): Map<String, String> {
+    private fun plurals(folder: String, name: String = "smart_server_count"): Map<String, String> {
         val nodes = document(folder).getElementsByTagName("plurals")
-        val count = (0 until nodes.length).map { nodes.item(it) as Element }.single { it.getAttribute("name") == "smart_server_count" }
+        val count = (0 until nodes.length).map { nodes.item(it) as Element }.single { it.getAttribute("name") == name }
         val items = count.getElementsByTagName("item")
         return (0 until items.length).associate { index ->
             val item = items.item(index) as Element
