@@ -1,6 +1,11 @@
 package io.nekohasekai.sfa.compose.component
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,19 +24,26 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.preference.PreferenceDataStore
 import io.nekohasekai.sfa.R
+import io.nekohasekai.sfa.constant.SettingsKey
+import io.nekohasekai.sfa.database.Settings
+import io.nekohasekai.sfa.database.preference.OnPreferenceDataStoreChangeListener
 import io.nekohasekai.sfa.update.ServerUpdateNotifier
 import io.nekohasekai.sfa.update.ServerUpdateSnapshot
 import io.nekohasekai.sfa.update.ServerUpdateWork
 import io.nekohasekai.sfa.update.ServerUpdates
+import io.nekohasekai.sfa.update.UpdateSource
 import io.nekohasekai.sfa.vendor.Vendor
 import java.util.concurrent.TimeUnit
 
@@ -87,15 +99,46 @@ fun ServerUpdateForegroundReminder() {
     if (!Vendor.hasCustomUpdate) return
     val snapshot by ServerUpdates.state.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
+    var updateSource by remember { mutableStateOf(Settings.updateSource) }
+    var autoUpdateEnabled by remember { mutableStateOf(Settings.autoUpdateEnabled) }
+    var permissionRequested by rememberSaveable { mutableStateOf(false) }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        ServerUpdateNotifier.refresh(context)
+    }
     var resumed by remember { mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) }
     var showReminder by remember { mutableStateOf(false) }
     DisposableEffect(lifecycleOwner) {
+        val preferenceListener = object : OnPreferenceDataStoreChangeListener {
+            override fun onPreferenceDataStoreChanged(store: PreferenceDataStore, key: String) {
+                when (key) {
+                    SettingsKey.UPDATE_SOURCE -> updateSource = Settings.updateSource
+                    SettingsKey.AUTO_UPDATE_ENABLED -> autoUpdateEnabled = Settings.autoUpdateEnabled
+                }
+            }
+        }
+        Settings.dataStore.registerChangeListener(preferenceListener)
         val observer = LifecycleEventObserver { _, event ->
             resumed = event == Lifecycle.Event.ON_RESUME ||
                 lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            Settings.dataStore.unregisterChangeListener(preferenceListener)
+        }
+    }
+    LaunchedEffect(resumed, updateSource, autoUpdateEnabled) {
+        if (resumed && !permissionRequested && ServerUpdateNotifier.permissionNeeded(
+                Build.VERSION.SDK_INT,
+                UpdateSource.fromString(updateSource),
+                autoUpdateEnabled,
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED,
+            )
+        ) {
+            permissionRequested = true
+            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
     LaunchedEffect(resumed, snapshot.pending?.versionCode) {
         if (snapshot.pending == null) {

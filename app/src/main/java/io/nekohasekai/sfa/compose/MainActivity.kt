@@ -347,16 +347,14 @@ class MainActivity :
     fun startService() {
         lifecycleScope.launch {
             Settings.dataStore.initialize()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !ServiceNotification.checkPermission()) {
+            if (Settings.dynamicNotification && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !ServiceNotification.checkPermission()) {
                 if (!notificationPermissionRequested) {
                     notificationPermissionRequested = true
                     notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                     return@launch
                 }
-                if (Settings.dynamicNotification) {
-                    onServiceAlert(Alert.RequestNotificationPermission, null)
-                    return@launch
-                }
+                onServiceAlert(Alert.RequestNotificationPermission, null)
+                return@launch
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN &&
                 !hasPermission(Manifest.permission.ACCESS_LOCAL_NETWORK) &&

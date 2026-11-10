@@ -27,6 +27,9 @@ object ServerUpdateNotifier {
     private const val CONFIRM_TAG = "app-update-confirmation"
     private const val INSTALL_ACTIVITY = "io.nekohasekai.sfa.update.ServerUpdateInstallActivity"
 
+    internal fun permissionNeeded(sdkInt: Int, source: UpdateSource, autoUpdateEnabled: Boolean, permissionGranted: Boolean): Boolean = sdkInt >= Build.VERSION_CODES.TIRAMISU &&
+        source == UpdateSource.SERVER && autoUpdateEnabled && !permissionGranted
+
     fun installIntent(context: Context): Intent = activityIntent(context, ACTION_INSTALL).apply {
         ServerUpdates.state.value.ready?.let { putReadyIdentity(it) }
     }

@@ -14,6 +14,9 @@ when importing into this fork. Only one VPN app can be active in an Android user
 
 - Android backup is disabled to avoid backup-framework termination of the VPN.
   Export important profiles deliberately; exports may contain secrets.
+- Live notification speed updates default to off. App-update notifications use a
+  separate channel and request notification permission when server auto-updates
+  are enabled, independently of the live speed setting.
 - User and system Always-on starts persist the intent to run. Sticky process-death
   recovery and boot/app-update recovery resume only when that intent was already
   set. Explicit stop, VPN permission revocation, and fatal startup/configuration
