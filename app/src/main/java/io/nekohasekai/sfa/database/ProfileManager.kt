@@ -118,7 +118,7 @@ object ProfileManager {
                 }
                 throw e
             }
-        profile.typed.markUpdateSuccess(contentChanged)
+        profile.typed.markUpdateSuccess()
         update(profile)
         return contentChanged
     }

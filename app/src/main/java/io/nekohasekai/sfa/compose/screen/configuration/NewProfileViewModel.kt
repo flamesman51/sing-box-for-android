@@ -302,7 +302,7 @@ class NewProfileViewModel(application: Application) : AndroidViewModel(applicati
         val configContent = content
 
         configFile.writeText(configContent)
-        typedProfile.markUpdateSuccess(contentChanged = true)
+        typedProfile.markUpdateSuccess()
 
         // Create profile in database and select it
         ProfileManager.create(profile, andSelect = true)

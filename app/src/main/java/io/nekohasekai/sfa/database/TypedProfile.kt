@@ -37,9 +37,6 @@ class TypedProfile() : Parcelable {
     var type = Type.Local
     var remoteURL: String = ""
     var lastUpdated: Date = Date(0)
-
-    // Successful checks advance the cadence even when the content is unchanged.
-    var lastChecked: Date = Date(0)
     var lastUpdateError: String? = null
     var autoUpdate: Boolean = false
     var autoUpdateInterval = 60
@@ -55,22 +52,21 @@ class TypedProfile() : Parcelable {
             autoUpdateInterval = reader.readInt()
         }
         if (version >= 2) {
-            lastChecked = Date(reader.readLong())
+            if (version == 2) {
+                reader.readLong() // dropped lastChecked; every successful check now sets lastUpdated
+            }
             lastUpdateError = reader.readString()
-        } else {
-            lastChecked = lastUpdated
         }
     }
 
     override fun writeToParcel(writer: Parcel, flags: Int) {
-        writer.writeInt(2)
+        writer.writeInt(3)
         writer.writeString(path)
         writer.writeInt(type.ordinal)
         writer.writeString(remoteURL)
         writer.writeInt(if (autoUpdate) 1 else 0)
         writer.writeLong(lastUpdated.time)
         writer.writeInt(autoUpdateInterval)
-        writer.writeLong(lastChecked.time)
         writer.writeString(lastUpdateError)
     }
 
@@ -78,15 +74,11 @@ class TypedProfile() : Parcelable {
 
     fun nextUpdateDelayMillis(nowMillis: Long): Long {
         val intervalMillis = autoUpdateInterval.coerceAtLeast(15) * 60_000L
-        val lastCheckMillis = maxOf(lastChecked.time, lastUpdated.time)
-        return (intervalMillis - (nowMillis - lastCheckMillis)).coerceAtLeast(0L)
+        return (intervalMillis - (nowMillis - lastUpdated.time)).coerceAtLeast(0L)
     }
 
-    fun markUpdateSuccess(contentChanged: Boolean, checkedAt: Date = Date()) {
-        lastChecked = checkedAt
-        if (contentChanged) {
-            lastUpdated = checkedAt
-        }
+    fun markUpdateSuccess(checkedAt: Date = Date()) {
+        lastUpdated = checkedAt
         lastUpdateError = null
     }
 

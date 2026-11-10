@@ -268,7 +268,7 @@ class ProfileImportHandler(private val context: Context) {
         val configFile = File(configDirectory, "$fileID.json")
         configFile.writeText(content)
         typedProfile.path = configFile.path
-        typedProfile.markUpdateSuccess(contentChanged = true)
+        typedProfile.markUpdateSuccess()
 
         // Create profile in database and select it
         ProfileManager.create(profile, andSelect = true)

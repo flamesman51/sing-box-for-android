@@ -7,7 +7,7 @@ import java.util.Date
 
 class TypedProfileUpdateTest {
     @Test
-    fun unchangedSuccessAdvancesCadenceWithoutChangingContentTimestamp() {
+    fun successfulCheckResetsLastUpdatedAndCadence() {
         val profile = TypedProfile().apply {
             lastUpdated = Date(1_000L)
             autoUpdateInterval = 60
@@ -16,20 +16,11 @@ class TypedProfileUpdateTest {
         val checkedAt = Date(3_601_000L)
         assertEquals(0L, profile.nextUpdateDelayMillis(checkedAt.time))
 
-        profile.markUpdateSuccess(contentChanged = false, checkedAt = checkedAt)
+        // An unchanged download still counts as an update: "Last updated" must reset.
+        profile.markUpdateSuccess(checkedAt)
 
-        assertEquals(1_000L, profile.lastUpdated.time)
-        assertEquals(checkedAt, profile.lastChecked)
+        assertEquals(checkedAt, profile.lastUpdated)
         assertNull(profile.lastUpdateError)
         assertEquals(3_600_000L, profile.nextUpdateDelayMillis(checkedAt.time))
-        assertEquals(0L, profile.nextUpdateDelayMillis(checkedAt.time + 3_600_000L))
-
-        val changedAt = Date(checkedAt.time + 3_600_000L)
-        profile.lastUpdateError = "Another update failed"
-        profile.markUpdateSuccess(contentChanged = true, checkedAt = changedAt)
-
-        assertEquals(changedAt, profile.lastUpdated)
-        assertEquals(changedAt, profile.lastChecked)
-        assertNull(profile.lastUpdateError)
     }
 }
