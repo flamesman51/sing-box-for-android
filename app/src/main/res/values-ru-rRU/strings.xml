@@ -385,7 +385,7 @@
 
     <!-- Errors -->
     <string name="error_title">Ошибка</string>
-    <string name="error_missing_vpn_permission">Отсутствует разрешение на VPN</string>
+    <string name="error_missing_vpn_permission">Отсутствует разрешение на VPN. Если для другого VPN-приложения включён «Постоянный VPN», сначала отключите его.</string>
     <string name="error_empty_configuration">Пустая конфигурация</string>
     <string name="error_empty_file">Пустой файл</string>
     <string name="error_decode_profile">Не удалось декодировать профиль: %s</string>
