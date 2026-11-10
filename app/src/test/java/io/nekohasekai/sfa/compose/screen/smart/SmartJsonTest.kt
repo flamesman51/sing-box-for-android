@@ -97,6 +97,51 @@ class SmartJsonTest {
     }
 
     @Test
+    fun showsNoticeWhenEveryMemberIsUnhealthy() {
+        val status = SmartJson.status(fixture("status.json"))
+        val member = status.members.first()
+        val unavailable = status.copy(
+            members = listOf("suspect", "quarantined", "failed", "unknown").map { member.copy(state = it) },
+        )
+
+        assertEquals(SmartAvailabilityNotice.NoServersResponding, unavailable.availabilityNotice())
+    }
+
+    @Test
+    fun healthyMemberSuppressesNoticeEvenWhenGroupUsesLowerTier() {
+        val status = SmartJson.status(fixture("status.json"))
+        val members = listOf(status.members.first().copy(state = "failed"), status.members.first().copy(state = "healthy", tier = 2))
+
+        assertNull(status.copy(state = "degraded", members = members).availabilityNotice())
+    }
+
+    @Test
+    fun offlineStateShowsNetworkNoticeEvenWithStaleHealthyMembers() {
+        val status = SmartJson.status(fixture("status.json"))
+
+        assertEquals(SmartAvailabilityNotice.NetworkDown, status.copy(state = "offline").availabilityNotice())
+    }
+
+    @Test
+    fun failedDirectProbeAloneDoesNotDiagnoseNetworkOutage() {
+        val status = SmartJson.status(fixture("status.json"))
+        val unavailable = status.copy(
+            direct = status.direct.copy(state = "failed"),
+            members = status.members.map { it.copy(state = "unknown") },
+        )
+
+        assertEquals(SmartAvailabilityNotice.NoServersResponding, unavailable.availabilityNotice())
+    }
+
+    @Test
+    fun emptyOrPausedGroupDoesNotClaimServersAreUnreachable() {
+        val status = SmartJson.status(fixture("status.json"))
+
+        assertNull(status.copy(members = emptyList()).availabilityNotice())
+        assertNull(status.copy(state = "paused", members = status.members.map { it.copy(state = "failed") }).availabilityNotice())
+    }
+
+    @Test
     fun parsesCoreNetworkHistoryAndEmptyHistory() {
         val networks = SmartJson.networks(fixture("networks.json"))
 

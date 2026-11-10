@@ -15,6 +15,8 @@
   <string name="smart_notifications">Smart notifications</string>
   <string name="smart_notifications_description">Notify when VPN servers are unreachable but direct Internet works. Recovery clears the notification.</string>
   <string name="smart_notification_unreachable">VPN servers unreachable — direct Internet works</string>
+  <string name="smart_no_servers_responding">No servers are responding right now. Smart keeps checking and will reconnect automatically.</string>
+  <string name="smart_network_down">Your network seems down. Smart will reconnect automatically when connectivity returns.</string>
   <string name="smart_close">Close</string>
   <string name="smart_cancel">Cancel</string>
   <string name="smart_continue">Continue</string>

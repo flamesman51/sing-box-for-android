@@ -255,6 +255,7 @@ fun SmartInsightsScreen(navController: NavController, group: String, serviceStat
             item {
                 SmartPanel(snapshot.group) {
                     Text(stringResource(R.string.smart_state, smartLabel(snapshot.state)))
+                    snapshot.availabilityNotice()?.let { SmartAvailabilityNoticeText(it) }
                     Text(stringResource(R.string.smart_selected, snapshot.selected.tcp ?: "—", snapshot.selected.standby ?: "—"))
                     Text(stringResource(R.string.smart_udp_selected, snapshot.selected.udp ?: "—", smartLabel(snapshot.selected.udp443.mode), snapshot.selected.udp443.member ?: "—"))
                     if (snapshot.selected.udp443.reason.isNotEmpty()) Text(snapshot.selected.udp443.reason)
@@ -419,6 +420,21 @@ private fun SmartPanel(title: String, content: @Composable () -> Unit) {
             content()
         }
     }
+}
+
+@Composable
+internal fun SmartAvailabilityNoticeText(notice: SmartAvailabilityNotice, modifier: Modifier = Modifier) {
+    Text(
+        text = stringResource(
+            when (notice) {
+                SmartAvailabilityNotice.NoServersResponding -> R.string.smart_no_servers_responding
+                SmartAvailabilityNotice.NetworkDown -> R.string.smart_network_down
+            },
+        ),
+        modifier = modifier,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.error,
+    )
 }
 
 @Composable

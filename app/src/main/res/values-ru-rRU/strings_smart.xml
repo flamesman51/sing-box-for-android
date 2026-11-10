@@ -15,6 +15,8 @@
   <string name="smart_notifications">Уведомления селектора</string>
   <string name="smart_notifications_description">Сообщать, если серверы VPN недоступны, но Интернет напрямую работает. При восстановлении уведомление исчезнет.</string>
   <string name="smart_notification_unreachable">Серверы VPN недоступны — Интернет напрямую работает</string>
+  <string name="smart_no_servers_responding">Сейчас ни один сервер не отвечает. Smart продолжает проверку и переподключится автоматически.</string>
+  <string name="smart_network_down">Похоже, сеть недоступна. Smart переподключится автоматически, когда связь восстановится.</string>
   <string name="smart_close">Закрыть</string>
   <string name="smart_cancel">Отмена</string>
   <string name="smart_continue">Продолжить</string>

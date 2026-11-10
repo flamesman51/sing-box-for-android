@@ -7,12 +7,17 @@ import io.nekohasekai.sfa.compose.base.ScreenEvent
 import io.nekohasekai.sfa.compose.model.Group
 import io.nekohasekai.sfa.compose.model.GroupItem
 import io.nekohasekai.sfa.compose.model.toList
+import io.nekohasekai.sfa.compose.screen.smart.SmartAvailabilityNotice
+import io.nekohasekai.sfa.compose.screen.smart.SmartJson
+import io.nekohasekai.sfa.compose.screen.smart.availabilityNotice
 import io.nekohasekai.sfa.constant.Status
 import io.nekohasekai.sfa.utils.AppLifecycleObserver
 import io.nekohasekai.sfa.utils.CommandClient
 import io.nekohasekai.sfa.utils.CommandTarget
 import io.nekohasekai.sfa.utils.RemoteControlManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -26,6 +31,7 @@ data class GroupsUiState(
     val expandedGroups: Set<String> = emptySet(),
     val testingGroups: Set<String> = emptySet(),
     val showCloseConnectionsSnackbar: Boolean = false,
+    val smartNotices: Map<String, SmartAvailabilityNotice> = emptyMap(),
 )
 
 sealed class GroupsEvent : ScreenEvent {
@@ -37,6 +43,7 @@ class GroupsViewModel(private val sharedCommandClient: CommandClient? = null) :
     CommandClient.Handler {
     private val commandClient: CommandClient
     private val isUsingSharedClient: Boolean
+    private var groupsUpdateJob: Job? = null
 
     private val _serviceStatus = MutableStateFlow(Status.Stopped)
     val serviceStatus = _serviceStatus.asStateFlow()
@@ -70,6 +77,8 @@ class GroupsViewModel(private val sharedCommandClient: CommandClient? = null) :
                     remoteServerId = remoteServer?.id,
                 )
             }.distinctUntilChanged().collect { target ->
+                groupsUpdateJob?.cancel()
+                updateState { copy(smartNotices = emptyMap()) }
                 if (target.connect) {
                     if (isUsingSharedClient) {
                         commandClient.addHandler(this@GroupsViewModel)
@@ -106,10 +115,12 @@ class GroupsViewModel(private val sharedCommandClient: CommandClient? = null) :
             return
         }
         if (status != Status.Started) {
+            groupsUpdateJob?.cancel()
             updateState {
                 copy(
                     groups = emptyList(),
                     isLoading = false,
+                    smartNotices = emptyMap(),
                 )
             }
         }
@@ -256,24 +267,43 @@ class GroupsViewModel(private val sharedCommandClient: CommandClient? = null) :
     }
 
     override fun onDisconnected() {
+        groupsUpdateJob?.cancel()
         viewModelScope.launch(Dispatchers.Main) {
             updateState {
                 copy(
                     groups = emptyList(),
                     isLoading = false,
+                    smartNotices = emptyMap(),
                 )
             }
         }
     }
 
     override fun updateGroups(newGroups: MutableList<OutboundGroup>) {
-        viewModelScope.launch(Dispatchers.Default) {
+        groupsUpdateJob?.cancel()
+        groupsUpdateJob = viewModelScope.launch(Dispatchers.Default) {
             val currentGroups = uiState.value.groups
             val currentByTag = currentGroups.associateBy { it.tag }
             val mergedGroups = newGroups.map { goGroup ->
                 val converted = Group(goGroup)
                 val existing = currentByTag[converted.tag]
                 if (existing == converted) existing else converted
+            }
+            val smartNotices = withContext(Dispatchers.IO) {
+                buildMap {
+                    for (group in mergedGroups) {
+                        if (group.type != "smart") continue
+                        try {
+                            SmartJson.status(CommandTarget.standaloneClient().getSmartStatus(group.tag)).availabilityNotice()?.let {
+                                put(group.tag, it)
+                            }
+                        } catch (error: CancellationException) {
+                            throw error
+                        } catch (_: Exception) {
+                            // Missing or incompatible status must not look like a network outage.
+                        }
+                    }
+                }
             }
 
             withContext(Dispatchers.Main) {
@@ -287,6 +317,7 @@ class GroupsViewModel(private val sharedCommandClient: CommandClient? = null) :
                         groups = if (mergedGroups == groups) groups else mergedGroups,
                         expandedGroups = initialExpandedGroups,
                         isLoading = false,
+                        smartNotices = smartNotices,
                     )
                 }
             }

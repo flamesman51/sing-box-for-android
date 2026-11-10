@@ -76,6 +76,7 @@ import io.nekohasekai.sfa.compose.model.Group
 import io.nekohasekai.sfa.compose.model.GroupItem
 import io.nekohasekai.sfa.compose.screen.dashboard.groups.GroupsUiState
 import io.nekohasekai.sfa.compose.screen.dashboard.groups.GroupsViewModel
+import io.nekohasekai.sfa.compose.screen.smart.SmartAvailabilityNoticeText
 import io.nekohasekai.sfa.compose.topbar.LocalScaffoldPadding
 import io.nekohasekai.sfa.compose.topbar.OverrideTopBar
 import io.nekohasekai.sfa.compose.util.rememberSheetDismissFromContentOnlyIfGestureStartedAtTopModifier
@@ -282,6 +283,19 @@ private fun GroupsCardContent(
                     } else {
                         item(key = "header:${group.tag}", contentType = "GroupHeader") {
                             headerContent(Modifier.animateItem())
+                        }
+                    }
+                    uiState.smartNotices[group.tag]?.let { notice ->
+                        item(key = "smart_notice:${group.tag}", contentType = "SmartNotice") {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth().animateItem(),
+                                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            ) {
+                                SmartAvailabilityNoticeText(
+                                    notice,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                )
+                            }
                         }
                     }
                     if (isExpanded) {

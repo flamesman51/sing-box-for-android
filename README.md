@@ -109,6 +109,9 @@ Profiles can use the core's `smart` outbound group (see the core's
   network and direct connectivity, member table, speed-test budget, per-network
   history, recent events and 24 h charts. It polls the running core every 2 s only
   while visible.
+- Smart group cards and Selector insights show a group-level notice when no member
+  is healthy. An explicit offline state instead says that the network seems down.
+  The notices use existing refreshes and clear when a healthy member returns.
 - **Export / import / reset**: exports are redacted by default; a raw export includes
   network names and cell identifiers and needs explicit confirmation. Imports (up to
   2 MiB) add bounded priors weighted by how similar the source phone is (same model and

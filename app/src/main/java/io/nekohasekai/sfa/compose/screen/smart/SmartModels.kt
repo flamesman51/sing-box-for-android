@@ -27,6 +27,17 @@ data class SmartStatus(
     val timeline: SmartTimeline,
 )
 
+enum class SmartAvailabilityNotice {
+    NoServersResponding,
+    NetworkDown,
+}
+
+fun SmartStatus.availabilityNotice(): SmartAvailabilityNotice? = when {
+    state == "offline" -> SmartAvailabilityNotice.NetworkDown
+    state == "paused" || members.isEmpty() || members.any { it.state == "healthy" } -> null
+    else -> SmartAvailabilityNotice.NoServersResponding
+}
+
 @Serializable
 data class SmartSelected(
     val tcp: String?,
