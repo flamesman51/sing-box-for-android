@@ -143,6 +143,7 @@ class SmartMeasurementTest {
         assertEquals(0.0, valid.copy(p10 = 0.0).displayP10()!!, 0.0)
         assertEquals(0.0, 0.0.knownMeasurement()!!, 0.0)
         assertNull(base.copy(observedPeakDown = 0.0).observedDownloadValue())
+        assertNull(base.copy(observedPeakDown = 0.04).observedDownloadValue())
         assertEquals(0.1, base.copy(observedPeakDown = 0.1).observedDownloadValue()!!, 0.0)
         val negative = member("""{"udp_rtt_ms":-1,"jitter_ms":-2,"observed_peak_down":-3,"download":{"value":-4,"p10":-5,"valid":true,"fresh":true}}""")
         assertNull(negative.udpRttMs.knownMeasurement())

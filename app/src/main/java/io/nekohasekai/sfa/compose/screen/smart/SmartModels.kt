@@ -164,7 +164,8 @@ fun SmartMember.isUploadUnverified(groupUploadVerified: Boolean?): Boolean =
 fun SmartMember.uploadValue(groupUploadVerified: Boolean?): Double? =
     if (isUploadUnverified(groupUploadVerified)) null else upload.displayValue()
 
-fun SmartMember.observedDownloadValue(): Double? = observedPeakDown.knownMeasurement()?.takeIf { it > 0.0 }
+// Below 0.1 Mbit/s the one-decimal display reads "0.0", which says nothing about the server.
+fun SmartMember.observedDownloadValue(): Double? = observedPeakDown.knownMeasurement()?.takeIf { it >= 0.1 }
 
 fun SmartMember.effectiveFloorState(): SmartFloorState? = floorState?.takeIf {
     it.effective == true && (it.kind == "revoked" || it.kind == "proven") &&
