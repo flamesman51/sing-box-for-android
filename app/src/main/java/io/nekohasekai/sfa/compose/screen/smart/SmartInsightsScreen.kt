@@ -499,7 +499,7 @@ private fun smartLabel(value: String): String {
 }
 
 // No subscriptions are requested: this client is only a persistent JSON command channel.
-private object SmartCommandHandler : CommandClientHandler {
+internal object SmartCommandHandler : CommandClientHandler {
     override fun connected() {}
     override fun disconnected(message: String?) {}
     override fun clearLogs() {}

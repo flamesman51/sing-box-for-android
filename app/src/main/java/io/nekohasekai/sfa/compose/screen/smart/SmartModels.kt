@@ -25,6 +25,17 @@ data class SmartStatus(
     val members: List<SmartMember>,
     val events: List<SmartEvent>,
     val timeline: SmartTimeline,
+    val preference: SmartPreference? = null,
+)
+
+@Serializable
+data class SmartPreference(
+    @SerialName("engine") val engine: String,
+    @SerialName("base") val base: String,
+    @SerialName("custom") val custom: Boolean,
+    @SerialName("source") val source: String,
+    @SerialName("override_hash") val overrideHash: String,
+    @SerialName("resolved") val resolved: JsonObject,
 )
 
 enum class SmartAvailabilityNotice {

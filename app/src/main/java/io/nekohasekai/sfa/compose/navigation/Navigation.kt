@@ -43,6 +43,10 @@ import io.nekohasekai.sfa.compose.screen.smart.SMART_INSIGHTS_ROUTE
 import io.nekohasekai.sfa.compose.screen.smart.SmartCountryPickerScreen
 import io.nekohasekai.sfa.compose.screen.smart.SmartInsightsScreen
 import io.nekohasekai.sfa.compose.screen.smart.SmartSettingsScreen
+import io.nekohasekai.sfa.compose.screen.smart.SmartCustomProfileScreen
+import io.nekohasekai.sfa.compose.screen.smart.SmartLocalProfileRoute
+import io.nekohasekai.sfa.compose.screen.smart.SmartPolicyStatusProvider
+import io.nekohasekai.sfa.compose.screen.smart.SmartProfilePickerScreen
 import io.nekohasekai.sfa.compose.screen.smart.smartInsightsRoute
 import io.nekohasekai.sfa.compose.screen.tools.CrashReportDetailScreen
 import io.nekohasekai.sfa.compose.screen.tools.CrashReportFileContentScreen
@@ -114,7 +118,7 @@ fun NavHost(
     openConnectStatusViewModel: OpenConnectStatusViewModel? = null,
     openVPNStatusViewModel: OpenVPNStatusViewModel? = null,
     modifier: Modifier = Modifier,
-) {
+) = SmartPolicyStatusProvider(serviceStatus) {
     androidx.navigation.compose.NavHost(
         navController = navController,
         startDestination = Screen.Dashboard.route,
@@ -672,7 +676,7 @@ fun NavHost(
             popEnterTransition = slideInFromLeft,
             popExitTransition = slideOutToRight,
         ) {
-            SmartSettingsScreen(navController = navController)
+            SmartSettingsScreen(navController = navController, serviceStatus = serviceStatus)
         }
 
         composable(
@@ -683,6 +687,30 @@ fun NavHost(
             popExitTransition = slideOutToRight,
         ) {
             SmartCountryPickerScreen(navController = navController)
+        }
+
+        composable(
+            route = "settings/smart/profile",
+            enterTransition = slideInFromRight,
+            exitTransition = slideOutToLeft,
+            popEnterTransition = slideInFromLeft,
+            popExitTransition = slideOutToRight,
+        ) {
+            SmartLocalProfileRoute(navController) {
+                SmartProfilePickerScreen(navController, serviceStatus)
+            }
+        }
+
+        composable(
+            route = "settings/smart/profile/custom",
+            enterTransition = slideInFromRight,
+            exitTransition = slideOutToLeft,
+            popEnterTransition = slideInFromLeft,
+            popExitTransition = slideOutToRight,
+        ) {
+            SmartLocalProfileRoute(navController) {
+                SmartCustomProfileScreen(navController, serviceStatus)
+            }
         }
 
         composable(

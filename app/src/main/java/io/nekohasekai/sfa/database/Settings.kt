@@ -26,6 +26,8 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 object Settings {
+    internal const val SMART_POLICY_KEY = "smart_policy"
+
     @OptIn(DelicateCoroutinesApi::class)
     private val instance by lazy {
         Application.application.getDatabasePath(Path.SETTINGS_DATABASE_PATH).parentFile?.mkdirs()
@@ -41,6 +43,7 @@ object Settings {
     val dataStore = RoomPreferenceDataStore { instance.keyValuePairDao() }
     var selectedProfile by dataStore.long(SettingsKey.SELECTED_PROFILE) { -1L }
     var serviceMode by dataStore.string(SettingsKey.SERVICE_MODE) { ServiceMode.NORMAL }
+    var smartPolicy by dataStore.string(SMART_POLICY_KEY) { "" }
 
     // Keep the existing key so updates preserve boot and restart intent.
     var shouldRun by dataStore.boolean(SettingsKey.STARTED_BY_USER)

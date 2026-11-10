@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Public
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,6 +54,7 @@ import io.nekohasekai.sfa.R
 import io.nekohasekai.sfa.bg.SmartPlatform
 import io.nekohasekai.sfa.compose.topbar.LocalScaffoldPadding
 import io.nekohasekai.sfa.compose.topbar.OverrideTopBar
+import io.nekohasekai.sfa.constant.Status
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.diagnostics.DiagnosticsWork
 import kotlinx.coroutines.Dispatchers
@@ -61,7 +63,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SmartSettingsScreen(navController: NavController) {
+fun SmartSettingsScreen(navController: NavController, serviceStatus: Status) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val locale = ConfigurationCompat.getLocales(LocalConfiguration.current)[0] ?: Locale.getDefault()
@@ -72,6 +74,10 @@ fun SmartSettingsScreen(navController: NavController) {
     var showPermissions by remember { mutableStateOf(false) }
     var permissionRevision by remember { mutableStateOf(0) }
     val permissions = rememberSmartHistoryPermissions(permissionRevision)
+    val policy = smartStoredPolicy()
+    val policySnapshot = rememberSmartPolicySnapshot(serviceStatus)
+    val remotePolicy = smartPolicyIsRemote()
+    val policyState = if (remotePolicy) null else smartPolicyApplyState(serviceStatus, policy, policySnapshot)
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         country = SmartSettings.countryOverride
         if (country.isEmpty()) SmartPlatform.systemCountryCode()
@@ -104,6 +110,23 @@ fun SmartSettingsScreen(navController: NavController) {
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         ) {
             ListItem(
+                headlineContent = { Text(stringResource(R.string.smart_selection_profile), style = MaterialTheme.typography.bodyLarge) },
+                supportingContent = {
+                    Text(
+                        smartProfileSupportingText(policy, policySnapshot, policyState, remotePolicy),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp),
+                        maxLines = 2,
+                    )
+                },
+                leadingContent = { Icon(Icons.Outlined.Tune, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                trailingContent = if (!remotePolicy) ({ Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }) else null,
+                modifier = Modifier.clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                    .then(if (remotePolicy) Modifier else Modifier.clickable { navController.navigate("settings/smart/profile") }),
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+            )
+            ListItem(
                 headlineContent = { Text(stringResource(R.string.smart_country), style = MaterialTheme.typography.bodyLarge) },
                 supportingContent = {
                     val name = when {
@@ -115,7 +138,7 @@ fun SmartSettingsScreen(navController: NavController) {
                 },
                 leadingContent = { Icon(Icons.Outlined.Public, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                 trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                modifier = Modifier.clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)).clickable { navController.navigate("settings/smart/country") },
+                modifier = Modifier.clickable { navController.navigate("settings/smart/country") },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
             ListItem(

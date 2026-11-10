@@ -198,6 +198,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
                     content,
                     OverrideOptions().apply {
                         autoRedirect = Settings.autoRedirect
+                        smartPolicy = Settings.smartPolicy
                     },
                 )
             } catch (e: CancellationException) {
@@ -287,6 +288,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
                 content,
                 OverrideOptions().apply {
                     autoRedirect = Settings.autoRedirect
+                    smartPolicy = Settings.smartPolicy
                 },
             )
         } catch (e: CancellationException) {

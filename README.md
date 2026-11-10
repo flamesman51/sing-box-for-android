@@ -76,6 +76,14 @@ when importing into this fork. Only one VPN app can be active in an Android user
 - The GitHub self-updater remains selectable and uses
   [`flamesman51/sing-box-for-android` releases](https://github.com/flamesman51/sing-box-for-android/releases),
   the `other` arm64 APK, and `SFA-version-metadata.json`.
+- **Settings → Smart → Selection profile** can keep the configuration's own policy,
+  select a built-in profile or Classic, or edit a custom ranking and limits.
+  Built-in values come from the linked core. Custom policies support a lossless
+  JSON editor and accessible criterion reordering. Saving does not reload the VPN:
+  the existing reload action applies the change, and running hashes distinguish
+  pending settings from applied settings. The override affects every local Smart
+  group, not other outbound types. Remote-control mode shows running profiles
+  read-only; local overrides are never compared with remote status.
 
 ## Diagnostics and privacy
 

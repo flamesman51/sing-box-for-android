@@ -188,6 +188,14 @@ internal fun SmartInsightsStatusCard(status: SmartStatus) {
             modifier = Modifier.rowCorners(first = true, last = false),
             leading = { StateDot(groupColor(status.state)) },
         )
+        status.preference?.takeIf { it.engine != "legacy" }?.let {
+            Text(
+                stringResource(R.string.smart_profile_insights, smartRunningProfileLabel(it)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
         status.availabilityNotice()?.let { SmartAvailabilityNoticeText(it, Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) }
         InsightsRow(
             overline = stringResource(R.string.smart_current_server),
