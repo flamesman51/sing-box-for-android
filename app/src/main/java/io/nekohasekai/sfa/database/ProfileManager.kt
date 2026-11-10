@@ -5,6 +5,7 @@ import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.sfa.Application
 import io.nekohasekai.sfa.bg.UpdateProfileWork
 import io.nekohasekai.sfa.constant.Path
+import io.nekohasekai.sfa.diagnostics.ReportCapabilities
 import io.nekohasekai.sfa.utils.HTTPClient
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -15,6 +16,7 @@ import java.io.File
 @Suppress("RedundantSuspendModifier")
 object ProfileManager {
     private val callbacks = mutableListOf<() -> Unit>()
+    private val profileAccess = Any()
 
     fun registerCallback(callback: () -> Unit) {
         callbacks.add(callback)
@@ -46,8 +48,23 @@ object ProfileManager {
 
     suspend fun get(id: Long): Profile? = instance.profileDao().get(id)
 
-    suspend fun create(profile: Profile, andSelect: Boolean = false): Profile {
-        profile.id = instance.profileDao().insert(profile)
+    suspend fun create(
+        profile: Profile,
+        andSelect: Boolean = false,
+        fetchedProfile: HTTPClient.ProfileResponse? = null,
+    ): Profile {
+        synchronized(profileAccess) {
+            profile.id = instance.profileDao().insert(profile)
+            ReportCapabilities.clear(profile.id)
+            if (profile.typed.type == TypedProfile.Type.Remote && fetchedProfile != null) {
+                ReportCapabilities.accepted(
+                    profile.id,
+                    profile.typed.remoteURL,
+                    fetchedProfile.finalURL,
+                    fetchedProfile.reportHeader,
+                )
+            }
+        }
         if (andSelect) {
             Settings.selectedProfile = profile.id
         }
@@ -57,7 +74,13 @@ object ProfileManager {
 
     suspend fun update(profile: Profile): Int {
         try {
-            return instance.profileDao().update(profile)
+            return synchronized(profileAccess) {
+                ReportCapabilities.profileChanged(
+                    profile.id,
+                    profile.typed.remoteURL.takeIf { profile.typed.type == TypedProfile.Type.Remote },
+                )
+                instance.profileDao().update(profile)
+            }
         } finally {
             notifyProfilesChanged()
         }
@@ -65,7 +88,15 @@ object ProfileManager {
 
     suspend fun update(profiles: List<Profile>): Int {
         try {
-            return instance.profileDao().update(profiles)
+            return synchronized(profileAccess) {
+                for (profile in profiles) {
+                    ReportCapabilities.profileChanged(
+                        profile.id,
+                        profile.typed.remoteURL.takeIf { profile.typed.type == TypedProfile.Type.Remote },
+                    )
+                }
+                instance.profileDao().update(profiles)
+            }
         } finally {
             notifyProfilesChanged()
         }
@@ -73,7 +104,10 @@ object ProfileManager {
 
     suspend fun delete(profile: Profile): Int {
         try {
-            return instance.profileDao().delete(profile)
+            return synchronized(profileAccess) {
+                ReportCapabilities.clear(profile.id)
+                instance.profileDao().delete(profile)
+            }
         } finally {
             notifyProfilesChanged()
         }
@@ -81,30 +115,57 @@ object ProfileManager {
 
     suspend fun delete(profiles: List<Profile>): Int {
         try {
-            return instance.profileDao().delete(profiles)
+            return synchronized(profileAccess) {
+                profiles.forEach { ReportCapabilities.clear(it.id) }
+                instance.profileDao().delete(profiles)
+            }
         } finally {
             notifyProfilesChanged()
         }
     }
 
     suspend fun updateRemote(profile: Profile): Boolean {
+        val remoteURL = profile.typed.remoteURL
         val contentChanged =
             try {
-                val content = HTTPClient().use { it.getProfile(profile.typed.remoteURL) }
-                Libbox.checkConfig(content)
-                val file = File(profile.typed.path)
-                val changed = !file.exists() || file.readText() != content
-                if (changed) {
-                    file.writeText(content)
+                val fetchedProfile = HTTPClient().use { it.getProfile(remoteURL) }
+                synchronized(profileAccess) {
+                    val current = instance.profileDao().get(profile.id) ?: return false
+                    if (current.typed.type != TypedProfile.Type.Remote || current.typed.remoteURL != remoteURL) return false
+                    ReportCapabilities.withdrawIfUnsupported(
+                        current.id,
+                        remoteURL,
+                        fetchedProfile.finalURL,
+                        fetchedProfile.reportHeader,
+                    )
                 }
-                changed
+                Libbox.checkConfig(fetchedProfile.content)
+                synchronized(profileAccess) {
+                    val current = instance.profileDao().get(profile.id) ?: return false
+                    if (current.typed.type != TypedProfile.Type.Remote || current.typed.remoteURL != remoteURL) return false
+                    val file = File(current.typed.path)
+                    val changed = !file.exists() || file.readText() != fetchedProfile.content
+                    if (changed) {
+                        file.writeText(fetchedProfile.content)
+                    }
+                    current.typed.markUpdateSuccess()
+                    instance.profileDao().update(current)
+                    ReportCapabilities.accepted(
+                        current.id,
+                        remoteURL,
+                        fetchedProfile.finalURL,
+                        fetchedProfile.reportHeader,
+                    )
+                    profile.typed = current.typed
+                    changed
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 try {
                     val currentTyped = instance.profileDao().updateRemoteError(
                         profile.id,
-                        profile.typed.remoteURL,
+                        remoteURL,
                         e.message ?: e.toString(),
                     )
                     if (currentTyped != null) {
@@ -118,8 +179,7 @@ object ProfileManager {
                 }
                 throw e
             }
-        profile.typed.markUpdateSuccess()
-        update(profile)
+        notifyProfilesChanged()
         return contentChanged
     }
 

@@ -20,13 +20,19 @@ class HTTPClient : Closeable {
         }
     }
 
+    data class ProfileResponse(
+        val content: String,
+        val finalURL: String,
+        val reportHeader: String,
+    )
+
     private val client = Libbox.newHTTPClient()
 
     init {
         client.modernTLS()
     }
 
-    fun getProfile(url: String): String {
+    fun getProfile(url: String): ProfileResponse {
         val request = client.newRequest()
         request.setUserAgent(userAgent)
         request.setURL(url)
@@ -40,7 +46,7 @@ class HTTPClient : Closeable {
         }.onFailure {
             Log.w("HTTPClient", "Ignoring invalid app-update discovery")
         }
-        return content
+        return ProfileResponse(content, response.getURL(), response.getHeader("X-SFA-Smart-Report"))
     }
 
     override fun close() {

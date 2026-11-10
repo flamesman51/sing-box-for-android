@@ -260,18 +260,18 @@ class ProfileImportHandler(private val context: Context) {
                 userOrder = ProfileManager.nextOrder()
             }
 
-        val content = HTTPClient().use { it.getProfile(url) }
-        Libbox.checkConfig(content)
+        val fetchedProfile = HTTPClient().use { it.getProfile(url) }
+        Libbox.checkConfig(fetchedProfile.content)
 
         val fileID = ProfileManager.nextFileID()
         val configDirectory = File(context.filesDir, "configs").also { it.mkdirs() }
         val configFile = File(configDirectory, "$fileID.json")
-        configFile.writeText(content)
+        configFile.writeText(fetchedProfile.content)
         typedProfile.path = configFile.path
         typedProfile.markUpdateSuccess()
 
         // Create profile in database and select it
-        ProfileManager.create(profile, andSelect = true)
+        ProfileManager.create(profile, andSelect = true, fetchedProfile = fetchedProfile)
 
         return ImportResult.Success(profile)
     }

@@ -5,7 +5,9 @@ import android.system.OsConstants
 import android.util.AtomicFile
 import android.util.Log
 import io.nekohasekai.sfa.Application
+import io.nekohasekai.sfa.BuildConfig
 import io.nekohasekai.sfa.database.Settings
+import io.nekohasekai.sfa.diagnostics.DiagnosticsJournal
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -90,6 +92,9 @@ object ServerUpdates {
             false
         } else {
             persist(current.copy(ready = ReadyServerUpdate(pending.versionCode, pending.artifact.sha256, path)))
+            if (current.ready?.versionCode != pending.versionCode || current.ready.sha256 != pending.artifact.sha256) {
+                DiagnosticsJournal.record("update_downloaded", mapOf("from" to BuildConfig.VERSION_CODE, "to" to pending.versionCode))
+            }
             true
         }
     }

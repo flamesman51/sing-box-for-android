@@ -3,6 +3,7 @@ package io.nekohasekai.sfa.update
 import androidx.compose.runtime.mutableStateOf
 import io.nekohasekai.sfa.BuildConfig
 import io.nekohasekai.sfa.database.Settings
+import io.nekohasekai.sfa.diagnostics.DiagnosticsJournal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -40,6 +41,7 @@ object UpdateState {
 
     fun setInstallStatus(status: InstallStatus) {
         installStatus.value = status
+        if (status is InstallStatus.Failed) DiagnosticsJournal.record("update_failed", mapOf("stage" to "install", "message" to status.error))
     }
 
     fun clear() {
@@ -109,6 +111,7 @@ object UpdateState {
     fun saveApkPath(file: File) {
         Settings.cachedApkPath = file.absolutePath
         cachedApkFile.value = file
+        DiagnosticsJournal.record("update_downloaded", mapOf("from" to BuildConfig.VERSION_CODE, "to" to updateInfo.value?.versionCode))
     }
 
     private fun clearCache() {

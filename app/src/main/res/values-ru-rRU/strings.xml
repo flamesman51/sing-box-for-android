@@ -205,6 +205,8 @@
     <string name="working_directory">Рабочая директория</string>
     <string name="beta_settings">Бета-настройки</string>
     <string name="disable_deprecated_warnings">Отключить предупреждения об устаревании</string>
+    <string name="send_diagnostics">Отправлять диагностику на сервер профиля</string>
+    <string name="send_diagnostics_description">Отправляет очищенные отчёты о сбоях, события VPN и состояние селектора только на сервер выбранного удалённого профиля, если он поддерживает диагностику. Конфигурация и адреса посещаемых ресурсов не отправляются.</string>
     <string name="cache_size">Размер кэша</string>
     <string name="clear_cache">Очистить кэш</string>
     <string name="notification_settings">Уведомления</string>

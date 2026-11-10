@@ -36,6 +36,8 @@ import io.nekohasekai.sfa.constant.Alert
 import io.nekohasekai.sfa.constant.Status
 import io.nekohasekai.sfa.database.ProfileManager
 import io.nekohasekai.sfa.database.Settings
+import io.nekohasekai.sfa.diagnostics.DiagnosticsJournal
+import io.nekohasekai.sfa.diagnostics.DiagnosticsWork
 import io.nekohasekai.sfa.ktx.hasPermission
 import io.nekohasekai.sfa.vendor.Vendor
 import kotlinx.coroutines.CancellationException
@@ -58,6 +60,14 @@ class BoxService(private val service: Service, private val platformInterface: Pl
         private const val PROFILE_UPDATE_INTERVAL = 15L * 60 * 1000 // 15 minutes in milliseconds
         private const val TAG = "BoxService"
         private const val EXTRA_START_REASON = "start_reason"
+
+        @Volatile
+        var activeDiagnosticsProfileId: Long? = null
+            private set
+
+        @Volatile
+        var activeDiagnosticsProfileSource: String? = null
+            private set
 
         @OptIn(DelicateCoroutinesApi::class)
         fun start(reason: ServiceStartReason = ServiceStartReason.User) = GlobalScope.launch(Dispatchers.Main.immediate) {
@@ -104,6 +114,9 @@ class BoxService(private val service: Service, private val platformInterface: Pl
     // A stop invalidates start requests that are still loading preferences.
     private var stopGeneration = 0
     private var lastStartId = 0
+    private var activeStartReason = ServiceStartReason.User
+    private var diagnosticsProfileId: Long? = null
+    private var diagnosticsProfileSource: String? = null
 
     init {
         idleModeScope.launch {
@@ -152,6 +165,8 @@ class BoxService(private val service: Service, private val platformInterface: Pl
             }
 
             val selectedProfileId = Settings.selectedProfile
+            diagnosticsProfileId = selectedProfileId.takeIf { it != -1L }
+            diagnosticsProfileSource = null
             if (selectedProfileId == -1L) {
                 stopAndAlert(Alert.EmptyConfiguration)
                 return
@@ -162,6 +177,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
                 stopAndAlert(Alert.EmptyConfiguration)
                 return
             }
+            diagnosticsProfileSource = profile.typed.remoteURL
 
             val content = File(profile.typed.path).readText()
             if (content.isBlank()) {
@@ -214,6 +230,10 @@ class BoxService(private val service: Service, private val platformInterface: Pl
             }
 
             withContext(Dispatchers.Main) {
+                activeDiagnosticsProfileSource = diagnosticsProfileSource
+                activeDiagnosticsProfileId = selectedProfileId
+                DiagnosticsJournal.record("vpn_start", mapOf("reason" to activeStartReason.name), profileId = diagnosticsProfileId, profileSource = diagnosticsProfileSource)
+                Log.i(TAG, "VPN started: ${activeStartReason.name}")
                 status.value = Status.Started
                 notification.show(lastProfileName, R.string.status_started)
             }
@@ -246,7 +266,11 @@ class BoxService(private val service: Service, private val platformInterface: Pl
     }
 
     suspend fun serviceReload0() {
+        activeDiagnosticsProfileId = null
+        activeDiagnosticsProfileSource = null
         val selectedProfileId = Settings.selectedProfile
+        diagnosticsProfileId = selectedProfileId.takeIf { it != -1L }
+        diagnosticsProfileSource = null
         if (selectedProfileId == -1L) {
             stopAndAlert(Alert.EmptyConfiguration)
             return
@@ -257,6 +281,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
             stopAndAlert(Alert.EmptyConfiguration)
             return
         }
+        diagnosticsProfileSource = profile.typed.remoteURL
 
         val content = File(profile.typed.path).readText()
         if (content.isBlank()) {
@@ -298,6 +323,8 @@ class BoxService(private val service: Service, private val platformInterface: Pl
                 return
             }
         }
+        activeDiagnosticsProfileSource = diagnosticsProfileSource
+        activeDiagnosticsProfileId = selectedProfileId
     }
 
     override fun getSystemProxyStatus(): SystemProxyStatus? {
@@ -326,6 +353,10 @@ class BoxService(private val service: Service, private val platformInterface: Pl
         alert: Alert? = null,
         message: String? = null,
     ) {
+        DiagnosticsJournal.record("vpn_stop", mapOf("reason" to (reason?.name ?: "ProcessDestroyed"), "alert" to alert?.name), profileId = diagnosticsProfileId, profileSource = diagnosticsProfileSource)
+        activeDiagnosticsProfileId = null
+        activeDiagnosticsProfileSource = null
+        Log.i(TAG, "VPN stopping: ${reason?.name ?: "ProcessDestroyed"}")
         if (reason != null) {
             stopGeneration++
         }
@@ -403,6 +434,9 @@ class BoxService(private val service: Service, private val platformInterface: Pl
     }
 
     private suspend fun stopAndAlert(type: Alert, message: String? = null) {
+        DiagnosticsJournal.record("vpn_start_failed", mapOf("reason" to activeStartReason.name, "failure" to type.name, "message" to message), profileId = diagnosticsProfileId, profileSource = diagnosticsProfileSource)
+        Log.e(TAG, "VPN start failed: ${type.name}")
+        DiagnosticsWork.enqueue(service)
         withContext(Dispatchers.Main) {
             stopService(ServiceStopReason.FatalConfiguration, type, message)
         }
@@ -413,6 +447,11 @@ class BoxService(private val service: Service, private val platformInterface: Pl
     internal fun onStartCommand(reason: ServiceStartReason, startId: Int): Int {
         lastStartId = startId
         val generation = stopGeneration
+        DiagnosticsJournal.record("vpn_start_request", mapOf("reason" to reason.name, "start_id" to startId, "state" to status.value?.name))
+        Log.i(TAG, "VPN start requested: ${reason.name}, state=${status.value}")
+        if (status.value == Status.Stopped) {
+            notification.show(lastProfileName, R.string.status_starting)
+        }
 
         if (!receiverRegistered) {
             ContextCompat.registerReceiver(
@@ -430,40 +469,52 @@ class BoxService(private val service: Service, private val platformInterface: Pl
         }
 
         GlobalScope.launch(Dispatchers.Main.immediate) {
-            Settings.dataStore.initialize()
-            shutdownJob?.join()
-            if (generation != stopGeneration) {
-                service.stopSelf(startId)
-                return@launch
-            }
-            val persistedShouldRun = Settings.shouldRun
-            if (!ServiceStartPolicy.shouldRun(reason, persistedShouldRun)) {
-                if (status.value == Status.Stopped) {
+            try {
+                Settings.dataStore.initialize()
+                shutdownJob?.join()
+                if (generation != stopGeneration) {
+                    DiagnosticsJournal.record("vpn_start_skipped", mapOf("reason" to reason.name, "decision" to "superseded_by_stop"))
                     service.stopSelf(startId)
-                } else {
-                    stopService(reason = null)
+                    return@launch
                 }
-                return@launch
-            }
-            Settings.shouldRun = true
-            if (status.value != Status.Stopped) {
+                val persistedShouldRun = Settings.shouldRun
+                if (!ServiceStartPolicy.shouldRun(reason, persistedShouldRun)) {
+                    DiagnosticsJournal.record("vpn_start_skipped", mapOf("reason" to reason.name, "decision" to "not_requested"))
+                    notification.close()
+                    if (status.value == Status.Stopped) {
+                        service.stopSelf(startId)
+                    } else {
+                        stopService(reason = null)
+                    }
+                    return@launch
+                }
+                Settings.shouldRun = true
+                if (status.value != Status.Stopped) {
+                    DiagnosticsJournal.record("vpn_start_skipped", mapOf("reason" to reason.name, "decision" to "already_active"))
+                    Settings.dataStore.flush()
+                    return@launch
+                }
+                status.value = Status.Starting
+                activeStartReason = reason
+                startupJob = coroutineContext[Job]
                 Settings.dataStore.flush()
-                return@launch
-            }
-            status.value = Status.Starting
-            startupJob = coroutineContext[Job]
-            Settings.dataStore.flush()
-            withContext(Dispatchers.IO) {
-                try {
-                    startCommandServer()
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    stopAndAlert(Alert.StartCommandServer, e.message)
-                    return@withContext
+                Application.application.coreReady.await()
+                withContext(Dispatchers.IO) {
+                    try {
+                        startCommandServer()
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        stopAndAlert(Alert.StartCommandServer, e.message)
+                        return@withContext
+                    }
+                    ensureActive()
+                    startService()
                 }
-                ensureActive()
-                startService()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                stopAndAlert(Alert.StartService, error.message)
             }
         }
         return Service.START_STICKY

@@ -3,6 +3,7 @@ package io.nekohasekai.sfa.bg
 import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.sfa.Application
 import io.nekohasekai.sfa.BuildConfig
+import io.nekohasekai.sfa.diagnostics.DiagnosticsJournal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -97,6 +98,7 @@ object CrashReportManager {
         val reports = scanCrashReports()
         _reports.value = reports
         _unreadCount.value = reports.count { !it.isRead }
+        reports.forEach { DiagnosticsJournal.reportFound("crash_report", it.id) }
     }
 
     private fun archivePendingJvmCrashReport() {

@@ -22,6 +22,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import io.nekohasekai.sfa.R
 import io.nekohasekai.sfa.database.Settings
+import io.nekohasekai.sfa.diagnostics.DiagnosticsJournal
 import io.nekohasekai.sfa.vendor.Vendor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
@@ -110,7 +111,8 @@ object ServerUpdateWork {
             ListenableWorker.Result.success()
         } catch (exception: CancellationException) {
             throw exception
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            DiagnosticsJournal.record("update_failed", mapOf("stage" to "check", "message" to error.message))
             Log.w("ServerUpdates", "Background update check failed")
             ListenableWorker.Result.retry()
         } finally {
@@ -158,7 +160,8 @@ class ServerUpdateDownloadWorker(context: Context, parameters: WorkerParameters)
             Result.success()
         } catch (exception: CancellationException) {
             throw exception
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            DiagnosticsJournal.record("update_failed", mapOf("stage" to "download", "message" to error.message))
             Log.w("ServerUpdates", "Background update download failed")
             Result.retry()
         } finally {

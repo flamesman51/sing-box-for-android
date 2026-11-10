@@ -22,6 +22,8 @@ import io.nekohasekai.sfa.bg.UpdateProfileWork
 import io.nekohasekai.sfa.compose.screen.tools.TaildropFiles
 import io.nekohasekai.sfa.constant.Bugs
 import io.nekohasekai.sfa.database.Settings
+import io.nekohasekai.sfa.diagnostics.DiagnosticsJournal
+import io.nekohasekai.sfa.diagnostics.DiagnosticsWork
 import io.nekohasekai.sfa.update.ServerUpdateNotifier
 import io.nekohasekai.sfa.update.ServerUpdates
 import io.nekohasekai.sfa.utils.AppLifecycleObserver
@@ -29,6 +31,7 @@ import io.nekohasekai.sfa.utils.HookModuleUpdateNotifier
 import io.nekohasekai.sfa.utils.HookStatusClient
 import io.nekohasekai.sfa.utils.PrivilegeSettingsClient
 import io.nekohasekai.sfa.vendor.Vendor
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -38,6 +41,10 @@ import java.util.Locale
 import io.nekohasekai.sfa.Application as BoxApplication
 
 class Application : Application() {
+    val coreReady = CompletableDeferred<Unit>()
+    var previousVersionCode: Int? = null
+        private set
+
     override fun attachBaseContext(base: Context?) {
         super.attachBaseContext(base)
         application = this
@@ -46,6 +53,10 @@ class Application : Application() {
     override fun onCreate() {
         super.onCreate()
         AppLifecycleObserver.register(this)
+        val diagnosticsPreferences = getSharedPreferences("diagnostics-lifecycle", Context.MODE_PRIVATE)
+        previousVersionCode = diagnosticsPreferences.getInt("installed_version", -1).takeIf { it >= 0 }
+        diagnosticsPreferences.edit().putInt("installed_version", BuildConfig.VERSION_CODE).apply()
+        DiagnosticsJournal.record("process_start", mapOf("version_code" to BuildConfig.VERSION_CODE))
 
 //        Seq.setContext(this)
         runCatching {
@@ -68,14 +79,27 @@ class Application : Application() {
 
         @Suppress("OPT_IN_USAGE")
         GlobalScope.launch(Dispatchers.IO) {
-            Settings.dataStore.initialize()
+            try {
+                Settings.dataStore.initialize()
+                initialize(baseDir, workingDir, tempDir)
+                coreReady.complete(Unit)
+                DiagnosticsJournal.record("core_ready")
+            } catch (error: Exception) {
+                coreReady.completeExceptionally(error)
+                DiagnosticsJournal.record("core_setup_failed", mapOf("message" to error.message))
+                Log.e("Application", "Core initialization failed")
+                return@launch
+            }
+            DiagnosticsWork.schedule(this@Application)
+            CrashReportManager.refresh()
+            OOMReportManager.refresh()
+            PowerReportManager.refresh()
             ServerUpdates.initialize()
             ServerUpdates.reconcileInstalled()
             ServerUpdateNotifier.refresh(this@Application)
             Vendor.scheduleAutoUpdate()
             HookStatusClient.register(this@Application)
             PrivilegeSettingsClient.register(this@Application)
-            initialize(baseDir, workingDir, tempDir)
             UpdateProfileWork.reconfigureUpdater()
             HookModuleUpdateNotifier.sync(this@Application)
             TaildropFiles.cleanCache()
@@ -94,7 +118,7 @@ class Application : Application() {
     }
 
     private fun initialize(baseDir: File, workingDir: File?, tempDir: File) {
-        val actualWorkingDir = workingDir ?: return
+        val actualWorkingDir = workingDir ?: error("App storage is unavailable")
         setupLibbox(baseDir, actualWorkingDir, tempDir)
     }
 

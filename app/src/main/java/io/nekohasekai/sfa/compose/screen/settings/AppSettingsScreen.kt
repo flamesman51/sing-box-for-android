@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -84,6 +85,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -105,6 +107,7 @@ import io.nekohasekai.sfa.compose.topbar.LocalScaffoldPadding
 import io.nekohasekai.sfa.compose.topbar.OverrideTopBar
 import io.nekohasekai.sfa.constant.Status
 import io.nekohasekai.sfa.database.Settings
+import io.nekohasekai.sfa.diagnostics.DiagnosticsWork
 import io.nekohasekai.sfa.ktx.clipboardText
 import io.nekohasekai.sfa.update.ServerUpdateWork
 import io.nekohasekai.sfa.update.ServerUpdates
@@ -157,6 +160,7 @@ fun AppSettingsScreen(
     var showGitHubTokenDialog by remember { mutableStateOf(false) }
     var githubToken by remember { mutableStateOf(Settings.githubToken) }
     var checkUpdateEnabled by remember { mutableStateOf(Settings.checkUpdateEnabled) }
+    var sendDiagnostics by remember { mutableStateOf(Settings.sendDiagnostics) }
     var showErrorDialog by remember { mutableStateOf<String?>(null) }
 
     var silentInstallEnabled by remember { mutableStateOf(Settings.silentInstallEnabled) }
@@ -701,6 +705,50 @@ fun AppSettingsScreen(
                 ListItemDefaults.colors(
                     containerColor = Color.Transparent,
                 ),
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
+        ) {
+            ListItem(
+                headlineContent = {
+                    Text(
+                        stringResource(R.string.send_diagnostics),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                },
+                supportingContent = { Text(stringResource(R.string.send_diagnostics_description)) },
+                leadingContent = {
+                    Icon(
+                        imageVector = Icons.Outlined.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                },
+                trailingContent = {
+                    Switch(checked = sendDiagnostics, onCheckedChange = null)
+                },
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .toggleable(
+                        value = sendDiagnostics,
+                        role = Role.Switch,
+                        onValueChange = { checked ->
+                            sendDiagnostics = checked
+                            scope.launch(Dispatchers.IO) {
+                                Settings.sendDiagnostics = checked
+                                Settings.dataStore.flush()
+                                DiagnosticsWork.schedule(context)
+                            }
+                        },
+                    ),
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
         }
 
