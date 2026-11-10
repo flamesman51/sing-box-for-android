@@ -15,6 +15,7 @@ import io.nekohasekai.sfa.compose.screen.smart.prepareSmartNotification
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.ktx.toIpPrefix
 import io.nekohasekai.sfa.ktx.toList
+import io.nekohasekai.sfa.vendor.Vendor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -139,29 +140,26 @@ class VPNService :
                 }
             }
 
-            val includePackage = options.includePackage
-            if (includePackage.hasNext()) {
-                while (includePackage.hasNext()) {
-                    try {
-                        val nextPackage = includePackage.next()
-                        builder.addAllowedApplication(nextPackage)
-                        Log.d("VPNService", "addAllowedApplication: $nextPackage")
-                    } catch (e: NameNotFoundException) {
-                        Log.e("VPNService", "addAllowedApplication failed", e)
-                    }
-                }
+            val routing = resolvePerAppRouting(
+                configInclude = options.includePackage.toList().toSet(),
+                configExclude = options.excludePackage.toList().toSet(),
+                overrideEnabled = Vendor.isPerAppProxyAvailable() && Settings.perAppProxyEnabled,
+                overrideInclude = Settings.getEffectivePerAppProxyMode() == Settings.PER_APP_PROXY_INCLUDE,
+                overridePackages = Settings.getEffectivePerAppProxyList(),
+                ownPackage = packageName,
+            )
+            if (routing.conflictingConfig) {
+                Log.w(TAG, "Both include_package and exclude_package are configured; include_package takes precedence")
             }
-
-            val excludePackage = options.excludePackage
-            if (excludePackage.hasNext()) {
-                while (excludePackage.hasNext()) {
-                    try {
-                        val nextPackage = excludePackage.next()
-                        builder.addDisallowedApplication(nextPackage)
-                        Log.d("VPNService", "addDisallowedApplication: $nextPackage")
-                    } catch (e: NameNotFoundException) {
-                        Log.e("VPNService", "addDisallowedApplication failed", e)
+            for (application in routing.packages) {
+                try {
+                    when (routing.mode) {
+                        PerAppRoutingMode.Include -> builder.addAllowedApplication(application)
+                        PerAppRoutingMode.Exclude -> builder.addDisallowedApplication(application)
+                        PerAppRoutingMode.All -> Unit
                     }
+                } catch (e: NameNotFoundException) {
+                    Log.e(TAG, "Per-app routing package is not installed", e)
                 }
             }
         }

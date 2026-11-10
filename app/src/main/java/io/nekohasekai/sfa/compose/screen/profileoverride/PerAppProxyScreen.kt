@@ -88,6 +88,8 @@ import io.nekohasekai.sfa.compose.topbar.OverrideTopBar
 import io.nekohasekai.sfa.constant.Status
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.ktx.clipboardText
+import io.nekohasekai.sfa.utils.AppScanRegion
+import io.nekohasekai.sfa.utils.RussianAppRules
 import io.nekohasekai.sfa.vendor.PackageQueryManager
 import io.nekohasekai.sfa.vendor.PrivilegedAccessRequiredException
 import kotlinx.coroutines.Dispatchers
@@ -95,6 +97,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.ZipFile
@@ -196,9 +199,10 @@ fun PerAppProxyScreen(
         saveSelectedApplications(newSelected)
     }
 
-    fun startScan() {
+    fun startScan(region: AppScanRegion) {
         if (scanProgress != null) return
         val scanPackages = currentPackages.toList()
+        val scanRegions = setOf(region)
         if (scanPackages.isEmpty()) return
         scanProgress = ScanProgress(0, scanPackages.size)
         coroutineScope.launch {
@@ -209,8 +213,10 @@ fun PerAppProxyScreen(
                         val progressInt = AtomicInteger()
                         scanPackages.map { packageCache ->
                             async {
-                                if (PerAppProxyScanner.scanChinaPackage(packageCache.info)) {
-                                    found[packageCache.packageName] = packageCache
+                                if (PerAppProxyScanner.scanPackage(packageCache.info, scanRegions)) {
+                                    synchronized(found) {
+                                        found[packageCache.packageName] = packageCache
+                                    }
                                 }
                                 val nextValue = progressInt.incrementAndGet()
                                 withContext(Dispatchers.Main) {
@@ -222,7 +228,7 @@ fun PerAppProxyScreen(
                 }
             Log.d(
                 "PerAppProxyScanner",
-                "Scan China apps took ${(System.currentTimeMillis() - startTime).toDouble() / 1000}s",
+                "Scan $region apps took ${(System.currentTimeMillis() - startTime).toDouble() / 1000}s",
             )
             scanProgress = null
             scanResult = if (foundApps.isEmpty()) ScanResult.Empty else ScanResult.Found(foundApps)
@@ -410,7 +416,8 @@ fun PerAppProxyScreen(
                             Toast.LENGTH_SHORT,
                         ).show()
                     },
-                    onScanChinaApps = { startScan() },
+                    onScanChinaApps = { startScan(AppScanRegion.China) },
+                    onScanRussianApps = { startScan(AppScanRegion.Russia) },
                 )
             },
             colors =
@@ -690,6 +697,7 @@ private fun PerAppProxyMenus(
     onImport: () -> Unit,
     onExport: () -> Unit,
     onScanChinaApps: () -> Unit,
+    onScanRussianApps: () -> Unit,
 ) {
     var showMainMenu by remember { mutableStateOf(false) }
     var showModeMenu by remember { mutableStateOf(false) }
@@ -1230,6 +1238,22 @@ private fun PerAppProxyMenus(
                         )
                     },
                 )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.per_app_proxy_scan_russian_apps)) },
+                    onClick = {
+                        onScanRussianApps()
+                        showMainMenu = false
+                        showScanMenu = false
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.ManageSearch,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(start = 24.dp),
+                        )
+                    },
+                )
             }
         }
     }
@@ -1293,8 +1317,15 @@ object PerAppProxyScanner {
     private val chinaAppRegex by lazy {
         ("(" + chinaAppPrefixList.joinToString("|").replace(".", "\\.") + ").*").toRegex()
     }
+    private val russianRules by lazy {
+        val content = Application.application.assets.open("ru-apps.json").bufferedReader().use { it.readText() }
+        val packages = JSONObject(content).getJSONArray("packages")
+        RussianAppRules((0 until packages.length()).map { packages.getString(it) }.toSet())
+    }
 
-    suspend fun scanAllChinaApps(): Set<String> = withContext(Dispatchers.Default) {
+    suspend fun scanAllManagedApps(
+        regions: Set<AppScanRegion> = AppScanRegion.fromSettings(Settings.perAppProxyManagedRegions),
+    ): Set<String> = withContext(Dispatchers.Default) {
         val packageManagerFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             PackageManager.MATCH_UNINSTALLED_PACKAGES or
                 PackageManager.GET_ACTIVITIES or PackageManager.GET_SERVICES or
@@ -1312,60 +1343,60 @@ object PerAppProxyScanner {
             PackageManager.GET_UNINSTALLED_PACKAGES or PackageManager.GET_PERMISSIONS
         }
         val installedPackages = PackageQueryManager.getInstalledPackages(packageManagerFlags, retryFlags)
-        val chinaApps = mutableSetOf<String>()
+        val managedApps = mutableSetOf<String>()
         installedPackages.map { packageInfo ->
             async {
-                if (scanChinaPackage(packageInfo)) {
-                    synchronized(chinaApps) {
-                        chinaApps.add(packageInfo.packageName)
+                if (scanPackage(packageInfo, regions)) {
+                    synchronized(managedApps) {
+                        managedApps.add(packageInfo.packageName)
                     }
                 }
             }
         }.awaitAll()
-        chinaApps.toSet()
+        managedApps.toSet()
     }
 
-    fun scanChinaPackage(packageInfo: PackageInfo): Boolean {
+    fun scanPackage(packageInfo: PackageInfo, regions: Set<AppScanRegion>): Boolean {
         val packageName = packageInfo.packageName
         if (packageName == Application.application.packageName) return false
-        skipPrefixList.forEach {
-            if (packageName == it || packageName.startsWith("$it.")) return false
-        }
-
-        if (packageName.matches(chinaAppRegex)) {
+        val scanChina = AppScanRegion.China in regions
+        val scanRussia = AppScanRegion.Russia in regions
+        val chinaCandidate = scanChina && skipPrefixList.none { packageName == it || packageName.startsWith("$it.") }
+        fun matchesClass(className: String): Boolean = (chinaCandidate && className.matches(chinaAppRegex)) || (scanRussia && russianRules.matchesClass(className))
+        if ((chinaCandidate && packageName.matches(chinaAppRegex)) || (scanRussia && russianRules.matchesPackage(packageName))) {
             Log.d("PerAppProxyScanner", "Match package name: $packageName")
             return true
         }
         try {
             val appInfo = packageInfo.applicationInfo ?: return false
             packageInfo.services?.forEach {
-                if (it.name.matches(chinaAppRegex)) {
+                if (matchesClass(it.name)) {
                     Log.d("PerAppProxyScanner", "Match service ${it.name} in $packageName")
                     return true
                 }
             }
             packageInfo.activities?.forEach {
-                if (it.name.matches(chinaAppRegex)) {
+                if (matchesClass(it.name)) {
                     Log.d("PerAppProxyScanner", "Match activity ${it.name} in $packageName")
                     return true
                 }
             }
             packageInfo.receivers?.forEach {
-                if (it.name.matches(chinaAppRegex)) {
+                if (matchesClass(it.name)) {
                     Log.d("PerAppProxyScanner", "Match receiver ${it.name} in $packageName")
                     return true
                 }
             }
             packageInfo.providers?.forEach {
-                if (it.name.matches(chinaAppRegex)) {
+                if (matchesClass(it.name)) {
                     Log.d("PerAppProxyScanner", "Match provider ${it.name} in $packageName")
                     return true
                 }
             }
+            if (!chinaCandidate && !scanRussia) return false
             ZipFile(File(appInfo.publicSourceDir)).use {
-                for (packageEntry in it.entries()) {
-                    if (packageEntry.name.startsWith("firebase-")) return false
-                }
+                val hasFirebase = it.entries().asSequence().any { entry -> entry.name.startsWith("firebase-") }
+                if (hasFirebase && !scanRussia) return false
                 for (packageEntry in it.entries()) {
                     if (!(
                             packageEntry.name.startsWith("classes") &&
@@ -1374,7 +1405,7 @@ object PerAppProxyScanner {
                     ) {
                         continue
                     }
-                    if (packageEntry.size > 15000000) {
+                    if (chinaCandidate && !hasFirebase && packageEntry.size > 15000000) {
                         Log.d(
                             "PerAppProxyScanner",
                             "Confirm $packageName due to large dex file",
@@ -1393,7 +1424,9 @@ object PerAppProxyScanner {
                         val clazzName =
                             clazz.type.substring(1, clazz.type.length - 1).replace("/", ".")
                                 .replace("$", ".")
-                        if (clazzName.matches(chinaAppRegex)) {
+                        if ((chinaCandidate && !hasFirebase && clazzName.matches(chinaAppRegex)) ||
+                            (scanRussia && russianRules.matchesClass(clazzName))
+                        ) {
                             Log.d("PerAppProxyScanner", "Match $clazzName in $packageName")
                             return true
                         }

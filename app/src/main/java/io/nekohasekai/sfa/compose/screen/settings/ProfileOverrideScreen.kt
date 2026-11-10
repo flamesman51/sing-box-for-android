@@ -5,7 +5,9 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.AppShortcut
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Route
@@ -26,6 +29,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -64,6 +68,7 @@ import io.nekohasekai.sfa.compose.topbar.LocalScaffoldPadding
 import io.nekohasekai.sfa.compose.topbar.OverrideTopBar
 import io.nekohasekai.sfa.constant.Status
 import io.nekohasekai.sfa.database.Settings
+import io.nekohasekai.sfa.utils.AppScanRegion
 import io.nekohasekai.sfa.vendor.PackageQueryManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -95,15 +100,20 @@ fun ProfileOverrideScreen(
     var autoRedirect by remember { mutableStateOf(Settings.autoRedirect) }
     var perAppProxyEnabled by remember { mutableStateOf(Settings.perAppProxyEnabled) }
     var managedModeEnabled by remember { mutableStateOf(Settings.perAppProxyManagedMode) }
+    var managedRegions by remember { mutableStateOf(AppScanRegion.fromSettings(Settings.perAppProxyManagedRegions)) }
     var isScanning by remember { mutableStateOf(false) }
     val notifyApplyChange = rememberApplyServiceChangeNotifier(serviceStatus)
 
     fun scanAndSaveManagedList(shouldNotify: Boolean = false) {
         isScanning = true
         scope.launch {
-            val chinaApps = PerAppProxyScanner.scanAllChinaApps()
             withContext(Dispatchers.IO) {
-                Settings.perAppProxyManagedList = chinaApps
+                Settings.perAppProxyManagedMode = managedModeEnabled
+                Settings.perAppProxyManagedRegions = managedRegions.map { it.name }.toSet()
+            }
+            val managedApps = PerAppProxyScanner.scanAllManagedApps(managedRegions)
+            withContext(Dispatchers.IO) {
+                Settings.perAppProxyManagedList = managedApps
             }
             isScanning = false
             if (shouldNotify) {
@@ -499,9 +509,6 @@ fun ProfileOverrideScreen(
                                     onCheckedChange = { checked ->
                                         if (checked) {
                                             managedModeEnabled = true
-                                            scope.launch(Dispatchers.IO) {
-                                                Settings.perAppProxyManagedMode = true
-                                            }
                                             scanAndSaveManagedList(shouldNotify = true)
                                         } else {
                                             managedModeEnabled = false
@@ -522,6 +529,53 @@ fun ProfileOverrideScreen(
                             containerColor = Color.Transparent,
                         ),
                     )
+                    if (managedModeEnabled) {
+                        Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
+                            Text(
+                                stringResource(R.string.per_app_proxy_managed_regions),
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                AppScanRegion.entries.forEach { region ->
+                                    val selected = region in managedRegions
+                                    FilterChip(
+                                        selected = selected,
+                                        enabled = !isScanning && (!selected || managedRegions.size > 1),
+                                        onClick = {
+                                            managedRegions = if (selected) managedRegions - region else managedRegions + region
+                                            scanAndSaveManagedList(shouldNotify = true)
+                                        },
+                                        leadingIcon = if (selected) {
+                                            {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(18.dp),
+                                                )
+                                            }
+                                        } else {
+                                            null
+                                        },
+                                        label = {
+                                            Text(
+                                                stringResource(
+                                                    when (region) {
+                                                        AppScanRegion.China -> R.string.per_app_proxy_region_china
+                                                        AppScanRegion.Russia -> R.string.per_app_proxy_region_russia
+                                                    },
+                                                ),
+                                            )
+                                        },
+                                    )
+                                }
+                            }
+                            Text(
+                                stringResource(R.string.per_app_proxy_managed_detection_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
             }
         }

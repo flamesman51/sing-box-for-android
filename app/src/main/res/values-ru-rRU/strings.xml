@@ -251,10 +251,15 @@
     <string name="per_app_proxy_export">Экспорт в буфер обмена</string>
     <string name="per_app_proxy_scan">Сканирование</string>
     <string name="per_app_proxy_scan_china_apps">Китайские приложения</string>
+    <string name="per_app_proxy_scan_russian_apps">Российские приложения</string>
     <string name="per_app_proxy_manage">Управление</string>
     <string name="content_description_app_icon">Значок приложения</string>
     <string name="per_app_proxy_managed_mode">Управляемый режим</string>
-    <string name="per_app_proxy_managed_mode_description">Автоматически исключать китайские приложения</string>
+    <string name="per_app_proxy_managed_mode_description">Автоматически исключать выбранные группы приложений</string>
+    <string name="per_app_proxy_managed_regions">Какие приложения исключать</string>
+    <string name="per_app_proxy_region_china">Китай</string>
+    <string name="per_app_proxy_region_russia">Россия</string>
+    <string name="per_app_proxy_managed_detection_hint">Проверка SDK может также находить приложения из других стран.</string>
     <string name="per_app_proxy_package_query_mode">Режим</string>
     <string name="per_app_proxy_shizuku_required">При установке из Play Store для работы прокси для каждого приложения требуется Shizuku. Google Play не позволяет нам использовать разрешение QUERY_ALL_PACKAGES (хотя другим подобным приложениям это разрешено), которое необходимо для отображения списка приложений.</string>
     <string name="per_app_proxy_root_required">При установке из Play Store для функции прокси для отдельных приложений требуются права ROOT. Google Play не разрешает нам использовать разрешение QUERY_ALL_PACKAGES (хотя другим подобным приложениям это разрешено), которое необходимо для отображения списка приложений.</string>

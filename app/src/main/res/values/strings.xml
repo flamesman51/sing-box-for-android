@@ -252,10 +252,15 @@
     <string name="per_app_proxy_export">Export to clipboard</string>
     <string name="per_app_proxy_scan">Scan</string>
     <string name="per_app_proxy_scan_china_apps">China apps</string>
+    <string name="per_app_proxy_scan_russian_apps">Russian apps</string>
     <string name="per_app_proxy_manage">Manage</string>
     <string name="content_description_app_icon">App icon</string>
     <string name="per_app_proxy_managed_mode">Managed Mode</string>
-    <string name="per_app_proxy_managed_mode_description">Automatically Exclude China apps</string>
+    <string name="per_app_proxy_managed_mode_description">Automatically bypass selected app groups</string>
+    <string name="per_app_proxy_managed_regions">Apps to bypass</string>
+    <string name="per_app_proxy_region_china">China</string>
+    <string name="per_app_proxy_region_russia">Russia</string>
+    <string name="per_app_proxy_managed_detection_hint">SDK detection can also match apps from other countries.</string>
     <string name="per_app_proxy_package_query_mode">Mode</string>
     <string name="per_app_proxy_shizuku_required">When installed from the Play Store, per-app proxy requires Shizuku. Google Play refuses to allow us to use the QUERY_ALL_PACKAGES permission (while not prohibiting other similar apps from doing so), which is required for listing apps.</string>
     <string name="per_app_proxy_root_required">When installed from the Play Store, per-app proxy requires ROOT. Google Play refuses to allow us to use the QUERY_ALL_PACKAGES permission (while not prohibiting other similar apps from doing so), which is required for listing apps.</string>

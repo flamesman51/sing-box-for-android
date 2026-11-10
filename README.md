@@ -25,6 +25,22 @@ when importing into this fork. Only one VPN app can be active in an Android user
   App replacement bypasses the boot-only unread-crash gate and explicitly requests
   recovery, including while the screen is locked. Service starts enter the foreground
   immediately, wait for core setup, and journal every start decision and failure.
+- Profile TUN `include_package` / `exclude_package` lists work without enabling
+  **Profile Override → Per-App Proxy**. When enabled, that switch replaces both
+  profile lists with the app's selected mode and list, including Managed Mode.
+  Without an app override, conflicting profile lists use include mode and log a
+  warning. Only one Android allow/deny list is ever applied. Include mode always
+  includes this VPN app, even with an empty selection; exclude mode never excludes it.
+- Managed Mode can bypass Chinese apps, Russian apps, or both. Existing installs
+  retain China-only behavior. Region chips persist the selection and rescan when
+  changed; package install/removal broadcasts also refresh the managed list.
+  The app selector's **Scan** menu offers both groups separately.
+  Russian detection combines `app/src/main/assets/ru-apps.json` (413 exact package
+  names verified against store listings on 2026-11-04) with specific AppMetrica,
+  VK ID/VK SDK, MyTracker, RuStore, and Sber ID component/DEX namespaces.
+  It does not infer Russian apps from generic `ru.*`, Yandex, or VK prefixes, DEX
+  size, or the absence of Firebase. SDK detection can still match international
+  apps using those SDKs; manual per-app selection remains available.
 - Remote-profile mutations reconfigure WorkManager, including imports, interval-only
   edits, and deletion. WorkManager is inexact. “Last updated” records the last
   successful check, including an unchanged download, and controls update cadence.

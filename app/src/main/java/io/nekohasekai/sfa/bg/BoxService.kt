@@ -41,7 +41,6 @@ import io.nekohasekai.sfa.diagnostics.DiagnosticsProjection
 import io.nekohasekai.sfa.diagnostics.DiagnosticsReportDiscovery
 import io.nekohasekai.sfa.diagnostics.DiagnosticsWork
 import io.nekohasekai.sfa.ktx.hasPermission
-import io.nekohasekai.sfa.vendor.Vendor
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -199,16 +198,6 @@ class BoxService(private val service: Service, private val platformInterface: Pl
                     content,
                     OverrideOptions().apply {
                         autoRedirect = Settings.autoRedirect
-                        if (Vendor.isPerAppProxyAvailable() && Settings.perAppProxyEnabled) {
-                            val appList = Settings.getEffectivePerAppProxyList()
-                            if (Settings.getEffectivePerAppProxyMode() == Settings.PER_APP_PROXY_INCLUDE) {
-                                includePackage =
-                                    PlatformInterfaceWrapper.StringArray((appList + Application.application.packageName).iterator())
-                            } else {
-                                excludePackage =
-                                    PlatformInterfaceWrapper.StringArray((appList - Application.application.packageName).iterator())
-                            }
-                        }
                     },
                 )
             } catch (e: CancellationException) {
@@ -298,14 +287,6 @@ class BoxService(private val service: Service, private val platformInterface: Pl
                 content,
                 OverrideOptions().apply {
                     autoRedirect = Settings.autoRedirect
-                    if (Vendor.isPerAppProxyAvailable() && Settings.perAppProxyEnabled) {
-                        val appList = Settings.getEffectivePerAppProxyList()
-                        if (Settings.getEffectivePerAppProxyMode() == Settings.PER_APP_PROXY_INCLUDE) {
-                            includePackage = PlatformInterfaceWrapper.StringArray((appList + Application.application.packageName).iterator())
-                        } else {
-                            excludePackage = PlatformInterfaceWrapper.StringArray((appList - Application.application.packageName).iterator())
-                        }
-                    }
                 },
             )
         } catch (e: CancellationException) {

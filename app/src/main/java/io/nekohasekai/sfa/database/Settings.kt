@@ -83,6 +83,7 @@ object Settings {
     var perAppProxyList by dataStore.stringSet(SettingsKey.PER_APP_PROXY_LIST) { emptySet() }
     var perAppProxyManagedMode by dataStore.boolean(SettingsKey.PER_APP_PROXY_MANAGED_MODE) { false }
     var perAppProxyManagedList by dataStore.stringSet(SettingsKey.PER_APP_PROXY_MANAGED_LIST) { emptySet() }
+    var perAppProxyManagedRegions by dataStore.stringSet(SettingsKey.PER_APP_PROXY_MANAGED_REGIONS) { setOf("China") }
 
     const val PACKAGE_QUERY_MODE_SHIZUKU = "SHIZUKU"
     const val PACKAGE_QUERY_MODE_ROOT = "ROOT"

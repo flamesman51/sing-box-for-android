@@ -46,8 +46,8 @@ class AppChangeReceiver : BroadcastReceiver() {
 
     private suspend fun rescanAllApps() {
         Log.d(TAG, "rescanning all apps")
-        val chinaApps = PerAppProxyScanner.scanAllChinaApps()
-        Settings.perAppProxyManagedList = chinaApps
-        Log.d(TAG, "rescan complete, found ${chinaApps.size} china apps")
+        val managedApps = PerAppProxyScanner.scanAllManagedApps()
+        Settings.perAppProxyManagedList = managedApps
+        Log.d(TAG, "rescan complete, found ${managedApps.size} managed apps")
     }
 }
