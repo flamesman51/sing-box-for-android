@@ -63,11 +63,12 @@ object PowerReportManager {
         this.workingDir = workingDir
     }
 
-    suspend fun refresh() = withContext(Dispatchers.IO) {
+    suspend fun refresh(reportFound: (String, String) -> Unit = DiagnosticsJournal::reportFound) = withContext(Dispatchers.IO) {
+        if (!::workingDir.isInitialized) return@withContext
         val reports = scanReports()
         _reports.value = reports
         _unreadCount.value = reports.count { !it.isRead }
-        reports.forEach { DiagnosticsJournal.reportFound("power_report", it.id) }
+        reports.forEach { reportFound("power_report", it.id) }
     }
 
     private fun scanReports(): List<PowerReport> {

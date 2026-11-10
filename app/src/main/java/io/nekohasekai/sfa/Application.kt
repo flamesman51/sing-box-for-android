@@ -24,6 +24,7 @@ import io.nekohasekai.sfa.constant.Bugs
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.diagnostics.DiagnosticsJournal
 import io.nekohasekai.sfa.diagnostics.DiagnosticsProjection
+import io.nekohasekai.sfa.diagnostics.DiagnosticsReportDiscovery
 import io.nekohasekai.sfa.diagnostics.DiagnosticsWork
 import io.nekohasekai.sfa.update.ServerUpdateNotifier
 import io.nekohasekai.sfa.update.ServerUpdates
@@ -85,9 +86,7 @@ class Application : Application() {
                 DiagnosticsJournal.preferencesReady()
                 DiagnosticsWork.schedule(this@Application)
                 if (workingDir != null) {
-                    CrashReportManager.refresh()
-                    OOMReportManager.refresh()
-                    PowerReportManager.refresh()
+                    DiagnosticsReportDiscovery.shared.refresh()
                 }
                 initialize(baseDir, workingDir, tempDir)
                 coreReady.complete(Unit)
@@ -122,7 +121,7 @@ class Application : Application() {
         }
     }
 
-    private fun initialize(baseDir: File, workingDir: File?, tempDir: File) {
+    private suspend fun initialize(baseDir: File, workingDir: File?, tempDir: File) {
         val actualWorkingDir = workingDir ?: error("App storage is unavailable")
         setupLibbox(baseDir, actualWorkingDir, tempDir)
     }
@@ -134,8 +133,10 @@ class Application : Application() {
         Libbox.reloadSetupOptions(createSetupOptions(baseDir, workingDir, tempDir))
     }
 
-    private fun setupLibbox(baseDir: File, workingDir: File, tempDir: File) {
-        Libbox.setup(createSetupOptions(baseDir, workingDir, tempDir))
+    private suspend fun setupLibbox(baseDir: File, workingDir: File, tempDir: File) {
+        DiagnosticsReportDiscovery.shared.afterPromotion {
+            Libbox.setup(createSetupOptions(baseDir, workingDir, tempDir))
+        }
     }
 
     private fun createSetupOptions(baseDir: File, workingDir: File, tempDir: File): SetupOptions = SetupOptions().also {

@@ -128,6 +128,7 @@ object DiagnosticsWork {
                         return@withContext Result.success()
                     }
                     val store = DiagnosticsJournal.store
+                    val unsent = DiagnosticsReportDiscovery.shared.unsent(store, destination.owner)
                     var batch = store.pending(destination.owner)
                     if (batch == null) {
                         val app = DiagnosticsProjection.app(
@@ -149,8 +150,8 @@ object DiagnosticsWork {
                         } else {
                             null
                         }
-                        val crashes = if (coreReady) DiagnosticsSnapshot.crashes(store.unsentDiscoveries(destination.owner)) else emptyList()
-                        batch = store.prepare(destination.owner, app, smart, crashes)
+                        val crashes = DiagnosticsSnapshot.crashes(unsent)
+                        batch = store.prepare(destination.owner, app, smart, crashes, association = destination.association)
                     }
                     repeat(8) {
                         val pending = batch ?: return@withContext Result.success()

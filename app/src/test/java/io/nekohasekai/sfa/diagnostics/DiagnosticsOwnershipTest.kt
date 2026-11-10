@@ -3,6 +3,7 @@ package io.nekohasekai.sfa.diagnostics
 import io.nekohasekai.sfa.diagnostics.DiagnosticsProjection.array
 import io.nekohasekai.sfa.diagnostics.DiagnosticsProjection.obj
 import io.nekohasekai.sfa.diagnostics.DiagnosticsProjection.string
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
@@ -74,7 +75,7 @@ class DiagnosticsOwnershipTest {
         journal.reportFound("crash_report", "crash-1")
         journal.preferencesReady()
         journal.reportFound("crash_report", "crash-1")
-        assertEquals(0, store.eventCount())
+        assertEquals(1, store.eventCount())
         assertTrue(store.unsentDiscoveries(firstDestination.owner).isEmpty())
         assertEquals(0, discoveries)
 
@@ -114,7 +115,7 @@ class DiagnosticsOwnershipTest {
     }
 
     @Test
-    fun deferredEventsNeverMoveToAnotherProfileOrAnotherSource() {
+    fun locallyPersistedEventsNeverMoveToAnotherProfileOrAnotherSource() {
         val store = DiagnosticsStore(temporary.newFolder())
         var selected = firstProfile
         var available: DiagnosticsDestination? = null
@@ -133,11 +134,14 @@ class DiagnosticsOwnershipTest {
         journal.retry()
         available = firstDestination.copy(source = "https://first.example/replaced")
         journal.retry()
-        assertEquals(0, store.eventCount())
+        assertEquals(2, store.eventCount())
         assertTrue(store.unsentDiscoveries(secondDestination.owner).isEmpty())
+        assertTrue(store.unsentDiscoveries(firstDestination.owner).isEmpty())
 
+        selected = firstProfile
         available = firstDestination
         journal.retry()
+        journal.reportFound("crash_report", "crash-1")
         assertEquals(2, store.eventCount())
         assertEquals(setOf(DiagnosticsStore.crashKey("crash_report", "crash-1")), store.unsentDiscoveries(firstDestination.owner))
     }
@@ -160,7 +164,171 @@ class DiagnosticsOwnershipTest {
 
         val first = store.prepare(firstDestination.owner, JsonObject(emptyMap()), null, emptyList())!!
         assertEquals(listOf("vpn_stop"), first.envelope.array("events").map { it.jsonObject.string("kind") })
-        assertEquals(1, store.eventCount())
+        assertEquals(2, store.eventCount())
         assertTrue(store.prepare(secondDestination.owner, JsonObject(emptyMap()), null, emptyList())!!.envelope.array("events").isEmpty())
+    }
+
+    @Test
+    fun localAndCapabilitylessEventsSurviveRestartBeyondTheDeferredQueueLimit() {
+        for (profile in listOf(DiagnosticsProfile(3, null), firstProfile)) {
+            val directory = temporary.newFolder()
+            val store = DiagnosticsStore(directory)
+            val journal = DiagnosticsOwnership({ store }, Executor { it.run() }, { profile }, { null })
+            journal.preferencesReady()
+
+            repeat(1100) { journal.record("process_start", mapOf("version_code" to it)) }
+
+            val reopened = DiagnosticsStore(directory)
+            assertEquals(1000, reopened.eventCount())
+            val entries = reopened.eventsFile.readLines().map { Json.parseToJsonElement(it).jsonObject }
+            assertEquals("100", entries.first().obj("event")!!.obj("detail")!!.string("version_code"))
+            assertEquals("1099", entries.last().obj("event")!!.obj("detail")!!.string("version_code"))
+            assertTrue(entries.all { it.string("owner") == profile.localOwner })
+            assertFalse(reopened.eventsFile.readText().contains("https://"))
+            assertTrue(reopened.eventsFile.length() <= 512 * 1024)
+            assertTrue(reopened.prepare(firstDestination.owner, JsonObject(emptyMap()), null, emptyList())!!.envelope.array("events").isEmpty())
+        }
+    }
+
+    @Test
+    fun preferenceDeferredEventsCaptureAssociationOnceAndMissingSelectionStaysLocal() {
+        val directory = temporary.newFolder()
+        val store = DiagnosticsStore(directory)
+        val writes = ArrayDeque<Runnable>()
+        var selected: DiagnosticsProfile? = null
+        val journal = DiagnosticsOwnership(
+            { store },
+            Executor { writes.addLast(it) },
+            { selected },
+            { if (it == firstProfile) firstDestination else secondDestination },
+        )
+        journal.record("process_start", emptyMap())
+        assertTrue(writes.isEmpty())
+        journal.preferencesReady()
+        selected = secondProfile
+        while (writes.isNotEmpty()) writes.removeFirst().run()
+        journal.retry()
+
+        val reopened = DiagnosticsStore(directory)
+        assertEquals(1, reopened.eventCount())
+        assertTrue(reopened.prepare(secondDestination.owner, JsonObject(emptyMap()), null, emptyList())!!.envelope.array("events").isEmpty())
+        assertFalse(reopened.eventsFile.readText().contains("https://"))
+    }
+
+    @Test
+    fun discoveryObservationSurvivesRestartWithoutAcknowledgingOrChangingItsAssociation() {
+        val directory = temporary.newFolder()
+        var selected = firstProfile
+        var available: DiagnosticsDestination? = null
+        var discoveries = 0
+        fun journal(store: DiagnosticsStore) = DiagnosticsOwnership(
+            { store },
+            Executor { it.run() },
+            { selected },
+            { available },
+            { discoveries++ },
+        ).apply { preferencesReady() }
+        val initial = DiagnosticsStore(directory)
+        journal(initial).reportFound("crash_report", "private-crash-id")
+        assertEquals(1, initial.eventCount())
+        assertTrue(initial.unsentDiscoveries(firstDestination.owner).isEmpty())
+
+        val reopened = DiagnosticsStore(directory)
+        val restarted = journal(reopened)
+        restarted.reportFound("crash_report", "private-crash-id")
+        assertEquals(1, reopened.eventCount())
+        selected = secondProfile
+        available = secondDestination
+        restarted.reportFound("crash_report", "private-crash-id")
+        assertTrue(reopened.unsentDiscoveries(secondDestination.owner).isEmpty())
+        assertEquals(0, discoveries)
+
+        selected = firstProfile
+        available = firstDestination.copy(source = "https://first.example/replaced")
+        restarted.reportFound("crash_report", "private-crash-id")
+        assertEquals(0, discoveries)
+        available = firstDestination
+        restarted.reportFound("crash_report", "private-crash-id")
+        restarted.reportFound("crash_report", "private-crash-id")
+
+        assertEquals(1, reopened.eventCount())
+        assertEquals(1, discoveries)
+        assertEquals(setOf(DiagnosticsStore.crashKey("crash_report", "private-crash-id")), reopened.unsentDiscoveries(firstDestination.owner))
+        assertEquals(1, reopened.prepare(firstDestination.owner, JsonObject(emptyMap()), null, emptyList(), firstDestination.association)!!.envelope.array("events").size)
+        assertFalse(directory.walkTopDown().filter { it.isFile }.any { it.readText().contains("https://") || it.readText().contains("private-crash-id") })
+    }
+
+    @Test
+    fun capabilityGainPromotesOnlyMatchingAssociationAndNeverReassignsDestinationOwnedEvents() {
+        val directory = temporary.newFolder()
+        val initial = DiagnosticsStore(directory)
+        val writes = ArrayDeque<Runnable>()
+        var selected = firstProfile
+        val journal = DiagnosticsOwnership({ initial }, Executor { writes.addLast(it) }, { selected }, { null })
+        journal.preferencesReady()
+        journal.record("vpn_start", mapOf("reason" to "User"))
+        selected = secondProfile
+        journal.record("core_ready", emptyMap())
+        val changedProfile = firstProfile.copy(source = "https://first.example/replaced")
+        selected = changedProfile
+        journal.record("vpn_stop", mapOf("reason" to "User"))
+        journal.record("vpn_start_failed", emptyMap(), DiagnosticsProfile(firstProfile.id, null))
+        while (writes.isNotEmpty()) writes.removeFirst().run()
+
+        val reopened = DiagnosticsStore(directory)
+        assertEquals(4, reopened.eventCount())
+        val first = reopened.prepare(firstDestination.owner, JsonObject(emptyMap()), null, emptyList(), firstDestination.association)!!
+        assertEquals(listOf("vpn_start"), first.envelope.array("events").map { it.jsonObject.string("kind") })
+        val changedDestination = firstDestination.copy(source = changedProfile.source!!)
+        val changed = reopened.prepare(changedDestination.owner, JsonObject(emptyMap()), null, emptyList(), changedDestination.association)!!
+        assertEquals(listOf("vpn_stop"), changed.envelope.array("events").map { it.jsonObject.string("kind") })
+        val second = reopened.prepare(secondDestination.owner, JsonObject(emptyMap()), null, emptyList(), secondDestination.association)!!
+        assertEquals(listOf("core_ready"), second.envelope.array("events").map { it.jsonObject.string("kind") })
+        val replacement = firstDestination.copy(url = "https://first.example/new-report")
+        assertTrue(reopened.prepare(replacement.owner, JsonObject(emptyMap()), null, emptyList(), replacement.association)!!.envelope.array("events").isEmpty())
+        val restarted = DiagnosticsStore(directory)
+        assertEquals(first.body, restarted.pending(firstDestination.owner)!!.body)
+        assertEquals(DiagnosticsStore.Outcome.ACKNOWLEDGED, restarted.respond(firstDestination.owner, first.id, 200))
+        assertEquals(3, restarted.eventCount())
+        assertFalse(restarted.eventsFile.readText().contains("https://"))
+    }
+
+    @Test
+    fun saturatedWriterPersistsReadyEventsWithoutLeavingAVolatileBacklog() {
+        val directory = temporary.newFolder()
+        val store = DiagnosticsStore(directory)
+        val journal = DiagnosticsOwnership(
+            { store },
+            Executor { throw java.util.concurrent.RejectedExecutionException() },
+            { DiagnosticsProfile(7, null) },
+            { null },
+        )
+        journal.preferencesReady()
+        journal.record("core_ready", emptyMap())
+        journal.reportFound("oom_report", "oom-1")
+        journal.reportFound("oom_report", "oom-1")
+
+        assertEquals(2, DiagnosticsStore(directory).eventCount())
+        assertTrue(store.unsentDiscoveries(firstDestination.owner).isEmpty())
+    }
+
+    @Test
+    fun existingDiscoveryWithoutObservationMetadataDoesNotCreateAnotherEvent() {
+        val directory = temporary.newFolder()
+        val store = DiagnosticsStore(directory)
+        store.record(firstDestination.owner, DiagnosticsProjection.event("crash_report", emptyMap()))
+        store.discover(firstDestination.owner, "crash_report", "legacy-crash")
+        val reopened = DiagnosticsStore(directory)
+        val journal = DiagnosticsOwnership(
+            { reopened },
+            Executor { it.run() },
+            { firstProfile },
+            { firstDestination },
+        )
+        journal.preferencesReady()
+        journal.reportFound("crash_report", "legacy-crash")
+
+        assertEquals(1, reopened.eventCount())
+        assertEquals(setOf(DiagnosticsStore.crashKey("crash_report", "legacy-crash")), reopened.unsentDiscoveries(firstDestination.owner))
     }
 }

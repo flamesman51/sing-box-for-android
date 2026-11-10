@@ -168,4 +168,17 @@ class DiagnosticsProjectionTest {
         assertTrue(safe.toString().contains("smart.go:78"))
         assertEquals(safe, DiagnosticsProjection.sanitizeSmart(safe))
     }
+
+    @Test
+    fun redactsUncompressedIpv4EmbeddedIpv6InEverySmartTag() {
+        val address = "2001:db8:1:2:3:4:192.0.2.10"
+        val raw = Json.parseToJsonElement(
+            """{"group":"$address","selected":{"tcp":"$address","standby":"$address"},"members":[{"tag":"$address"}]}""",
+        ).jsonObject
+        val projected = DiagnosticsProjection.smartGroup(raw)
+        for (key in listOf("group", "primary", "standby")) assertEquals(JsonPrimitive("<ip>"), projected[key])
+        assertEquals(JsonPrimitive("<ip>"), (projected["members"] as JsonArray).single().jsonObject["tag"])
+        assertFalse(projected.toString().contains("2001:db8"))
+        assertFalse(projected.toString().contains("192.0.2.10"))
+    }
 }

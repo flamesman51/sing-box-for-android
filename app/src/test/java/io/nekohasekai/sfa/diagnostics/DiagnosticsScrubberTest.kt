@@ -18,7 +18,7 @@ class DiagnosticsScrubberTest {
 
     @Test
     fun removesPunctuatedAndIpv4MappedAddresses() {
-        for (address in listOf("192.0.2.10", "::ffff:192.0.2.10", "2001:db8::192.0.2.10")) {
+        for (address in listOf("192.0.2.10", "::ffff:192.0.2.10", "2001:db8::192.0.2.10", "2001:db8:1:2:3:4:192.0.2.10", "2001:db8:1:2:3:4:192.0.2.10%wlan0")) {
             for (suffix in listOf(".", ",", ";", ")", "]", ":443")) {
                 val result = DiagnosticsScrubber.text("connect [$address$suffix")
                 assertFalse(result, result.contains("192.0.2.10"))

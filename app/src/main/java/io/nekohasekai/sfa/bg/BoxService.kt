@@ -38,6 +38,7 @@ import io.nekohasekai.sfa.database.ProfileManager
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.diagnostics.DiagnosticsJournal
 import io.nekohasekai.sfa.diagnostics.DiagnosticsProjection
+import io.nekohasekai.sfa.diagnostics.DiagnosticsReportDiscovery
 import io.nekohasekai.sfa.diagnostics.DiagnosticsWork
 import io.nekohasekai.sfa.ktx.hasPermission
 import io.nekohasekai.sfa.vendor.Vendor
@@ -149,8 +150,8 @@ class BoxService(private val service: Service, private val platformInterface: Pl
             }
         }
 
-    private fun startCommandServer() {
-        Libbox.promoteOOMDraft()
+    private suspend fun startCommandServer() {
+        DiagnosticsReportDiscovery.shared.afterPromotion { Libbox.promoteOOMDraft() }
         Libbox.discardPowerReportDraft()
         val commandServer = CommandServer(this, platformInterface)
         commandServer.start()

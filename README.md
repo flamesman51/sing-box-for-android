@@ -74,8 +74,14 @@ The server receiving a report can still see the connection's source address.
 
 WorkManager requests a network-constrained upload every six hours and an expedited
 one-off after a new crash/OOM report, VPN startup failure, or installed update.
-Android may delay either request. Local events are capped at 1,000 entries and
-512 KiB. Each schema-1 JSON upload is at most 768 KiB of UTF-8, including at most
+Android may delay either request. Startup scans again after core setup archives
+native crashes, and every upload refreshes crash discovery before preparing its batch.
+Local events are persisted even for local profiles or profiles without reporting
+capability, with a hashed profile/source association rather than the profile URL.
+Those records become uploadable only if that same profile with the same source later
+gains reporting capability; a different profile or source cannot claim them.
+The local journal is capped at 1,000 entries and 512 KiB.
+Each schema-1 JSON upload is at most 768 KiB of UTF-8, including at most
 five crashes and 256 KiB of events. Selector snapshots are capped at four groups,
 32 members and four recent panics per group, with 2 KiB of frames per panic; each
 snapshot remains whole. Pending queues belong to each profile destination and keep

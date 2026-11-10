@@ -68,9 +68,6 @@ internal object DiagnosticsSnapshot {
 
     suspend fun crashes(unsent: Set<String>): List<DiagnosticsCrash> {
         if (unsent.isEmpty()) return emptyList()
-        CrashReportManager.refresh()
-        OOMReportManager.refresh()
-        PowerReportManager.refresh()
         val candidates = buildList {
             CrashReportManager.reports.value.forEach { add(Candidate("crash_report", it.id, it.date.time, it.directory)) }
             OOMReportManager.reports.value.forEach { add(Candidate("oom_report", it.id, it.date.time, it.directory)) }

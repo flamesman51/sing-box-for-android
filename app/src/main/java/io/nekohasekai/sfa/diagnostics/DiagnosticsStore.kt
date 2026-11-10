@@ -41,6 +41,7 @@ internal class DiagnosticsStore(private val directory: File) {
     }
 
     enum class Outcome { ACKNOWLEDGED, DISCARDED, SPLIT, RETRY }
+    enum class Observation { RECORDED, KNOWN, OTHER_ASSOCIATION }
     val eventsFile = File(directory, "events.jsonl")
     private val stateFile = File(directory, "pending.json")
 
@@ -105,11 +106,51 @@ internal class DiagnosticsStore(private val directory: File) {
 
     fun record(owner: String?, event: JsonObject) = synchronized(lock) {
         if (owner == null) return@synchronized
-        val entry = buildJsonObject {
-            put("id", UUID.randomUUID().toString())
-            put("owner", owner)
-            put("event", DiagnosticsProjection.sanitizeEvent(event))
+        append(
+            buildJsonObject {
+                put("id", UUID.randomUUID().toString())
+                put("owner", owner)
+                put("event", DiagnosticsProjection.sanitizeEvent(event))
+            },
+        )
+    }
+
+    fun observe(association: String, owner: String, kind: String, id: String, event: JsonObject): Observation = synchronized(lock) {
+        val current = state()
+        val observations = current.array("observations")
+        val key = crashKey(kind, id)
+        observations.mapNotNull { it as? JsonObject }.firstOrNull { it.string("key") == key }?.let {
+            return@synchronized if (it.string("association") == association) Observation.KNOWN else Observation.OTHER_ASSOCIATION
         }
+        current.array("discoveries").mapNotNull { it as? JsonObject }.firstOrNull { it.string("key") == key }?.let {
+            return@synchronized if (it.string("owner") == owner) Observation.KNOWN else Observation.OTHER_ASSOCIATION
+        }
+        // Recover the association if the event was synced before its observation state.
+        val existing = events().firstOrNull { it.string("id") == "discovery:$key" }
+        val captured = existing?.string("association") ?: association
+        if (existing == null) {
+            append(
+                buildJsonObject {
+                    put("id", "discovery:$key")
+                    put("owner", owner)
+                    put("association", association)
+                    put("event", DiagnosticsProjection.sanitizeEvent(event))
+                },
+            )
+        }
+        val observation = buildJsonObject {
+            put("key", key)
+            put("association", captured)
+        }
+        save(JsonObject(current + ("observations" to JsonArray((observations + observation).takeLast(1000)))))
+        when {
+            captured != association -> Observation.OTHER_ASSOCIATION
+            existing != null -> Observation.KNOWN
+            else -> Observation.RECORDED
+        }
+    }
+
+    private fun append(entry: JsonObject) {
         val line = entry.toString() + "\n"
         val bytes = line.toByteArray(Charsets.UTF_8)
         require(bytes.size <= 8 * 1024)
@@ -167,13 +208,22 @@ internal class DiagnosticsStore(private val directory: File) {
         queue(owner).firstOrNull()
     }
 
-    fun prepare(owner: String, app: JsonObject, smart: JsonObject?, crashes: List<DiagnosticsCrash>): DiagnosticsBatch? = synchronized(lock) {
+    fun prepare(owner: String, app: JsonObject, smart: JsonObject?, crashes: List<DiagnosticsCrash>, association: String? = null): DiagnosticsBatch? = synchronized(lock) {
         state()
         queue(owner).firstOrNull()?.let { return it }
+        val journal = events()
+        val associated = if (association == null) {
+            journal
+        } else {
+            journal.map { entry ->
+                if (entry.string("owner") == "local:$association") JsonObject(entry + ("owner" to JsonPrimitive(owner))) else entry
+            }
+        }
+        if (associated != journal) atomic(eventsFile, associated.joinToString("\n", postfix = "\n"))
         val selectedEvents = mutableListOf<JsonObject>()
         val eventIds = mutableListOf<String>()
         var eventBytes = 2
-        for (entry in events()) {
+        for (entry in associated) {
             if (entry.string("owner") != owner) continue
             val event = entry.obj("event") ?: continue
             val size = event.toString().toByteArray(Charsets.UTF_8).size + if (selectedEvents.isEmpty()) 0 else 1

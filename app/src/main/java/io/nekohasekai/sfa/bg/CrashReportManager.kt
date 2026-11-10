@@ -94,11 +94,12 @@ object CrashReportManager {
         }
     }
 
-    suspend fun refresh() = withContext(Dispatchers.IO) {
+    suspend fun refresh(reportFound: (String, String) -> Unit = DiagnosticsJournal::reportFound) = withContext(Dispatchers.IO) {
+        if (!::workingDir.isInitialized) return@withContext
         val reports = scanCrashReports()
         _reports.value = reports
         _unreadCount.value = reports.count { !it.isRead }
-        reports.forEach { DiagnosticsJournal.reportFound("crash_report", it.id) }
+        reports.forEach { reportFound("crash_report", it.id) }
     }
 
     private fun archivePendingJvmCrashReport() {

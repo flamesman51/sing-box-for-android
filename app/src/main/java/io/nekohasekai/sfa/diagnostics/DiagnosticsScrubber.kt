@@ -19,7 +19,8 @@ object DiagnosticsScrubber {
         var result = url.replace(value.take(64 * 1024), "<url>")
         result = ipv6.replace(result) {
             val address = it.value.substringBefore('%')
-            if ("::" in address || address.count { character -> character == ':' } == 7) {
+            val colons = address.count { character -> character == ':' }
+            if ("::" in address || colons == 7 || (colons == 6 && ipv4.containsMatchIn(address))) {
                 "<ip>" + it.value.takeLastWhile { character -> character == '.' }
             } else {
                 it.value

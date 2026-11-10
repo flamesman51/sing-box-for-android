@@ -15,11 +15,17 @@ import java.util.concurrent.Executor
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
+internal fun diagnosticsAssociation(profileId: Long, source: String?): String = DiagnosticsStore.digest("$profileId\n${source?.let { "remote\n$it" } ?: "local"}")
+
 internal data class DiagnosticsDestination(val profileId: Long, val source: String, val url: String) {
     val owner: String get() = DiagnosticsStore.digest("$profileId\n$source\n$url")
+    val association: String = diagnosticsAssociation(profileId, source)
 }
 
-internal data class DiagnosticsProfile(val id: Long, val source: String?)
+internal data class DiagnosticsProfile(val id: Long, val source: String?) {
+    val association: String = diagnosticsAssociation(id, source)
+    val localOwner: String get() = "local:$association"
+}
 
 internal class DiagnosticsOwnership(
     private val store: () -> DiagnosticsStore,
@@ -32,6 +38,7 @@ internal class DiagnosticsOwnership(
     private data class Deferred(
         val event: JsonObject,
         var profile: DiagnosticsProfile?,
+        var associated: Boolean = profile != null,
         val reportKind: String? = null,
         val reportId: String? = null,
     )
@@ -50,7 +57,7 @@ internal class DiagnosticsOwnership(
     fun record(kind: String, detail: Map<String, Any?>, profile: DiagnosticsProfile? = null) {
         val event = DiagnosticsProjection.event(kind, detail)
         synchronized(lock) {
-            defer(Deferred(event, profile ?: if (ready) selectedProfile() else null))
+            defer(Deferred(event, profile ?: if (ready) selectedProfile() else null, associated = profile != null || ready))
         }
     }
 
@@ -60,7 +67,7 @@ internal class DiagnosticsOwnership(
         synchronized(lock) {
             val profile = if (ready) selectedProfile() else null
             if (deferred.none { it.reportKind == kind && it.reportId == id }) {
-                defer(Deferred(event, profile, kind, id))
+                defer(Deferred(event, profile, associated = ready, reportKind = kind, reportId = id))
             } else {
                 drain()
             }
@@ -68,7 +75,7 @@ internal class DiagnosticsOwnership(
     }
 
     private fun defer(entry: Deferred) {
-        if (deferred.size == 256) deferred.removeFirst()
+        if (!ready && deferred.size == 256) deferred.removeFirst()
         deferred.addLast(entry)
         drain()
     }
@@ -78,28 +85,41 @@ internal class DiagnosticsOwnership(
         val entries = deferred.iterator()
         while (entries.hasNext()) {
             val entry = entries.next()
-            val profile = entry.profile ?: selectedProfile()?.also { entry.profile = it } ?: continue
-            val target = destination(profile)?.takeIf {
-                it.profileId == profile.id && it.source == profile.source
-            } ?: continue
-            val owner = target.owner
-            try {
-                writer.execute {
-                    try {
-                        val storage = store()
-                        if (entry.reportKind == null || storage.discover(owner, entry.reportKind, requireNotNull(entry.reportId))) {
-                            storage.record(owner, entry.event)
-                            recorded(entry.event)
-                            entry.reportKind?.let(discovered)
-                        }
-                    } catch (_: Throwable) {
-                        // Diagnostics must never affect the tunnel or its crash handler.
-                    }
-                }
-                entries.remove()
-            } catch (_: Throwable) {
-                // A full writer queue leaves the projected entry available for retry.
+            if (!entry.associated) {
+                entry.profile = selectedProfile()
+                entry.associated = true
             }
+            val profile = entry.profile ?: DiagnosticsProfile(-1L, null)
+            val target = destination(profile)?.takeIf {
+                profile.source != null && it.profileId == profile.id && it.source == profile.source
+            }
+            val owner = target?.owner ?: profile.localOwner
+            val write = Runnable {
+                try {
+                    val storage = store()
+                    if (entry.reportKind == null) {
+                        storage.record(owner, entry.event)
+                        recorded(entry.event)
+                    } else {
+                        val observation = storage.observe(profile.association, owner, entry.reportKind, requireNotNull(entry.reportId), entry.event)
+                        if (observation == DiagnosticsStore.Observation.RECORDED) recorded(entry.event)
+                        if (observation != DiagnosticsStore.Observation.OTHER_ASSOCIATION && target != null &&
+                            storage.discover(owner, entry.reportKind, entry.reportId)
+                        ) {
+                            discovered(entry.reportKind)
+                        }
+                    }
+                } catch (_: Throwable) {
+                    // Diagnostics must never affect the tunnel or its crash handler.
+                }
+            }
+            try {
+                writer.execute(write)
+            } catch (_: java.util.concurrent.RejectedExecutionException) {
+                // A saturated writer must not turn ready events into a volatile backlog.
+                write.run()
+            }
+            entries.remove()
         }
     }
 }
