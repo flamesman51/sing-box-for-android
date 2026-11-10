@@ -8,13 +8,21 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
@@ -72,24 +81,49 @@ fun ServerUpdateBanner() {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     val pending = snapshot.pending ?: return
-    Surface(color = MaterialTheme.colorScheme.primaryContainer) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                stringResource(
-                    if (snapshot.isReady()) R.string.server_update_ready_title else R.string.server_update_pending_notice,
-                    pending.versionName,
-                ),
-                style = MaterialTheme.typography.bodyMedium,
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+    ) {
+        Column {
+            ListItem(
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                leadingContent = {
+                    Icon(Icons.Outlined.SystemUpdate, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                },
+                headlineContent = {
+                    Text(
+                        stringResource(if (snapshot.isReady()) R.string.server_update_ready_heading else R.string.server_update_available_title),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                },
+                supportingContent = {
+                    Text(
+                        stringResource(R.string.server_update_version, pending.versionName),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
             )
-            ServerUpdateAction(snapshot)
             if (degraded) {
-                Text(stringResource(R.string.server_update_notifications_degraded), style = MaterialTheme.typography.bodySmall)
-                TextButton(onClick = { context.startActivity(ServerUpdateNotifier.notificationSettingsIntent(context)) }) {
-                    Text(stringResource(R.string.server_update_notification_settings))
+                Text(
+                    stringResource(R.string.server_update_notifications_degraded),
+                    modifier = Modifier.padding(start = 56.dp, end = 16.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                if (degraded) {
+                    TextButton(onClick = { context.startActivity(ServerUpdateNotifier.notificationSettingsIntent(context)) }) {
+                        Text(stringResource(R.string.server_update_notification_settings))
+                    }
                 }
+                ServerUpdateAction(snapshot)
             }
         }
     }
@@ -177,7 +211,7 @@ fun ServerUpdateAvailableDialog(onDismiss: () -> Unit) {
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.server_update_reminder_title)) },
+        title = { Text(stringResource(if (snapshot.isReady()) R.string.server_update_ready_heading else R.string.server_update_available_title)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -185,7 +219,11 @@ fun ServerUpdateAvailableDialog(onDismiss: () -> Unit) {
             ) {
                 Text(
                     stringResource(
-                        if (snapshot.isReady()) R.string.server_update_ready_title else R.string.server_update_pending_notice,
+                        when {
+                            snapshot.isReady() -> R.string.server_update_ready_body
+                            Settings.autoUpdateEnabled -> R.string.server_update_pending_auto_body
+                            else -> R.string.server_update_pending_manual_body
+                        },
                         pending.versionName,
                     ),
                 )
@@ -194,7 +232,7 @@ fun ServerUpdateAvailableDialog(onDismiss: () -> Unit) {
         },
         confirmButton = { ServerUpdateAction(snapshot, onDismiss) },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.server_update_later)) }
         },
     )
 }

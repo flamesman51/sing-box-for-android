@@ -305,8 +305,14 @@
     <string name="server_update_download_now">Скачать сейчас</string>
     <string name="server_update_ready_title">Обновление %1$s готово</string>
     <string name="server_update_ready_notice">Обновление готово — нажмите, чтобы установить</string>
-    <string name="server_update_pending_notice">Требуется обновление %1$s. Оно загрузится автоматически в разрешённой сети, либо вы можете скачать его сейчас.</string>
-    <string name="server_update_notifications_degraded">Уведомления об обновлениях заблокированы или имеют важность ниже высокой. Включите их, чтобы не пропускать обновления.</string>
+    <string name="server_update_ready_heading">Обновление готово</string>
+    <string name="server_update_available_title">Доступно обновление</string>
+    <string name="server_update_version">Версия %1$s</string>
+    <string name="server_update_ready_body">Версия %1$s готова к установке.</string>
+    <string name="server_update_pending_auto_body">Версия %1$s скачается автоматически в безлимитной сети или через 48 часов в любой сети. Можно скачать её и сейчас.</string>
+    <string name="server_update_pending_manual_body">Автоматическое скачивание выключено. Версию %1$s можно скачать сейчас.</string>
+    <string name="server_update_later">Позже</string>
+    <string name="server_update_notifications_degraded">Уведомления об обновлениях заблокированы или без звука. Проверьте настройки уведомлений.</string>
     <string name="server_update_notification_settings">Настройки уведомлений</string>
     <string name="server_update_reminder_title">Требуется обновление приложения</string>
     <string name="server_update_confirm_title">Подтвердите обновление приложения</string>

@@ -297,8 +297,14 @@
     <string name="server_update_download_now">Download now</string>
     <string name="server_update_ready_title">Update %1$s is ready</string>
     <string name="server_update_ready_notice">Update ready — tap to install</string>
-    <string name="server_update_pending_notice">Update %1$s is required. It will download automatically on an allowed network, or you can download it now.</string>
-    <string name="server_update_notifications_degraded">Update notifications are blocked or set below high importance. Enable them so you do not miss updates.</string>
+    <string name="server_update_ready_heading">Update ready</string>
+    <string name="server_update_available_title">Update available</string>
+    <string name="server_update_version">Version %1$s</string>
+    <string name="server_update_ready_body">Version %1$s is ready to install.</string>
+    <string name="server_update_pending_auto_body">Version %1$s downloads automatically on an unmetered network, or on any network after 48 hours. You can also download it now.</string>
+    <string name="server_update_pending_manual_body">Automatic downloads are off. You can download version %1$s now.</string>
+    <string name="server_update_later">Later</string>
+    <string name="server_update_notifications_degraded">Update alerts are blocked or silent. Review notification settings.</string>
     <string name="server_update_notification_settings">Notification settings</string>
     <string name="server_update_reminder_title">App update required</string>
     <string name="server_update_confirm_title">Confirm app update</string>
