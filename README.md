@@ -80,7 +80,8 @@ when importing into this fork. Only one VPN app can be active in an Android user
   select a built-in profile or Classic, or edit a custom ranking and limits.
   Built-in values come from the linked core. Without a stored override, the custom
   editor waits for running status and starts from the first Smart group's effective
-  policy, warning when groups differ. Unavailable status falls back to Phone.
+  policy, warning when groups differ. Pausing the app preserves that wait; only
+  unavailable status falls back to Phone.
   Custom policies support a lossless JSON editor and accessible criterion reordering.
   Saving does not reload the VPN: the existing reload action applies the change,
   and running hashes distinguish pending settings from applied settings. The override

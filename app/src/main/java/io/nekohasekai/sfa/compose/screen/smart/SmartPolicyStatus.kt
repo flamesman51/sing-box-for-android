@@ -64,6 +64,23 @@ fun SmartLocalProfileRoute(navController: NavController, content: @Composable ()
     }
 }
 
+internal suspend fun runSmartPolicySession(
+    onUnavailable: () -> Unit,
+    disconnect: suspend () -> Unit,
+    poll: suspend () -> Unit,
+) {
+    try {
+        poll()
+    } catch (error: CancellationException) {
+        // Lifecycle cancellation preserves the snapshot while the connection is being closed.
+        throw error
+    } catch (_: Exception) {
+        onUnavailable()
+    } finally {
+        disconnect()
+    }
+}
+
 /** Keeps reconciliation alive across screens until a complete status snapshot is available. */
 @Composable
 fun SmartPolicyStatusProvider(serviceStatus: Status, content: @Composable () -> Unit) {
@@ -129,7 +146,13 @@ fun SmartPolicyStatusProvider(serviceStatus: Status, content: @Composable () -> 
                     }
                 }
                 var connection: CommandClient? = null
-                try {
+                runSmartPolicySession(
+                    onUnavailable = { snapshot = SmartPolicySnapshot() },
+                    disconnect = {
+                        active = false
+                        withContext(NonCancellable + Dispatchers.IO) { runCatching { connection?.disconnect() } }
+                    },
+                ) {
                     // Subscribe after identifying the instance, so reloads cannot reuse an old group list.
                     val sessionInstance = withContext(Dispatchers.IO) { CommandTarget.standaloneClient().startedAt }
                     val options = CommandClientOptions().apply { addCommand(Libbox.CommandGroup) }
@@ -162,14 +185,6 @@ fun SmartPolicyStatusProvider(serviceStatus: Status, content: @Composable () -> 
                         }
                         delay(2000)
                     }
-                } catch (error: CancellationException) {
-                    throw error
-                } catch (_: Exception) {
-                    snapshot = SmartPolicySnapshot()
-                } finally {
-                    active = false
-                    snapshot = SmartPolicySnapshot()
-                    withContext(NonCancellable + Dispatchers.IO) { runCatching { connection?.disconnect() } }
                 }
                 delay(2000)
             }
