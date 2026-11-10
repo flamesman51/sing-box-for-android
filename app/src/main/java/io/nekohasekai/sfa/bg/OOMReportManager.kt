@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
-import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -43,7 +42,7 @@ object OOMReportManager {
     private const val READ_MARKER_FILE_NAME = ".read"
     private const val OOM_REPORTS_DIR_NAME = "oom_reports"
 
-    private val timestampFormat = SimpleDateFormat("yyyy-MM-dd'T'HH-mm-ss", Locale.US).apply {
+    private fun timestampFormat() = SimpleDateFormat("yyyy-MM-dd'T'HH-mm-ss", Locale.US).apply {
         timeZone = TimeZone.getTimeZone("UTC")
     }
 
@@ -71,13 +70,15 @@ object OOMReportManager {
         if (!reportsDir.isDirectory) return emptyList()
         val directories = reportsDir.listFiles { file -> file.isDirectory } ?: return emptyList()
         return directories.mapNotNull { dir ->
-            val date = parseTimestamp(dir.name) ?: return@mapNotNull null
-            OOMReport(
-                id = dir.name,
-                date = date,
-                directory = dir,
-                isRead = File(dir, READ_MARKER_FILE_NAME).exists(),
-            )
+            runCatching {
+                val date = parseTimestamp(dir.name) ?: return@runCatching null
+                OOMReport(
+                    id = dir.name,
+                    date = date,
+                    directory = dir,
+                    isRead = File(dir, READ_MARKER_FILE_NAME).exists(),
+                )
+            }.getOrNull()
         }.sortedByDescending { it.date }
     }
 
@@ -171,10 +172,6 @@ object OOMReportManager {
         } else {
             name
         }
-        return try {
-            timestampFormat.parse(baseName)
-        } catch (_: ParseException) {
-            null
-        }
+        return timestampFormat().parse(baseName)
     }
 }

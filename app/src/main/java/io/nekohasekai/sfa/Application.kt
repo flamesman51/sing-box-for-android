@@ -22,6 +22,7 @@ import io.nekohasekai.sfa.bg.UpdateProfileWork
 import io.nekohasekai.sfa.compose.screen.tools.TaildropFiles
 import io.nekohasekai.sfa.constant.Bugs
 import io.nekohasekai.sfa.database.Settings
+import io.nekohasekai.sfa.diagnostics.DiagnosticsInstalledVersion
 import io.nekohasekai.sfa.diagnostics.DiagnosticsJournal
 import io.nekohasekai.sfa.diagnostics.DiagnosticsProjection
 import io.nekohasekai.sfa.diagnostics.DiagnosticsReportDiscovery
@@ -45,9 +46,7 @@ import io.nekohasekai.sfa.Application as BoxApplication
 class Application : Application() {
     val coreReady = CompletableDeferred<Unit>()
 
-    @Volatile
-    var previousVersionCode: Int? = null
-        private set
+    internal val installedVersion = DiagnosticsInstalledVersion()
 
     override fun attachBaseContext(base: Context?) {
         super.attachBaseContext(base)
@@ -61,9 +60,7 @@ class Application : Application() {
             @Suppress("OPT_IN_USAGE")
             GlobalScope.launch(Dispatchers.IO) {
                 runCatching {
-                    val preferences = getSharedPreferences("diagnostics-lifecycle", Context.MODE_PRIVATE)
-                    previousVersionCode = preferences.getInt("installed_version", -1).takeIf { it >= 0 }
-                    preferences.edit().putInt("installed_version", BuildConfig.VERSION_CODE).apply()
+                    installedVersion.load({ getSharedPreferences("diagnostics-lifecycle", Context.MODE_PRIVATE) }, BuildConfig.VERSION_CODE)
                 }
             }
         }

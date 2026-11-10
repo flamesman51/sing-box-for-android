@@ -36,12 +36,12 @@ class BootReceiver : BroadcastReceiver() {
                 val packageReplaced = intent.action == Intent.ACTION_MY_PACKAGE_REPLACED
                 if (packageReplaced) {
                     runCatching {
-                        DiagnosticsJournal.record(
-                            "update_installed",
-                            mapOf("from" to Application.application.previousVersionCode, "to" to BuildConfig.VERSION_CODE),
-                        )
+                        val record = DiagnosticsJournal.captureRecord("update_installed")
+                        Application.application.installedVersion.recordUpdate(GlobalScope, BuildConfig.VERSION_CODE) { detail ->
+                            runCatching { record(detail) }
+                            runCatching { DiagnosticsWork.enqueue(context) }
+                        }
                     }
-                    runCatching { DiagnosticsWork.enqueue(context) }
                 }
                 val hasUnreadCrashes = if (!packageReplaced && Settings.shouldRun) {
                     CrashReportManager.refresh { _, _ -> }

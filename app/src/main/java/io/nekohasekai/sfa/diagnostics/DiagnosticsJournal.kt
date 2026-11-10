@@ -232,6 +232,11 @@ object DiagnosticsJournal {
         return uri.scheme.equals("https", true) && !uri.host.isNullOrBlank() && uri.rawUserInfo == null && uri.rawFragment == null
     }
 
+    internal fun captureRecord(kind: String): (Map<String, Any?>) -> Unit {
+        val profile = captureProfile(Settings.selectedProfile)
+        return { detail -> ownership.record(kind, detail, profile) }
+    }
+
     fun record(kind: String, detail: Map<String, Any?> = emptyMap(), profileId: Long? = null) {
         try {
             val profile = profileId?.let(::captureProfile)

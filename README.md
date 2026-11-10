@@ -77,7 +77,11 @@ one-off after a new crash/OOM report, VPN startup failure, or installed update.
 Android may delay either request. Startup schedules a best-effort background scan
 after core setup archives native crashes; diagnostics never gate VPN startup.
 Failed scans retry on the next upload, which refreshes discovery before preparing
-its batch.
+its batch. Report timestamps use independent formatters so background discovery
+cannot corrupt the boot crash-safety scan. Installed-version preferences use a
+background synchronous commit, never a lifecycle-drained `apply()` write.
+The installed-update event waits for that version result independently of VPN
+recovery, retaining the profile/source captured when the receiver ran.
 Local events are persisted even for local profiles or profiles without reporting
 capability, with a hashed profile/source association rather than the profile URL.
 Those records become uploadable only if that same profile with the same source later

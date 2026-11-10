@@ -12,7 +12,6 @@ import org.json.JSONObject
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
-import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -48,7 +47,7 @@ object CrashReportManager {
     private const val PENDING_JVM_CRASH_FILE_NAME = "CrashReport-JVM.log"
     private const val PENDING_JVM_METADATA_FILE_NAME = "CrashReport-JVM-metadata.json"
 
-    private val timestampFormat = SimpleDateFormat("yyyy-MM-dd'T'HH-mm-ss", Locale.US).apply {
+    private fun timestampFormat() = SimpleDateFormat("yyyy-MM-dd'T'HH-mm-ss", Locale.US).apply {
         timeZone = TimeZone.getTimeZone("UTC")
     }
 
@@ -137,13 +136,15 @@ object CrashReportManager {
         if (!crashReportsDir.isDirectory) return emptyList()
         val directories = crashReportsDir.listFiles { file -> file.isDirectory } ?: return emptyList()
         return directories.mapNotNull { dir ->
-            val date = parseTimestamp(dir.name) ?: return@mapNotNull null
-            CrashReport(
-                id = dir.name,
-                date = date,
-                directory = dir,
-                isRead = File(dir, READ_MARKER_FILE_NAME).exists(),
-            )
+            runCatching {
+                val date = parseTimestamp(dir.name) ?: return@runCatching null
+                CrashReport(
+                    id = dir.name,
+                    date = date,
+                    directory = dir,
+                    isRead = File(dir, READ_MARKER_FILE_NAME).exists(),
+                )
+            }.getOrNull()
         }.sortedByDescending { it.date }
     }
 
@@ -225,7 +226,7 @@ object CrashReportManager {
 
     private fun nextAvailableReportDir(date: Date): File {
         val crashReportsDir = File(workingDir, CRASH_REPORTS_DIR_NAME)
-        val baseName = timestampFormat.format(date)
+        val baseName = timestampFormat().format(date)
         var index = 0
         while (true) {
             val suffix = if (index == 0) "" else "-$index"
@@ -242,11 +243,7 @@ object CrashReportManager {
         } else {
             name
         }
-        return try {
-            timestampFormat.parse(baseName)
-        } catch (_: ParseException) {
-            null
-        }
+        return timestampFormat().parse(baseName)
     }
 
     private fun formatTimestampISO8601(date: Date): String {

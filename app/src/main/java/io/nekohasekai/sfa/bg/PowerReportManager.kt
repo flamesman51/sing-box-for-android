@@ -10,7 +10,6 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
 import java.io.RandomAccessFile
-import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -48,7 +47,7 @@ object PowerReportManager {
     private const val POWER_REPORTS_DIR_NAME = "power_reports"
     private const val CONTENT_TAIL_LIMIT = 512L * 1024L
 
-    private val timestampFormat = SimpleDateFormat("yyyy-MM-dd'T'HH-mm-ss", Locale.US).apply {
+    private fun timestampFormat() = SimpleDateFormat("yyyy-MM-dd'T'HH-mm-ss", Locale.US).apply {
         timeZone = TimeZone.getTimeZone("UTC")
     }
 
@@ -76,13 +75,15 @@ object PowerReportManager {
         if (!reportsDir.isDirectory) return emptyList()
         val directories = reportsDir.listFiles { file -> file.isDirectory } ?: return emptyList()
         return directories.mapNotNull { dir ->
-            val date = parseTimestamp(dir.name) ?: return@mapNotNull null
-            PowerReport(
-                id = dir.name,
-                date = date,
-                directory = dir,
-                isRead = File(dir, READ_MARKER_FILE_NAME).exists(),
-            )
+            runCatching {
+                val date = parseTimestamp(dir.name) ?: return@runCatching null
+                PowerReport(
+                    id = dir.name,
+                    date = date,
+                    directory = dir,
+                    isRead = File(dir, READ_MARKER_FILE_NAME).exists(),
+                )
+            }.getOrNull()
         }.sortedByDescending { it.date }
     }
 
@@ -185,10 +186,6 @@ object PowerReportManager {
         } else {
             name
         }
-        return try {
-            timestampFormat.parse(baseName)
-        } catch (_: ParseException) {
-            null
-        }
+        return timestampFormat().parse(baseName)
     }
 }
