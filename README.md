@@ -19,10 +19,13 @@ when importing into this fork. Only one VPN app can be active in an Android user
   set. Explicit stop, VPN permission revocation, and fatal startup/configuration
   errors clear it. Android force-stop and system policy can still prevent recovery;
   configure Always-on VPN in Android Settings for system-managed continuity.
+  App replacement bypasses the boot-only unread-crash gate and explicitly requests
+  recovery, including while the screen is locked. Service starts enter the foreground
+  immediately, wait for core setup, and journal every start decision and failure.
 - Remote-profile mutations reconfigure WorkManager, including imports, interval-only
-  edits, and deletion. WorkManager is inexact. “Last updated” records a content
-  change, not an unchanged download; the last successful check controls update
-  cadence. Background update errors are retained and shown in the profile editor.
+  edits, and deletion. WorkManager is inexact. “Last updated” records the last
+  successful check, including an unchanged download, and controls update cadence.
+  Background update errors are retained and shown in the profile editor.
 - Family-server updates are the default. A successful HTTPS remote-profile fetch
   discovers `X-SFA-Smart-Update` against the final HTTPS response URL and pins the
   first accepted origin. Other origins cannot replace that pin. Settings → Updates
@@ -43,6 +46,37 @@ when importing into this fork. Only one VPN app can be active in an Android user
 - The GitHub self-updater remains selectable and uses
   [`flamesman51/sing-box-for-android` releases](https://github.com/flamesman51/sing-box-for-android/releases),
   the `other` arm64 APK, and `SFA-version-metadata.json`.
+
+## Diagnostics and privacy
+
+**Settings → App → Send diagnostics to the profile server** is on by default.
+Turn it off to cancel scheduled uploads; the bounded local journal remains available.
+Diagnostics are sent only for the currently selected remote profile, and only after
+an accepted profile fetch returns the exact header `X-SFA-Smart-Report: 1` from a
+final HTTPS response. The destination is that final response URL, stored separately
+for each profile. A successful HTTP fetch without that exact header or with a
+non-HTTPS final response clears its capability, even if configuration validation
+then fails. A change to the profile URL or profile deletion also clears it.
+Changing the URL back does not restore it; another accepted fetch must opt in.
+Imported configurations cannot
+enable reporting without a qualifying fetch. Report uploads use HTTPS and never
+follow redirects. The profile URL is a credential: it is used for transport, never
+included in a report.
+
+Reports contain app/core versions, Android SDK and device model, scrubbed VPN and
+update events, selector health/selection/throughput/budgets, and bounded scrubbed
+crash metadata and stack frames. They never contain configuration files, private
+keys, raw log tails, browsing or connection destinations, DNS names, Wi-Fi names,
+BSSIDs, or network identifiers. The server receiving a report can still see the
+connection's source address.
+
+WorkManager requests a network-constrained upload every six hours and an expedited
+one-off after a new crash/OOM report, VPN startup failure, or installed update.
+Android may delay either request. Local events are capped at 1,000 entries and
+512 KiB. Each schema-1 JSON upload is at most 768 KiB of UTF-8, including at most
+five crashes and 256 KiB of events. Pending batches keep their report ID across
+retries; successful uploads acknowledge only their own records. A server's 413
+response splits a batch instead of discarding it; transient failures back off.
 
 ## Smart selector
 

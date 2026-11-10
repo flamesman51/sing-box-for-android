@@ -7,6 +7,14 @@ import org.junit.Test
 
 class ServiceStartPolicyTest {
     @Test
+    fun packageReplacementRestoresRequestedVpnDespiteUnreadCrashes() {
+        assertEquals(ReceiverStartDecision.Start, ServiceStartPolicy.receiverDecision(true, true, true))
+        assertEquals(ReceiverStartDecision.UnreadCrashReports, ServiceStartPolicy.receiverDecision(false, true, true))
+        assertEquals(ReceiverStartDecision.Start, ServiceStartPolicy.receiverDecision(false, true, false))
+        assertEquals(ReceiverStartDecision.NotRequested, ServiceStartPolicy.receiverDecision(true, false, true))
+    }
+
+    @Test
     fun startReasonDecisionTable() {
         val cases =
             listOf(

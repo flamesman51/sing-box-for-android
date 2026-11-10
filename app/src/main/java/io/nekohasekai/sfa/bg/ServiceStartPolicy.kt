@@ -13,7 +13,19 @@ internal enum class ServiceStopReason {
     FatalConfiguration,
 }
 
+internal enum class ReceiverStartDecision {
+    Start,
+    NotRequested,
+    UnreadCrashReports,
+}
+
 internal object ServiceStartPolicy {
+    fun receiverDecision(packageReplaced: Boolean, persistedShouldRun: Boolean, hasUnreadCrashes: Boolean): ReceiverStartDecision = when {
+        !persistedShouldRun -> ReceiverStartDecision.NotRequested
+        !packageReplaced && hasUnreadCrashes -> ReceiverStartDecision.UnreadCrashReports
+        else -> ReceiverStartDecision.Start
+    }
+
     fun shouldRun(reason: ServiceStartReason, persistedShouldRun: Boolean): Boolean = when (reason) {
         ServiceStartReason.User, ServiceStartReason.AlwaysOn -> true
         ServiceStartReason.StickyRestart, ServiceStartReason.Boot -> persistedShouldRun
