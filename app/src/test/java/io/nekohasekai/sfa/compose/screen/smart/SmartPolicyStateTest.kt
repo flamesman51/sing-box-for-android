@@ -4,6 +4,7 @@ import io.nekohasekai.sfa.constant.Status
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -34,8 +35,8 @@ class SmartPolicyStateTest {
         assertEquals(SmartPolicyApplyState.Pending, state(Status.Started, listOf(applied, mismatch)))
         assertEquals(SmartPolicyApplyState.Pending, state(Status.Started, listOf(mismatch, applied)))
         assertEquals(SmartPolicyApplyState.Pending, state(Status.Started, listOf(applied, group(null))))
-        assertEquals(SmartPolicyApplyState.Applied, smartPolicyApplyState(Status.Started, "", listOf(group(""), group(null))))
-        assertEquals(SmartPolicyApplyState.Pending, smartPolicyApplyState(Status.Started, "", listOf(group("nonempty"))))
+        assertEquals(SmartPolicyApplyState.Applied, smartPolicyApplyState(Status.Started, "", listOf(group(""), group(null)), remote = false))
+        assertEquals(SmartPolicyApplyState.Pending, smartPolicyApplyState(Status.Started, "", listOf(group("nonempty")), remote = false))
     }
 
     @Test
@@ -94,7 +95,30 @@ class SmartPolicyStateTest {
         assertTrue(tracker.shouldNotify(3, Status.Started, "abc", snapshot))
     }
 
-    private fun state(status: Status, snapshot: List<SmartStatus>?) = smartPolicyApplyState(status, "abc", snapshot)
+    @Test
+    fun remoteTargetPollsAndExposesSnapshotWithoutLocalApplyState() {
+        val snapshot = SmartPolicySnapshot(listOf(group("remote-hash")))
+        for (status in Status.entries) {
+            assertTrue(smartPolicyStatusEnabled(status, remote = true))
+            val remote = smartPolicySnapshotForTarget(status, remote = true, snapshot)
+            assertEquals(snapshot, remote)
+            assertNull(smartPolicyApplyState(status, "local-policy", remote.groups, remote = true))
+        }
+    }
+
+    @Test
+    fun localTargetOnlyPollsAndExposesSnapshotWhenStarted() {
+        val snapshot = SmartPolicySnapshot(listOf(group("")))
+        for (status in Status.entries) {
+            assertEquals(status == Status.Started, smartPolicyStatusEnabled(status, remote = false))
+            assertEquals(
+                if (status == Status.Started) snapshot else SmartPolicySnapshot(),
+                smartPolicySnapshotForTarget(status, remote = false, snapshot),
+            )
+        }
+    }
+
+    private fun state(status: Status, snapshot: List<SmartStatus>?) = smartPolicyApplyState(status, "abc", snapshot, remote = false)
 
     private fun group(hash: String?): SmartStatus {
         val fixture = requireNotNull(javaClass.getResourceAsStream("/smart/status.json"))

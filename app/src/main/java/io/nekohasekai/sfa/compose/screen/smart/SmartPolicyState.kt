@@ -11,6 +11,20 @@ internal enum class SmartPolicyApplyState {
     NotUsed,
 }
 
+internal data class SmartPolicySnapshot(
+    val groups: List<SmartStatus>? = null,
+    val loading: Boolean = false,
+)
+
+internal fun smartPolicyStatusEnabled(serviceStatus: Status, remote: Boolean): Boolean =
+    remote || serviceStatus == Status.Started
+
+internal fun smartPolicySnapshotForTarget(
+    serviceStatus: Status,
+    remote: Boolean,
+    snapshot: SmartPolicySnapshot,
+): SmartPolicySnapshot = if (smartPolicyStatusEnabled(serviceStatus, remote)) snapshot else SmartPolicySnapshot()
+
 internal fun smartPolicyHash(value: String): String = if (value.isEmpty()) {
     ""
 } else {
@@ -29,7 +43,9 @@ internal fun smartPolicyApplyState(
     serviceStatus: Status,
     storedPolicy: String,
     snapshot: List<SmartStatus>?,
-): SmartPolicyApplyState = when {
+    remote: Boolean,
+): SmartPolicyApplyState? = when {
+    remote -> null
     serviceStatus == Status.Stopped -> SmartPolicyApplyState.NextStart
     serviceStatus != Status.Started || snapshot == null -> SmartPolicyApplyState.Unknown
     snapshot.isEmpty() -> SmartPolicyApplyState.NotUsed
@@ -60,7 +76,7 @@ internal class SmartPolicyReconcileTracker {
     ): Boolean {
         useInstance(serviceInstance)
         if (serviceStatus != Status.Started || storedPolicy in determinedPolicies) return false
-        val state = smartPolicyApplyState(serviceStatus, storedPolicy, snapshot)
+        val state = smartPolicyApplyState(serviceStatus, storedPolicy, snapshot, remote = false)
         if (state == SmartPolicyApplyState.Unknown) return false
         determinedPolicies.add(storedPolicy)
         return state == SmartPolicyApplyState.Pending

@@ -78,12 +78,15 @@ when importing into this fork. Only one VPN app can be active in an Android user
   the `other` arm64 APK, and `SFA-version-metadata.json`.
 - **Settings → Smart → Selection profile** can keep the configuration's own policy,
   select a built-in profile or Classic, or edit a custom ranking and limits.
-  Built-in values come from the linked core. Custom policies support a lossless
-  JSON editor and accessible criterion reordering. Saving does not reload the VPN:
-  the existing reload action applies the change, and running hashes distinguish
-  pending settings from applied settings. The override affects every local Smart
-  group, not other outbound types. Remote-control mode shows running profiles
-  read-only; local overrides are never compared with remote status.
+  Built-in values come from the linked core. Without a stored override, the custom
+  editor waits for running status and starts from the first Smart group's effective
+  policy, warning when groups differ. Unavailable status falls back to Phone.
+  Custom policies support a lossless JSON editor and accessible criterion reordering.
+  Saving does not reload the VPN: the existing reload action applies the change,
+  and running hashes distinguish pending settings from applied settings. The override
+  affects every local Smart group, not other outbound types. Remote-control mode
+  shows running profiles read-only even when the local VPN is stopped; local
+  overrides are never compared with remote status.
 
 ## Diagnostics and privacy
 

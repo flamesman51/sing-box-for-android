@@ -110,23 +110,11 @@ fun SmartCustomProfileScreen(navController: NavController, serviceStatus: Status
     LaunchedEffect(catalog, snapshot, serviceStatus) {
         if (initialized || catalog == null) return@LaunchedEffect
         runCatching {
-            val initial = when {
-                stored.isNotEmpty() && smartPolicyIsCustom(stored) -> stored
-                stored.isNotEmpty() -> catalog.first { it.name == smartPolicyBase(stored) }.policy.toString()
-                else -> {
-                    val first = snapshot?.firstOrNull()
-                    val effective = first?.preference?.resolved
-                    if (effective != null) {
-                        if (snapshot.orEmpty().any { it.preference?.resolved != effective }) warningGroup = first?.group
-                        effective.toString()
-                    } else {
-                        catalog.first { it.name == "phone" }.policy.toString()
-                    }
-                }
-            }
-            SmartEditorPolicy(initial)
-            source = initial
-            initialSource = initial
+            val initial = smartProfileInitialValues(stored, catalog, snapshot) ?: return@LaunchedEffect
+            SmartEditorPolicy(initial.source)
+            source = initial.source
+            initialSource = initial.source
+            warningGroup = initial.warningGroup
             initialized = true
         }.onFailure { failure = it.message ?: it.toString() }
     }

@@ -39,15 +39,15 @@ import kotlinx.coroutines.withContext
 
 private data class SmartPolicyRuntime(
     val stored: String = "",
-    val snapshot: List<SmartStatus>? = null,
+    val snapshot: SmartPolicySnapshot = SmartPolicySnapshot(),
 )
 
 private val LocalSmartPolicyRuntime = compositionLocalOf { SmartPolicyRuntime() }
 private val smartPolicyReconciler = SmartPolicyReconcileTracker()
 
 @Composable
-internal fun rememberSmartPolicySnapshot(serviceStatus: Status): List<SmartStatus>? =
-    LocalSmartPolicyRuntime.current.snapshot.takeIf { serviceStatus == Status.Started }
+internal fun rememberSmartPolicySnapshot(serviceStatus: Status): SmartPolicySnapshot =
+    smartPolicySnapshotForTarget(serviceStatus, smartPolicyIsRemote(), LocalSmartPolicyRuntime.current.snapshot)
 
 @Composable
 internal fun smartStoredPolicy(): String = LocalSmartPolicyRuntime.current.stored
@@ -72,7 +72,9 @@ fun SmartPolicyStatusProvider(serviceStatus: Status, content: @Composable () -> 
     val remoteServer by RemoteControlManager.remoteServer.collectAsState()
     val notifyApplyChange = rememberApplyServiceChangeNotifier(serviceStatus)
     var stored by remember { mutableStateOf(Settings.smartPolicy) }
-    var snapshot by remember(serviceStatus, remoteServer) { mutableStateOf<List<SmartStatus>?>(null) }
+    var snapshot by remember(serviceStatus, remoteServer) {
+        mutableStateOf(SmartPolicySnapshot(loading = smartPolicyStatusEnabled(serviceStatus, remoteServer != null)))
+    }
     var instance by remember(serviceStatus, remoteServer) { mutableStateOf<Long?>(null) }
     val savedPolicies = remember(serviceStatus, remoteServer) { mutableSetOf<String>() }
     DisposableEffect(serviceStatus, remoteServer) {
@@ -94,8 +96,8 @@ fun SmartPolicyStatusProvider(serviceStatus: Status, content: @Composable () -> 
     }
     LaunchedEffect(lifecycle, serviceStatus, remoteServer) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            snapshot = null
-            if (serviceStatus != Status.Started) awaitCancellation()
+            snapshot = SmartPolicySnapshot(loading = smartPolicyStatusEnabled(serviceStatus, remoteServer != null))
+            if (!smartPolicyStatusEnabled(serviceStatus, remoteServer != null)) awaitCancellation()
             val sessionScope = this
             while (isActive) {
                 var tags: List<String>? = null
@@ -113,7 +115,7 @@ fun SmartPolicyStatusProvider(serviceStatus: Status, content: @Composable () -> 
                         }
                         sessionScope.launch {
                             if (!active) return@launch
-                            if (tags != next) snapshot = null
+                            if (tags != next) snapshot = SmartPolicySnapshot(loading = true)
                             tags = next
                         }
                     }
@@ -122,7 +124,7 @@ fun SmartPolicyStatusProvider(serviceStatus: Status, content: @Composable () -> 
                             if (!active) return@launch
                             connected = false
                             tags = null
-                            snapshot = null
+                            snapshot = SmartPolicySnapshot()
                         }
                     }
                 }
@@ -149,12 +151,12 @@ fun SmartPolicyStatusProvider(serviceStatus: Status, content: @Composable () -> 
                                 }
                                 if (currentTags == tags) {
                                     instance = result.first
-                                    snapshot = result.second
+                                    snapshot = SmartPolicySnapshot(result.second)
                                 }
                             } catch (error: CancellationException) {
                                 throw error
                             } catch (_: Exception) {
-                                snapshot = null
+                                snapshot = SmartPolicySnapshot()
                                 connected = false
                             }
                         }
@@ -163,10 +165,10 @@ fun SmartPolicyStatusProvider(serviceStatus: Status, content: @Composable () -> 
                 } catch (error: CancellationException) {
                     throw error
                 } catch (_: Exception) {
-                    snapshot = null
+                    snapshot = SmartPolicySnapshot()
                 } finally {
                     active = false
-                    snapshot = null
+                    snapshot = SmartPolicySnapshot()
                     withContext(NonCancellable + Dispatchers.IO) { runCatching { connection?.disconnect() } }
                 }
                 delay(2000)
@@ -177,7 +179,7 @@ fun SmartPolicyStatusProvider(serviceStatus: Status, content: @Composable () -> 
         instance?.takeIf { remoteServer == null }?.let {
             savedPolicies.forEach { policy -> smartPolicyReconciler.markSaved(it, policy) }
             savedPolicies.clear()
-            if (smartPolicyReconciler.shouldNotify(it, serviceStatus, stored, snapshot)) {
+            if (smartPolicyReconciler.shouldNotify(it, serviceStatus, stored, snapshot.groups)) {
                 notifyApplyChange(UiEvent.ApplyServiceChange.Mode.Reload)
             }
         }

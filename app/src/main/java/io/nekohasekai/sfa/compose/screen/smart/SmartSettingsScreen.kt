@@ -77,7 +77,7 @@ fun SmartSettingsScreen(navController: NavController, serviceStatus: Status) {
     val policy = smartStoredPolicy()
     val policySnapshot = rememberSmartPolicySnapshot(serviceStatus)
     val remotePolicy = smartPolicyIsRemote()
-    val policyState = if (remotePolicy) null else smartPolicyApplyState(serviceStatus, policy, policySnapshot)
+    val policyState = smartPolicyApplyState(serviceStatus, policy, policySnapshot.groups, remotePolicy)
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         country = SmartSettings.countryOverride
         if (country.isEmpty()) SmartPlatform.systemCountryCode()
@@ -113,7 +113,7 @@ fun SmartSettingsScreen(navController: NavController, serviceStatus: Status) {
                 headlineContent = { Text(stringResource(R.string.smart_selection_profile), style = MaterialTheme.typography.bodyLarge) },
                 supportingContent = {
                     Text(
-                        smartProfileSupportingText(policy, policySnapshot, policyState, remotePolicy),
+                        smartProfileSupportingText(policy, policySnapshot.groups, policyState, remotePolicy),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp),

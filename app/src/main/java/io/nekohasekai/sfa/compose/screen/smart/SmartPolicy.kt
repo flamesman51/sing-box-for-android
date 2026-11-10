@@ -68,3 +68,27 @@ internal fun smartPolicyBase(value: String): String {
     val preference = Json.parseToJsonElement(value).jsonObject["preference"] as? JsonObject
     return (preference?.get("profile") as? JsonPrimitive)?.content ?: "default"
 }
+
+internal data class SmartProfileInitialValues(val source: String, val warningGroup: String? = null)
+
+internal fun smartProfileInitialValues(
+    stored: String,
+    catalog: List<SmartProfileEntry>,
+    snapshot: SmartPolicySnapshot,
+): SmartProfileInitialValues? {
+    if (stored.isNotEmpty()) {
+        val source = if (smartPolicyIsCustom(stored)) stored else catalog.first { it.name == smartPolicyBase(stored) }.policy.toString()
+        return SmartProfileInitialValues(source)
+    }
+    if (snapshot.loading) return null
+    val first = snapshot.groups?.firstOrNull()
+    val effective = first?.preference?.resolved
+    return if (effective != null) {
+        SmartProfileInitialValues(
+            effective.toString(),
+            first.group.takeIf { snapshot.groups.orEmpty().any { it.preference?.resolved != effective } },
+        )
+    } else {
+        SmartProfileInitialValues(catalog.first { it.name == "phone" }.policy.toString())
+    }
+}
