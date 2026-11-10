@@ -6,6 +6,7 @@ import android.telephony.TelephonyManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -232,7 +233,10 @@ fun SmartInsightsScreen(navController: NavController, group: String, serviceStat
         )
     }
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(LocalScaffoldPadding.current),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(LocalScaffoldPadding.current),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
     ) {

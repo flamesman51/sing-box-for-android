@@ -14,13 +14,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Hub
+import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.NetworkCheck
 import androidx.compose.material.icons.outlined.Route
@@ -128,13 +128,6 @@ fun ToolsScreen(
             .padding(scaffoldPadding)
             .padding(top = 8.dp, bottom = if (showStatusBar) STATUS_BAR_CONTENT_PADDING else 8.dp),
     ) {
-        Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.smart_insights)) },
-                leadingContent = { Icon(Icons.Default.Insights, contentDescription = null) },
-                modifier = Modifier.clickable { navController.navigate(smartInsightsRoute()) },
-            )
-        }
         val tailscaleEndpoints = tailscaleState.endpoints
         val openConnectEndpoints = openConnectState.endpoints
         val openVPNEndpoints = openVPNState.endpoints
@@ -420,8 +413,26 @@ fun ToolsScreen(
                     )
                 },
                 modifier = Modifier
-                    .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
                     .clickable { navController.navigate("tools/stun_test") },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+            )
+            ListItem(
+                headlineContent = {
+                    Text(
+                        stringResource(R.string.smart_insights),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                },
+                leadingContent = {
+                    Icon(
+                        imageVector = Icons.Outlined.Insights,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                },
+                modifier = Modifier
+                    .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                    .clickable { navController.navigate(smartInsightsRoute()) },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
         }

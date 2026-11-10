@@ -250,7 +250,11 @@ class MainActivity :
                 }
             }
 
-            handleIntent(intent)
+            // A recreated activity, or a task relaunched from Recents/after process death, still carries
+            // its original launch intent; acting on it again re-offers imports and re-opens links.
+            if (savedInstanceState == null && (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) == 0) {
+                handleIntent(intent)
+            }
 
             setContent {
                 Theme {
@@ -1407,8 +1411,11 @@ class MainActivity :
                     GroupsCard(
                         serviceStatus = currentServiceStatus,
                         onSmartInsights = { tag ->
-                            showGroupsSheet = false
-                            navController.navigate(smartInsightsRoute(tag))
+                            // Let the sheet slide away first; removing it mid-frame makes the push look broken.
+                            scope.launch { groupsSheetState.hide() }.invokeOnCompletion {
+                                showGroupsSheet = false
+                                navController.navigate(smartInsightsRoute(tag))
+                            }
                         },
                         commandClient = dashboardViewModel.commandClient,
                         viewModel = groupsViewModel,
