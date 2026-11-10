@@ -7,19 +7,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
@@ -27,7 +22,6 @@ import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -84,8 +78,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
-import java.text.DateFormat
-import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -287,13 +279,13 @@ fun SmartInsightsScreen(navController: NavController, group: String, serviceStat
             },
         )
     }
+    val scaffoldPadding = LocalScaffoldPadding.current
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(LocalScaffoldPadding.current),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
+        contentPadding = PaddingValues(
+            top = scaffoldPadding.calculateTopPadding() + 8.dp,
+            bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
+        ),
     ) {
         item {
             if (busy || (status == null && pollingError == null)) CircularProgressIndicator()
@@ -301,67 +293,23 @@ fun SmartInsightsScreen(navController: NavController, group: String, serviceStat
             notice?.let { Text(stringResource(it)) }
         }
         status?.let { snapshot ->
-            item {
-                SmartPanel(snapshot.group) {
-                    Text(stringResource(R.string.smart_state, smartLabel(snapshot.state)))
-                    snapshot.availabilityNotice()?.let { SmartAvailabilityNoticeText(it) }
-                    Text(stringResource(R.string.smart_selected, snapshot.selected.tcp ?: "—", snapshot.selected.standby ?: "—"))
-                    Text(stringResource(R.string.smart_udp_selected, snapshot.selected.udp ?: "—", smartLabel(snapshot.selected.udp443.mode), snapshot.selected.udp443.member ?: "—"))
-                    if (snapshot.selected.udp443.reason.isNotEmpty()) Text(snapshot.selected.udp443.reason)
-                    Text(stringResource(R.string.smart_generation, snapshot.generation.toString(), smartTime(snapshot.now)))
-                }
+            val history = networks?.networks.orEmpty()
+            item { SmartInsightsStatusCard(snapshot) }
+            item { SmartInsightsHeader(R.string.smart_servers) }
+            item { SmartInsightsServersCard(snapshot) }
+            item { SmartInsightsHeader(R.string.smart_details) }
+            item { SmartInsightsDetailsCard(snapshot) }
+            item { SmartInsightsHeader(R.string.smart_networks) }
+            if (history.isEmpty()) {
+                item { SmartInsightsEmpty(R.string.smart_history_empty) }
+            } else {
+                item { SmartInsightsNetworksCard(history) }
             }
-            item {
-                SmartPanel(stringResource(R.string.smart_network)) {
-                    Text(listOfNotNull(snapshot.network.label, smartLabel(snapshot.network.type), snapshot.network.carrier, snapshot.network.radio, snapshot.network.country).joinToString(" · "))
-                    Text(snapshot.network.key, style = MaterialTheme.typography.bodySmall)
-                    Text(stringResource(R.string.smart_direct, smartLabel(snapshot.direct.state), smartNumber(snapshot.direct.rttMs), smartNumber(snapshot.direct.downloadMbps)))
-                    Text(stringResource(R.string.smart_checked, smartTime(snapshot.direct.checkedAt)))
-                }
-            }
-            item {
-                SmartPanel(stringResource(R.string.smart_budget)) {
-                    val budget = snapshot.budget
-                    Text("${smartLabel(budget.networkType)} · ${budget.day}")
-                    Text(stringResource(R.string.smart_budget_values, smartNumber(budget.usedMb), smartNumber(budget.reservedMb), smartNumber(budget.limitMb)))
-                    Text(stringResource(if (budget.activeTests) R.string.smart_active_tests_on else R.string.smart_active_tests_off))
-                }
-            }
-            item { Text(stringResource(R.string.smart_members), style = MaterialTheme.typography.titleMedium) }
-            items(snapshot.members, key = { "member:${it.tag}" }) { member -> SmartMemberCard(member) }
-            item { Text(stringResource(R.string.smart_history), style = MaterialTheme.typography.titleMedium) }
-            if (networks?.networks.isNullOrEmpty()) item { Text(stringResource(R.string.smart_history_empty)) }
-            networks?.networks?.forEach { network ->
-                item(key = "network:${network.key}") {
-                    SmartPanel(network.label ?: network.key) {
-                        Text(listOfNotNull(smartLabel(network.type), network.carrier, network.radio).joinToString(" · "))
-                        if (network.label != null) Text(network.key, style = MaterialTheme.typography.bodySmall)
-                        Text(stringResource(R.string.smart_last_seen, smartTime(network.lastSeen), smartNumber(network.weight)))
-                        network.members.forEach { member ->
-                            Text(stringResource(R.string.smart_network_member, member.tag, smartNumber(member.stability?.times(100)), smartNumber(member.weight), smartNumber(member.rttMs), smartNumber(member.downloadMbps)))
-                        }
-                    }
-                }
-            }
-            item { Text(stringResource(R.string.smart_timeline), style = MaterialTheme.typography.titleMedium) }
-            item { Text(stringResource(R.string.smart_timeline_description)) }
-            snapshot.timeline.members.forEach { (tag, buckets) ->
-                item(key = "timeline:$tag") {
-                    SmartPanel(tag) {
-                        Text("${smartTime(snapshot.timeline.start)} – ${smartTime(snapshot.timeline.start + snapshot.timeline.bucketSeconds * buckets.size)}")
-                        TimelineChart(buckets.map { it.getOrNull(0)?.times(100) }, stringResource(R.string.smart_success_chart), 100.0)
-                        TimelineChart(buckets.map { it.getOrNull(1) }, stringResource(R.string.smart_rtt_chart))
-                        TimelineChart(buckets.map { it.getOrNull(2) }, stringResource(R.string.smart_speed_chart))
-                    }
-                }
-            }
-            item { Text(stringResource(R.string.smart_events), style = MaterialTheme.typography.titleMedium) }
-            if (snapshot.events.isEmpty()) item { Text(stringResource(R.string.smart_events_empty)) }
-            items(snapshot.events) { event ->
-                SmartPanel("${smartTime(event.time)} · ${smartLabel(event.kind)}") {
-                    Text(listOfNotNull(event.from, event.to, event.network).joinToString(" · "))
-                    if (event.reason.isNotEmpty()) Text(event.reason)
-                }
+            item { SmartInsightsHeader(R.string.smart_events) }
+            if (snapshot.events.isEmpty()) {
+                item { SmartInsightsEmpty(R.string.smart_events_empty) }
+            } else {
+                item { SmartInsightsEventsCard(snapshot.events, history) }
             }
         }
     }
@@ -462,16 +410,6 @@ fun SmartInsightsScreen(navController: NavController, group: String, serviceStat
 }
 
 @Composable
-private fun SmartPanel(title: String, content: @Composable () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            content()
-        }
-    }
-}
-
-@Composable
 internal fun SmartAvailabilityNoticeText(notice: SmartAvailabilityNotice, modifier: Modifier = Modifier) {
     Text(
         text = stringResource(
@@ -487,32 +425,7 @@ internal fun SmartAvailabilityNoticeText(notice: SmartAvailabilityNotice, modifi
 }
 
 @Composable
-private fun SmartMemberCard(member: SmartMember) {
-    SmartPanel("${member.rank}. ${member.tag}") {
-        Text(stringResource(R.string.smart_member_state, member.tier.toString(), member.country ?: "—", smartLabel(member.state), member.probation.toString()))
-        Text(stringResource(R.string.smart_quarantine, smartTime(member.quarantineUntil)))
-        Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-            listOf(
-                "TCP" to smartLabel(member.tcp),
-                "UDP" to smartLabel(member.udp),
-                "UDP/443" to smartLabel(member.udp443),
-            ).forEach { (title, value) ->
-                Column(modifier = Modifier.width(110.dp)) {
-                    Text(title)
-                    Text(value)
-                }
-            }
-        }
-        Text(stringResource(R.string.smart_member_latency, smartNumber(member.rttMs), smartNumber(member.rttP90Ms)))
-        Text(stringResource(R.string.smart_member_stability, smartNumber(member.stability?.times(100)), member.stabilityClass ?: "—", smartNumber(member.weight)))
-        Text(stringResource(R.string.smart_member_speed, smartNumber(member.downloadMbps), smartNumber(member.uploadMbps), member.throughputClass.toString(), member.throughputSource?.let { smartLabel(it) } ?: "—"))
-        Text(stringResource(R.string.smart_checked, smartTime(member.throughputAt)))
-        Text(stringResource(R.string.smart_member_last, smartTime(member.lastOk), smartTime(member.lastFail)))
-    }
-}
-
-@Composable
-private fun TimelineChart(values: List<Double?>, label: String, fixedMax: Double? = null) {
+internal fun TimelineChart(values: List<Double?>, label: String, fixedMax: Double? = null) {
     val maximum = fixedMax ?: (values.maxOfOrNull { it?.takeIf(Double::isFinite) ?: 0.0 } ?: 1.0).coerceAtLeast(1.0)
     val color = MaterialTheme.colorScheme.primary
     val axis = MaterialTheme.colorScheme.outlineVariant
@@ -560,10 +473,6 @@ private fun SmartConfirmDialog(title: String, message: String, enabled: Boolean 
 
 private fun smartNumber(value: Double?): String = value?.let { String.format(Locale.getDefault(), "%.2f", it) } ?: "—"
 
-private fun smartTime(seconds: Long?): String = seconds?.takeIf { it > 0 }?.let {
-    DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(it * 1000))
-} ?: "—"
-
 private fun smartErrorResource(error: Exception): Int {
     val message = error.message.orEmpty()
     return when {
@@ -580,39 +489,6 @@ private fun smartErrorResource(error: Exception): Int {
 @Composable
 private fun smartLabel(value: String): String {
     val resource = when (value) {
-        "starting" -> R.string.smart_starting
-        "ok" -> R.string.smart_ok
-        "degraded" -> R.string.smart_degraded
-        "all_dead" -> R.string.smart_all_dead
-        "offline" -> R.string.smart_offline
-        "paused" -> R.string.smart_paused
-        "healthy" -> R.string.smart_healthy
-        "suspect" -> R.string.smart_suspect
-        "emergency" -> R.string.smart_emergency
-        "quarantined" -> R.string.smart_quarantined
-        "probation" -> R.string.smart_probation
-        "failed" -> R.string.smart_failed
-        "unknown" -> R.string.smart_unknown
-        "wifi" -> R.string.smart_wifi
-        "cellular" -> R.string.smart_cellular
-        "ethernet" -> R.string.smart_ethernet
-        "other" -> R.string.smart_other
-        "primary" -> R.string.smart_primary
-        "member" -> R.string.smart_member
-        "reject" -> R.string.smart_reject
-        "off" -> R.string.smart_off
-        "active" -> R.string.smart_active
-        "passive" -> R.string.smart_passive
-        "failover" -> R.string.smart_failover
-        "switch" -> R.string.smart_switch
-        "tier_restore" -> R.string.smart_tier_restore
-        "quarantine" -> R.string.smart_quarantine_event
-        "recover" -> R.string.smart_recover
-        "online" -> R.string.smart_online
-        "network_change" -> R.string.smart_network_change
-        "speedtest" -> R.string.smart_speedtest
-        "import" -> R.string.smart_import
-        "reset" -> R.string.smart_reset
         "foreign_redacted_key" -> R.string.smart_foreign_key
         "unknown_member" -> R.string.smart_unknown_member
         "stale" -> R.string.smart_stale
