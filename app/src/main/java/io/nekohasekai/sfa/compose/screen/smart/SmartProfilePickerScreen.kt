@@ -135,6 +135,7 @@ internal fun smartProfileLabel(name: String): String = when (name) {
     "balance-speed-1440p" -> stringResource(R.string.smart_profile_balanced, "1440p")
     "balance-speed-4k" -> stringResource(R.string.smart_profile_balanced, "4K")
     "speed-max" -> stringResource(R.string.smart_profile_fastest)
+    "speed-upload" -> stringResource(R.string.smart_profile_fastest_upload)
     "responsive" -> stringResource(R.string.smart_profile_responsive)
     "realtime-calls" -> stringResource(R.string.smart_profile_calls)
     "realtime-gaming" -> stringResource(R.string.smart_profile_gaming)
@@ -156,7 +157,7 @@ internal fun smartRunningProfileLabel(preference: SmartPreference?): String {
 internal fun smartProfileSection(name: String): Int? = when {
     name.startsWith("stability-") -> R.string.smart_profile_section_stability
     name.startsWith("balance-speed-") -> R.string.smart_profile_section_video
-    name == "speed-max" || name == "responsive" -> R.string.smart_profile_section_speed
+    name == "speed-max" || name == "speed-upload" || name == "responsive" -> R.string.smart_profile_section_speed
     name.startsWith("realtime-") -> R.string.smart_profile_section_realtime
     name == "data-saver" -> R.string.smart_profile_section_saving
     name == "phone" || name == "desktop" || name == "server" -> R.string.smart_profile_section_devices
@@ -169,6 +170,7 @@ private fun smartProfileDescription(profile: SmartProfileEntry): String = when (
     "stability-downtime" -> stringResource(R.string.smart_profile_always_online_description)
     "stability-connections" -> stringResource(R.string.smart_profile_connections_description)
     "speed-max" -> stringResource(R.string.smart_profile_fastest_description)
+    "speed-upload" -> stringResource(R.string.smart_profile_fastest_upload_description)
     "responsive" -> stringResource(R.string.smart_profile_responsive_description)
     "realtime-calls" -> stringResource(R.string.smart_profile_calls_description)
     "realtime-gaming" -> stringResource(R.string.smart_profile_gaming_description)

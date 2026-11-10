@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.os.ConfigurationCompat
 import io.nekohasekai.sfa.R
+import java.text.NumberFormat
 import java.util.Locale
 
 @Composable
@@ -231,7 +232,7 @@ internal fun SmartInsightsServersCard(status: SmartStatus) {
             }
             InsightsRow(
                 headline = displayTag(member.tag).first,
-                supporting = joinParts(addresses[member.tag], role, stringResource(smartMemberLabel(member.state)), integerText(member.rttMs, R.string.smart_rtt_value), numberText(member.downloadMbps, R.string.smart_speed_value)),
+                supporting = joinParts(addresses[member.tag], role, stringResource(smartMemberLabel(member.state)), integerText(member.rttMs, R.string.smart_rtt_value), numberText(member.download.displayValue(), R.string.smart_speed_value)),
                 modifier = Modifier
                     .rowCorners(index == 0, index == members.lastIndex && !isExpanded)
                     .clickable(onClickLabel = clickLabel) { expanded = HashMap(expanded).apply { put(member.tag, !isExpanded) } }
@@ -247,7 +248,7 @@ internal fun SmartInsightsServersCard(status: SmartStatus) {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(member.tag, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    MemberValues(member)
+                    MemberValues(member, status)
                     MemberCharts(status.timeline.members[member.tag].orEmpty())
                 }
             }
@@ -256,7 +257,7 @@ internal fun SmartInsightsServersCard(status: SmartStatus) {
 }
 
 @Composable
-private fun MemberValues(member: SmartMember) {
+private fun MemberValues(member: SmartMember, status: SmartStatus) {
     val locale = appLocale()
     val stabilityPattern = stringResource(R.string.smart_stability_value)
     val stability = member.stability?.takeIf(Double::isFinite)?.let {
@@ -270,15 +271,44 @@ private fun MemberValues(member: SmartMember) {
     } else {
         joinParts(String.format(locale, "%d", member.throughputClass), speedSource, speedTime)
     }
+    val download = member.download.displayValue()?.let { value ->
+        member.download.displayP10()?.let { p10 ->
+            stringResource(R.string.smart_download_p10_value, value, p10)
+        } ?: numberText(value, R.string.smart_speed_value)
+    }
+    val upload = if (member.isUploadUnverified(status.uploadVerified)) {
+        stringResource(R.string.smart_upload_unverified)
+    } else {
+        numberText(member.uploadValue(status.uploadVerified), R.string.smart_speed_value)
+    }
+    val legacy = status.preference?.engine == "legacy"
+    val floor = member.effectiveFloorState()?.takeUnless { legacy }?.let {
+        val time = smartTimeText(it.at)
+        val target = NumberFormat.getNumberInstance(locale).apply {
+            isGroupingUsed = false
+            maximumFractionDigits = 340
+        }.format(it.target)
+        time?.let { timeText ->
+            stringResource(if (it.kind == "revoked") R.string.smart_slowdown_revoked else R.string.smart_slowdown_proven, target, timeText)
+        }
+    }
+    val underLoad = member.legacyEpisodeObservation(status.preference?.engine)?.let {
+        smartTimeText(it.at)?.let { time -> stringResource(R.string.smart_under_load_value, requireNotNull(it.value), time) }
+    }
     val values = listOf(
         R.string.smart_tcp to stringResource(smartEvidenceLabel(member.tcp)),
         R.string.smart_udp to stringResource(smartEvidenceLabel(member.udp)),
         R.string.smart_quic to stringResource(smartEvidenceLabel(member.udp443)),
+        R.string.smart_round_trip to integerText(member.udpRttMs.knownMeasurement(), R.string.smart_rtt_value),
+        R.string.smart_jitter to integerText(member.jitterMs.knownMeasurement(), R.string.smart_rtt_value),
         R.string.smart_latency to integerText(member.rttMs, R.string.smart_rtt_value),
         R.string.smart_latency_p90 to integerText(member.rttP90Ms, R.string.smart_rtt_value),
         R.string.smart_stability to stability,
-        R.string.smart_download to numberText(member.downloadMbps, R.string.smart_speed_value),
-        R.string.smart_upload to numberText(member.uploadMbps, R.string.smart_speed_value),
+        R.string.smart_download to download,
+        R.string.smart_upload to upload,
+        R.string.smart_observed_during_use to numberText(member.observedDownloadValue(), R.string.smart_speed_value),
+        R.string.smart_slowdown_check to floor,
+        R.string.smart_under_load to underLoad,
         R.string.smart_speed_class to speedClass,
         R.string.smart_tier to String.format(locale, "%d", member.tier),
         R.string.smart_country to member.country?.takeIf(String::isNotBlank),

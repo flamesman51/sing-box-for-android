@@ -26,6 +26,7 @@ data class SmartStatus(
     val events: List<SmartEvent>,
     val timeline: SmartTimeline,
     val preference: SmartPreference? = null,
+    @SerialName("upload_verified") val uploadVerified: Boolean? = null,
 )
 
 @Serializable
@@ -104,8 +105,14 @@ data class SmartMember(
     val stability: Double?,
     @SerialName("stability_class") val stabilityClass: String?,
     val weight: Double,
-    @SerialName("download_mbps") val downloadMbps: Double?,
-    @SerialName("upload_mbps") val uploadMbps: Double?,
+    val download: SmartDirectionMeasurement? = null,
+    val upload: SmartDirectionMeasurement? = null,
+    @SerialName("upload_status") val uploadStatus: String? = null,
+    @SerialName("udp_rtt_ms") val udpRttMs: Double? = null,
+    @SerialName("jitter_ms") val jitterMs: Double? = null,
+    @SerialName("observed_peak_down") val observedPeakDown: Double? = null,
+    @SerialName("floor_state") val floorState: SmartFloorState? = null,
+    @SerialName("legacy_episode_obs") val legacyEpisodeObs: SmartLegacyEpisodeObservation? = null,
     @SerialName("throughput_class") val throughputClass: Int,
     @SerialName("throughput_source") val throughputSource: String?,
     @SerialName("throughput_at") val throughputAt: Long?,
@@ -113,6 +120,64 @@ data class SmartMember(
     @SerialName("last_fail") val lastFail: Long?,
     val rank: Int,
 )
+
+@Serializable
+data class SmartDirectionMeasurement(
+    val value: Double? = null,
+    val p10: Double? = null,
+    val mean: Double? = null,
+    @SerialName("post_min") val postMin: Double? = null,
+    val streams: Int? = null,
+    val window: Double? = null,
+    val source: String? = null,
+    val at: Long? = null,
+    val valid: Boolean? = null,
+    val fresh: Boolean? = null,
+)
+
+@Serializable
+data class SmartFloorState(
+    val kind: String? = null,
+    val target: Double? = null,
+    val at: Long? = null,
+    val value: Double? = null,
+    val effective: Boolean? = null,
+)
+
+@Serializable
+data class SmartLegacyEpisodeObservation(
+    val value: Double? = null,
+    val at: Long? = null,
+)
+
+fun Double?.knownMeasurement(): Double? = this?.takeIf { it.isFinite() && it >= 0.0 }
+
+fun SmartDirectionMeasurement?.displayValue(): Double? =
+    if (this?.valid == true && fresh == true) value.knownMeasurement() else null
+
+fun SmartDirectionMeasurement?.displayP10(): Double? =
+    if (displayValue() != null) this?.p10.knownMeasurement() else null
+
+fun SmartMember.isUploadUnverified(groupUploadVerified: Boolean?): Boolean =
+    groupUploadVerified == false || uploadStatus == "unverified"
+
+fun SmartMember.uploadValue(groupUploadVerified: Boolean?): Double? =
+    if (isUploadUnverified(groupUploadVerified)) null else upload.displayValue()
+
+fun SmartMember.observedDownloadValue(): Double? = observedPeakDown.knownMeasurement()?.takeIf { it > 0.0 }
+
+fun SmartMember.effectiveFloorState(): SmartFloorState? = floorState?.takeIf {
+    it.effective == true && (it.kind == "revoked" || it.kind == "proven") &&
+        it.target.knownMeasurement() != null && it.value.knownMeasurement() != null &&
+        it.at != null && it.at > 0L
+}
+
+fun SmartMember.legacyEpisodeObservation(engine: String?): SmartLegacyEpisodeObservation? =
+    if (engine == "legacy" && throughputSource == "under_load") {
+        legacyEpisodeObs?.takeIf { it.value.knownMeasurement() != null && it.at != null && it.at > 0L }
+    } else {
+        null
+    }
 
 @Serializable
 data class SmartEvent(

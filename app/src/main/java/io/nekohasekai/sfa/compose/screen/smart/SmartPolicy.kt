@@ -37,6 +37,7 @@ internal fun smartProfileCatalog(data: String): List<SmartProfileEntry> = Json.p
             put("throughput", buildJsonObject {
                 put("target_mbps", row.getValue("target_mbps"))
                 put("enabled", row.getValue("throughput_enabled"))
+                put("streams", row.getValue("streams"))
             })
             put("probe", buildJsonObject {
                 put("heartbeat_interval", row.getValue("heartbeat_interval"))

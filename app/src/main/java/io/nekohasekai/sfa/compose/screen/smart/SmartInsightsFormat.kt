@@ -181,7 +181,7 @@ internal fun smartQuicLabel(mode: String): Int = when (mode) {
 
 internal fun smartThroughputSourceLabel(source: String?): Int = when (source) {
     "active" -> R.string.smart_speedtest
-    "passive" -> R.string.smart_passive
+    "under_load" -> R.string.smart_source_under_load
     else -> R.string.smart_unknown
 }
 

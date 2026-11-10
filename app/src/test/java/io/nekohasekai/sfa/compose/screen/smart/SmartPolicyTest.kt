@@ -15,12 +15,12 @@ class SmartPolicyTest {
         val entries = smartProfileCatalog(
             """[
                 {"name":"future-profile","rank":["udp","latency"],"min_stability":"C",
-                 "target_mbps":17.125,"throughput_enabled":false,"heartbeat_interval":"7.5s",
+                 "target_mbps":17.125,"throughput_enabled":false,"streams":7,"heartbeat_interval":"7.5s",
                  "standby_interval":"3m2s","background_interval":"9m1s","interrupt_on_failover":false,
                  "quic_policy":"route_only","improvement":false,"dwell":"11m12s","confirmations":5,
                  "confirmation_interval":"4.25s","tier_restore":"0s","hysteresis":0.123456789,"speed_margin":1.23456789},
                 {"name":"another-profile","rank":["download"],"min_stability":"none",
-                 "target_mbps":99,"throughput_enabled":true,"heartbeat_interval":"1s",
+                 "target_mbps":99,"throughput_enabled":true,"streams":1,"heartbeat_interval":"1s",
                  "standby_interval":"2s","background_interval":"3s","interrupt_on_failover":true,
                  "quic_policy":"off","improvement":true,"dwell":"4s","confirmations":6,
                  "confirmation_interval":"5s","tier_restore":"6s","hysteresis":0,"speed_margin":2}
@@ -32,7 +32,7 @@ class SmartPolicyTest {
                 """{"preference":{"profile":"future-profile","rank":["udp","latency"],"min_stability":"C",
                     "speed_floor_hysteresis":0.123456789,"switch":{"improvement":false,"dwell":"11m12s",
                     "confirmations":5,"confirmation_interval":"4.25s","tier_restore":"0s","speed_margin":1.23456789}},
-                    "throughput":{"target_mbps":17.125,"enabled":false},
+                    "throughput":{"target_mbps":17.125,"enabled":false,"streams":7},
                     "probe":{"heartbeat_interval":"7.5s","standby_interval":"3m2s","background_interval":"9m1s"},
                     "interrupt_on_failover":false,"udp":{"quic_policy":"route_only"}}""",
             ),
@@ -70,10 +70,10 @@ class SmartPolicyTest {
     fun statusDecodesPreferenceAndStillAcceptsLegacyDocuments() {
         val fixture = requireNotNull(javaClass.getResourceAsStream("/smart/status.json"))
             .bufferedReader().use { it.readText() }
-        val legacy = SmartJson.status(fixture)
+        val document = Json.parseToJsonElement(fixture) as JsonObject
+        val legacy = SmartJson.status(JsonObject(document - "preference").toString())
         assertNull(legacy.preference)
         val resolved = Json.parseToJsonElement("""{"preference":{"profile":"phone"},"throughput":{"target_mbps":17.123456789}}""")
-        val document = Json.parseToJsonElement(fixture) as JsonObject
         val preference = Json.parseToJsonElement(
             """{"engine":"profile","base":"phone","custom":true,"source":"override","override_hash":"exact-hash","resolved":$resolved}""",
         )

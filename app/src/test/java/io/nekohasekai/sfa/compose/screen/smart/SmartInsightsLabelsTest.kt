@@ -134,10 +134,11 @@ class SmartInsightsLabelsTest {
     fun smartThroughputSourceLabelCoversEverySpecifiedValue() {
         val cases = listOf(
             "active" to R.string.smart_speedtest,
-            "passive" to R.string.smart_passive,
+            "under_load" to R.string.smart_source_under_load,
         )
         cases.forEach { (core, resource) -> assertEquals(core, resource, smartThroughputSourceLabel(core)) }
         assertEquals(R.string.smart_unknown, smartThroughputSourceLabel("unrecognized"))
+        assertEquals(R.string.smart_unknown, smartThroughputSourceLabel("passive"))
     }
 
     @Test
@@ -204,11 +205,33 @@ class SmartInsightsLabelsTest {
             Triple("smart_tcp", "TCP", "TCP"),
             Triple("smart_udp", "UDP", "UDP"),
             Triple("smart_quic", "QUIC (UDP/443)", "QUIC (UDP/443)"),
-            Triple("smart_latency", "Latency", "Задержка"),
-            Triple("smart_latency_p90", "Latency p90", "Задержка p90"),
+            Triple("smart_latency", "Check time", "Время проверки"),
+            Triple("smart_latency_p90", "Check time p90", "Время проверки p90"),
             Triple("smart_stability", "Stability", "Стабильность"),
             Triple("smart_download", "Download", "Загрузка"),
             Triple("smart_upload", "Upload", "Отдача"),
+            Triple("smart_round_trip", "Round-trip time", "Время отклика"),
+            Triple("smart_jitter", "Jitter", "Джиттер"),
+            Triple("smart_upload_unverified", "Not verified", "Не подтверждено"),
+            Triple("smart_observed_during_use", "Observed during use", "Наблюдалось при работе"),
+            Triple("smart_slowdown_check", "Slowdown check", "Проверка замедления"),
+            Triple("smart_under_load", "Under load", "Под нагрузкой"),
+            Triple("smart_slowdown_revoked", "Below %1\$s Mbit/s under load · %2\$s", "Ниже %1\$s Мбит/с под нагрузкой · %2\$s"),
+            Triple("smart_slowdown_proven", "Reached %1\$s Mbit/s under load · %2\$s", "Достиг %1\$s Мбит/с под нагрузкой · %2\$s"),
+            Triple("smart_under_load_value", "%1\$.1f Mbit/s · %2\$s", "%1\$.1f Мбит/с · %2\$s"),
+            Triple("smart_download_p10_value", "%1\$.1f Mbit/s · p10 %2\$.1f", "%1\$.1f Мбит/с · p10 %2\$.1f"),
+            Triple("smart_profile_fastest_upload", "Fastest upload", "Максимальная отдача"),
+            Triple("smart_profile_fastest_upload_description", "Highest verified upload speed", "Самая высокая подтверждённая скорость отдачи"),
+            Triple("smart_editor_upload", "Upload speed", "Скорость отдачи"),
+            Triple("smart_editor_upload_hint", "Verified upload speed", "Подтверждённая скорость отдачи"),
+            Triple("smart_editor_rtt", "Round-trip time", "Время отклика"),
+            Triple("smart_editor_rtt_hint", "Measured with UDP probes", "Измеряется UDP-пробами"),
+            Triple("smart_editor_jitter", "Jitter", "Джиттер"),
+            Triple("smart_editor_jitter_hint", "How much round-trip time varies", "Насколько меняется время отклика"),
+            Triple("smart_editor_latency", "Check time", "Время проверки"),
+            Triple("smart_editor_spread", "Check time spread", "Разброс времени проверки"),
+            Triple("smart_editor_streams", "Speed-test connections", "Соединения теста скорости"),
+            Triple("smart_editor_streams_value", "Parallel connections per speed test: %1\$d", "Параллельных соединений при тесте скорости: %1\$d"),
             Triple("smart_speed_class", "Speed class", "Класс скорости"),
             Triple("smart_tier", "Tier", "Уровень"),
             Triple("smart_weight", "Weight", "Вес"),
@@ -273,7 +296,7 @@ class SmartInsightsLabelsTest {
             Triple("smart_member", "Through %1\$s", "Через %1\$s"),
             Triple("smart_reject", "Blocked; apps may retry over TCP", "Заблокирован; приложения могут повторить подключение по TCP"),
             Triple("smart_off", "Normal UDP routing", "Обычная маршрутизация UDP"),
-            Triple("smart_passive", "Observed traffic", "По трафику"),
+            Triple("smart_source_under_load", "under load", "под нагрузкой"),
             Triple("smart_network_change", "Network changed", "Сеть изменилась"),
             Triple("smart_emergency_event", "Emergency mode", "Аварийный режим"),
             Triple("smart_speedtest", "Speed test", "Тест скорости"),

@@ -55,6 +55,7 @@ class SmartEditorPolicy(val source: String) {
 
 enum class SmartEditorNumber(val path: String, private val durationUnitNanos: Long = 0) {
     Target("throughput.target_mbps"),
+    Streams("throughput.streams"),
     Hysteresis("preference.speed_floor_hysteresis"),
     Dwell("preference.switch.dwell", 60_000_000_000),
     Confirmations("preference.switch.confirmations"),
@@ -94,7 +95,7 @@ enum class SmartEditorNumber(val path: String, private val durationUnitNanos: Lo
                 SpeedMargin -> number.movePointLeft(2).add(BigDecimal.ONE)
                 else -> number
             }
-            Json.parseToJsonElement(if (this == Confirmations) stored.stripTrailingZeros().toPlainString() else stored.toString())
+            Json.parseToJsonElement(if (this == Streams || this == Confirmations) stored.stripTrailingZeros().toPlainString() else stored.toString())
         }
         return policy.withValue(path, value)
     }

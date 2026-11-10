@@ -4,6 +4,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -21,7 +22,7 @@ class SmartEditorPolicyTest {
               "speed_margin": 1.2345678901234567890123456789
             }
           },
-          "throughput": {"target_mbps": 17.12345678901234567890123456789, "enabled": false},
+          "throughput": {"target_mbps": 17.12345678901234567890123456789, "enabled": false, "streams": 4},
           "probe": {"heartbeat_interval": "1ns", "standby_interval": "2µs", "background_interval": "24h0m0.000000001s"},
           "interrupt_on_failover": false, "udp": {"quic_policy": "route_only"}
         }
@@ -92,11 +93,50 @@ class SmartEditorPolicyTest {
     }
 
     @Test
-    fun integerConfirmationEditsUseCanonicalIntegerTokensWithoutNarrowing() {
+    fun integerCountEditsUseCanonicalIntegerTokensWithoutNarrowing() {
         val policy = SmartEditorPolicy(fullPolicy)
-        val changed = SmartEditorNumber.Confirmations.update(policy, "9007199254740993,0")
-        assertEquals("9007199254740993", changed.text("preference.switch.confirmations"))
-        assertFalse((changed.value("preference.switch.confirmations") as JsonPrimitive).isString)
+        for (field in listOf(SmartEditorNumber.Streams, SmartEditorNumber.Confirmations)) {
+            val changed = field.update(policy, "9007199254740993,0")
+            assertEquals("9007199254740993", changed.text(field.path))
+            assertFalse((changed.value(field.path) as JsonPrimitive).isString)
+            assertEquals("9007199254740993", field.display(changed))
+            assertSame(changed, field.update(changed, requireNotNull(field.display(changed))))
+            assertEquals(changed.objectValue, SmartEditorPolicy(changed.source).objectValue)
+        }
+    }
+
+    @Test
+    fun fractionalCountsRemainInvalidIntegerTokensForCoreValidation() {
+        val policy = SmartEditorPolicy(fullPolicy)
+        for (field in listOf(SmartEditorNumber.Streams, SmartEditorNumber.Confirmations)) {
+            for (input in listOf("2.5", "2,5")) {
+                val changed = field.update(policy, input)
+                assertEquals("2.5", changed.text(field.path))
+                assertFalse((changed.value(field.path) as JsonPrimitive).isString)
+                assertNull(changed.text(field.path)!!.toLongOrNull())
+            }
+        }
+    }
+
+    @Test
+    fun streamEditsPreserveOtherThroughputValuesAndPolicyFields() {
+        val policy = SmartEditorPolicy(fullPolicy)
+        val changed = SmartEditorNumber.Streams.update(policy, "8")
+        assertEquals("8", changed.text("throughput.streams"))
+        assertEquals(policy.value("throughput.target_mbps"), changed.value("throughput.target_mbps"))
+        assertEquals(policy.value("throughput.enabled"), changed.value("throughput.enabled"))
+        for ((key, value) in policy.objectValue) {
+            if (key != "throughput") assertEquals(value, changed.objectValue[key])
+        }
+    }
+
+    @Test
+    fun newMeasurementCriteriaRoundTripInTheirExplicitRankingOrder() {
+        val policy = SmartEditorPolicy(fullPolicy).withValue(
+            "preference.rank",
+            Json.parseToJsonElement("""["upload","rtt","jitter","latency","rtt_spread"]"""),
+        )
+        assertEquals(listOf("upload", "rtt", "jitter", "latency", "rtt_spread"), SmartEditorPolicy(policy.source).ranking())
     }
 
     @Test
@@ -128,6 +168,7 @@ class SmartEditorPolicyTest {
         val reloaded = SmartEditorPolicy(policy.source)
         assertEquals(Json.parseToJsonElement(fullPolicy), reloaded.objectValue)
         assertEquals("9223372036854775807", reloaded.text("preference.switch.confirmations"))
+        assertEquals("4", reloaded.text("throughput.streams"))
         assertTrue((reloaded.value("preference.switch.dwell") as JsonPrimitive).isString)
         // Core badoption.Duration.UnmarshalJSON decodes a string, not a numeric nanosecond count.
         assertEquals("1ns", reloaded.text("probe.heartbeat_interval"))
@@ -145,6 +186,7 @@ class SmartEditorPolicyTest {
         assertEquals(base.ranking(), effective.ranking())
         assertEquals(base.text("preference.switch.dwell"), effective.text("preference.switch.dwell"))
         assertEquals(base.text("throughput.enabled"), effective.text("throughput.enabled"))
+        assertEquals("4", SmartEditorNumber.Streams.display(effective))
         assertEquals(base.value("probe"), effective.value("probe"))
         assertEquals(base.objectValue.keys, effective.objectValue.keys)
         assertEquals(base.value("udp"), effective.value("udp"))
@@ -154,7 +196,7 @@ class SmartEditorPolicyTest {
     @Test
     fun expansionPreservesExplicitFalseZeroRankOrderAndFullPrecision() {
         val base = SmartEditorPolicy(fullPolicy)
-        val raw = """{"preference":{"profile":"default","rank":["udp","download"],"min_stability":"none","speed_floor_hysteresis":0,"switch":{"improvement":false,"tier_restore":"0ns","speed_margin":1.00000000000000000000000001}},"throughput":{"enabled":false},"interrupt_on_failover":false}"""
+        val raw = """{"preference":{"profile":"default","rank":["udp","download"],"min_stability":"none","speed_floor_hysteresis":0,"switch":{"improvement":false,"tier_restore":"0ns","speed_margin":1.00000000000000000000000001}},"throughput":{"enabled":false,"streams":1},"interrupt_on_failover":false}"""
         val draft = SmartEditorPolicy(raw)
         val effective = draft.withDefaults(base.objectValue)
         assertEquals(raw, draft.source)
@@ -166,6 +208,7 @@ class SmartEditorPolicyTest {
         assertEquals("0ns", effective.text("preference.switch.tier_restore"))
         assertEquals("1.00000000000000000000000001", effective.text("preference.switch.speed_margin"))
         assertEquals("false", effective.text("throughput.enabled"))
+        assertEquals("1", effective.text("throughput.streams"))
         assertEquals("false", effective.text("interrupt_on_failover"))
     }
 

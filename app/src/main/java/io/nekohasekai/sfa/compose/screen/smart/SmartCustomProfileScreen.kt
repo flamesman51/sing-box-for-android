@@ -290,6 +290,7 @@ fun SmartCustomProfileScreen(navController: NavController, serviceStatus: Status
             EditorHeader(R.string.smart_editor_limits)
             EditorCard {
                 EditorNumberRow(policy, SmartEditorNumber.Target, separator, onClick = { number = it })
+                EditorNumberRow(policy, SmartEditorNumber.Streams, separator, onClick = { number = it })
                 EditorRow(R.string.smart_editor_min_stability, editorStabilityLabel(policy.text("preference.min_stability")), onClick = { choice = "stability" })
                 EditorNumberRow(policy, SmartEditorNumber.Hysteresis, separator, onClick = { number = it })
             }
@@ -391,6 +392,9 @@ private val editorCriteria = listOf(
     EditorCriterion("udp", R.string.smart_editor_udp, R.string.smart_editor_udp_hint),
     EditorCriterion("quic", R.string.smart_editor_quic_works, R.string.smart_editor_quic_hint),
     EditorCriterion("outages", R.string.smart_editor_outages, R.string.smart_editor_outages_hint),
+    EditorCriterion("upload", R.string.smart_editor_upload, R.string.smart_editor_upload_hint),
+    EditorCriterion("rtt", R.string.smart_editor_rtt, R.string.smart_editor_rtt_hint),
+    EditorCriterion("jitter", R.string.smart_editor_jitter, R.string.smart_editor_jitter_hint),
 )
 
 @Composable
@@ -472,6 +476,7 @@ private fun editorQuicLabel(value: String?): String = when (requireNotNull(value
 
 private fun SmartEditorNumber.label(): Int = when (this) {
     SmartEditorNumber.Target -> R.string.smart_editor_target
+    SmartEditorNumber.Streams -> R.string.smart_editor_streams
     SmartEditorNumber.Hysteresis -> R.string.smart_editor_hysteresis
     SmartEditorNumber.Dwell -> R.string.smart_editor_dwell
     SmartEditorNumber.Confirmations -> R.string.smart_editor_confirmations
@@ -488,6 +493,7 @@ private fun EditorNumberRow(policy: SmartEditorPolicy, field: SmartEditorNumber,
     val value = requireNotNull(field.display(policy, separator))
     val supporting = when (field) {
         SmartEditorNumber.Target -> stringResource(R.string.smart_editor_mbps, value)
+        SmartEditorNumber.Streams -> stringResource(R.string.smart_editor_streams_value, policy.text(field.path)!!.toLong())
         SmartEditorNumber.Hysteresis -> stringResource(R.string.smart_editor_below_target, value)
         SmartEditorNumber.Dwell -> stringResource(R.string.smart_editor_minutes, value)
         SmartEditorNumber.Confirmations -> {
@@ -521,10 +527,11 @@ private fun EditorNumberDialog(policy: SmartEditorPolicy, field: SmartEditorNumb
                         SmartEditorNumber.Dwell, SmartEditorNumber.Background -> R.string.smart_editor_unit_minutes
                         SmartEditorNumber.ConfirmationInterval, SmartEditorNumber.TierRestore, SmartEditorNumber.Heartbeat, SmartEditorNumber.Standby -> R.string.smart_editor_unit_seconds
                         SmartEditorNumber.Target -> R.string.smart_editor_unit_mbps
+                        SmartEditorNumber.Streams -> R.string.smart_editor_streams
                         SmartEditorNumber.Hysteresis, SmartEditorNumber.SpeedMargin -> R.string.smart_editor_unit_percent
                         SmartEditorNumber.Confirmations -> R.string.smart_editor_confirmations
                     })) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    keyboardOptions = KeyboardOptions(keyboardType = if (field == SmartEditorNumber.Streams) KeyboardType.Number else KeyboardType.Decimal),
                     singleLine = true,
                     isError = error != null,
                     supportingText = { error?.let { Text(it) } },

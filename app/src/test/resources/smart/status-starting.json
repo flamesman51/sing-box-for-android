@@ -2,11 +2,43 @@
   "budget": {
     "network_type": "",
     "day": "",
+    "day_ends_at": "0001-01-01T00:00:00Z",
     "used_mb": 0,
     "reserved_mb": 0,
     "limit_mb": 0,
     "active_tests": false
   },
+  "budget_exhausted": false,
+  "budgets": {
+    "cellular": {
+      "network_type": "cellular",
+      "day": "2027-01-15",
+      "day_ends_at": "2027-01-16T00:00:00Z",
+      "used_mb": 0,
+      "reserved_mb": 0,
+      "limit_mb": 0,
+      "active_tests": false
+    },
+    "other": {
+      "network_type": "other",
+      "day": "2027-01-15",
+      "day_ends_at": "2027-01-16T00:00:00Z",
+      "used_mb": 0,
+      "reserved_mb": 0,
+      "limit_mb": 0,
+      "active_tests": false
+    },
+    "wifi": {
+      "network_type": "wifi",
+      "day": "2027-01-15",
+      "day_ends_at": "2027-01-16T00:00:00Z",
+      "used_mb": 0,
+      "reserved_mb": 0,
+      "limit_mb": 0,
+      "active_tests": false
+    }
+  },
+  "degraded": false,
   "direct": {
     "checked_at": null,
     "download_mbps": null,
@@ -19,9 +51,22 @@
   "members": [
     {
       "country": null,
+      "download": {
+        "at": null,
+        "fresh": false,
+        "mean": null,
+        "p10": null,
+        "source": null,
+        "streams": 0,
+        "valid": false,
+        "value": null,
+        "window": 0
+      },
       "download_mbps": null,
       "last_fail": null,
       "last_ok": 1800000000,
+      "observed_peak_down": 0,
+      "offered_up": 0,
       "probation": 0,
       "quarantine_until": null,
       "rank": 1,
@@ -38,14 +83,38 @@
       "tier": 1,
       "udp": "unknown",
       "udp443": "unknown",
+      "upload": {
+        "at": null,
+        "fresh": false,
+        "post_min": null,
+        "source": null,
+        "streams": 0,
+        "valid": false,
+        "value": null,
+        "window": 0
+      },
       "upload_mbps": null,
+      "upload_status": "unknown",
       "weight": 0
     },
     {
       "country": null,
+      "download": {
+        "at": null,
+        "fresh": false,
+        "mean": null,
+        "p10": null,
+        "source": null,
+        "streams": 0,
+        "valid": false,
+        "value": null,
+        "window": 0
+      },
       "download_mbps": null,
       "last_fail": null,
       "last_ok": 1800000000,
+      "observed_peak_down": 0,
+      "offered_up": 0,
       "probation": 0,
       "quarantine_until": null,
       "rank": 2,
@@ -62,7 +131,18 @@
       "tier": 1,
       "udp": "unknown",
       "udp443": "unknown",
+      "upload": {
+        "at": null,
+        "fresh": false,
+        "post_min": null,
+        "source": null,
+        "streams": 0,
+        "valid": false,
+        "value": null,
+        "window": 0
+      },
       "upload_mbps": null,
+      "upload_status": "unknown",
       "weight": 0
     }
   ],
@@ -75,6 +155,57 @@
     "type": "wifi"
   },
   "now": 1800000000,
+  "panics": {
+    "total": 0,
+    "recent": []
+  },
+  "preference": {
+    "base": "default",
+    "custom": false,
+    "engine": "legacy",
+    "improvement": true,
+    "min_stability": "none",
+    "override_hash": "",
+    "profile": "default",
+    "rank": [
+      "stability",
+      "throughput",
+      "latency"
+    ],
+    "resolved": {
+      "interrupt_on_failover": true,
+      "preference": {
+        "min_stability": "A",
+        "profile": "",
+        "rank": null,
+        "speed_floor_hysteresis": 0,
+        "switch": {
+          "confirmation_interval": "0s",
+          "confirmations": 0,
+          "dwell": "0s",
+          "improvement": false,
+          "speed_margin": 0,
+          "tier_restore": "0s"
+        }
+      },
+      "probe": {
+        "background_interval": "5m0s",
+        "heartbeat_interval": "15s",
+        "standby_interval": "1m0s"
+      },
+      "throughput": {
+        "enabled": false,
+        "streams": 0,
+        "target_mbps": 25
+      },
+      "udp": {
+        "quic_policy": "auto"
+      }
+    },
+    "source": "config",
+    "streams": 0,
+    "target_mbps": 25
+  },
   "selected": {
     "standby": null,
     "tcp": null,
@@ -86,6 +217,15 @@
     }
   },
   "state": "starting",
+  "throughput_degradation": {
+    "blocked_reason": null,
+    "checked_at": null,
+    "continuous_flows": 0,
+    "observed_mbps": null,
+    "provisional_mbps": null,
+    "retry_at": null,
+    "state": ""
+  },
   "timeline": {
     "bucket_seconds": 900,
     "members": {
@@ -1056,5 +1196,6 @@
     },
     "start": 1799914500
   },
+  "upload_verified": true,
   "version": 1
 }

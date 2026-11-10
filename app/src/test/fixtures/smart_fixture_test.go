@@ -53,7 +53,11 @@ func TestAndroidSmartFixtures(t *testing.T) {
 	primary.udp = smartEvidence{state: "ok", at: clock.now, expires: clock.now.Add(time.Minute)}
 	primary.udp443 = smartEvidence{state: "failed", at: clock.now, expires: clock.now.Add(time.Minute)}
 	standby.udp443 = smartEvidence{state: "ok", at: clock.now, expires: clock.now.Add(time.Minute)}
-	primary.throughput = smartThroughput{Download: 48.1, Upload: 12.5, Source: "active", At: clock.now}
+	primary.throughput = smartThroughput{
+		Download: 48.1, Source: "active", At: clock.now,
+		DownloadResult: smartDirectionResult{Value: 48.1, P10: 40.2, Mean: 45.3, Streams: 4, Window: 5500 * time.Millisecond, Source: "active", At: clock.now, Valid: true},
+		UploadResult: smartDirectionResult{Value: 12.5, PostMin: 10.2, Streams: 2, Window: 6 * time.Second, Source: "active", At: clock.now, Valid: true},
+	}
 	s.direct = smartEvidence{state: "ok", at: clock.now, expires: clock.now.Add(2 * time.Minute)}
 	s.directRTT = 42 * time.Millisecond
 	for _, member := range s.members {
@@ -105,4 +109,47 @@ func TestAndroidSmartFixtures(t *testing.T) {
 	write("networks-empty.json", networks, err)
 	report, err = SmartImport(context.Background(), smartTestManager{}, incoming, .1)
 	write("import-report-empty.json", report, err)
+
+	// These variants retain production status serialization and core-computed display gates.
+	emitStatus := func(name string) {
+		t.Helper()
+		data, statusErr := SmartStatus(context.Background(), manager, "")
+		write(name, data, statusErr)
+	}
+	legacyPreference := s.preference
+	s.preference = smartPreference{profile: "phone", rank: []string{"stability", "speed_floor", "latency"}, minStability: -1}
+	primary.floorState = smartFloorState{Kind: "revoked", Target: 25, At: clock.now, Value: 3}
+	standby.floorState = smartFloorState{Kind: "proven", Target: 25, At: clock.now, Value: 30}
+	s.applyRTTMeasurementLocked(primary, []float64{14, 14, 14, 14, 14, 14, 14, 14, 14, 14}, []int{5, 5}, clock.now)
+	for second := -5; second < 0; second++ {
+		s.countPassiveLocked(primary, 1_000_000, 0, clock.now.Add(time.Duration(second)*time.Second))
+	}
+	emitStatus("status-measurement-floor.json")
+
+	primary.floorState = smartFloorState{Kind: "proven", Target: 25, At: clock.now.Add(-25 * time.Hour), Value: 30}
+	standby.floorState = smartFloorState{Kind: "proven", Target: 20, At: clock.now, Value: 30}
+	emitStatus("status-measurement-floor-inactive.json")
+
+	primary.floorState = smartFloorState{Kind: "proven", Target: 25, At: clock.now.Add(-time.Minute), Value: 30}
+	standby.floorState = smartFloorState{}
+	emitStatus("status-measurement-floor-superseded.json")
+
+	s.preference = legacyPreference
+	primary.floorState = smartFloorState{}
+	primary.throughput.At = clock.now.Add(-time.Hour)
+	primary.throughput.DownloadResult.At = primary.throughput.At
+	primary.legacyEpisodeObs = smartLegacyEpisodeObservation{Value: 20, At: clock.now}
+	emitStatus("status-measurement-legacy.json")
+
+	primary.legacyEpisodeObs = smartLegacyEpisodeObservation{}
+	primary.throughput.At = clock.now
+	primary.throughput.DownloadResult.At = clock.now
+	primary.throughput.UploadUnverified = true
+	emitStatus("status-measurement-upload-unverified.json")
+
+	primary.throughput.UploadUnverified = false
+	primary.throughput.At = clock.now.Add(-25 * time.Hour)
+	primary.throughput.DownloadResult.At = primary.throughput.At
+	primary.throughput.UploadResult.At = primary.throughput.At
+	emitStatus("status-measurement-stale.json")
 }

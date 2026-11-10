@@ -83,6 +83,9 @@ when importing into this fork. Only one VPN app can be active in an Android user
   policy, warning when groups differ. Pausing the app preserves that wait; only
   unavailable status falls back to Phone.
   Custom policies support a lossless JSON editor and accessible criterion reordering.
+  Measurement-aware profiles include Fastest upload and custom upload, UDP round-trip
+  time, and jitter ranking. Custom limits include the parallel speed-test connection
+  count, validated by the core.
   Saving does not reload the VPN: the existing reload action applies the change,
   and running hashes distinguish pending settings from applied settings. The override
   affects every local Smart group, not other outbound types. Remote-control mode
@@ -161,6 +164,11 @@ Profiles can use the core's `smart` outbound group (see the core's
   adjacent repeats merged. Network names never show BSSIDs or MAC addresses. Export,
   import and reset are in the toolbar menu. It polls the running core every 2 s only
   while visible.
+  Expanded servers distinguish check time from UDP round-trip time and jitter, show
+  fresh active download with p10, verified upload (or an unverified endpoint), and
+  observed traffic separately. Effective slowdown checks show their target and time;
+  legacy groups instead show an under-load observation only while it supplies the
+  speed class. Observed traffic is diagnostic, never a ranking input.
 - Smart group cards and Selector insights show a group-level notice when no member
   is healthy. An explicit offline state instead says that the network seems down.
   The notices use existing refreshes and clear when a healthy member returns.
@@ -172,9 +180,10 @@ Profiles can use the core's `smart` outbound group (see the core's
 
 ## Building and signing
 
-Use JDK 17, Android SDK platform 37.1, build-tools 36.0.0, NDK
-28.0.13004108 (r28), and matching `app/libs/libbox.aar`.
-With the core in a sibling checkout, build the AAR using Go 1.26.8:
+Use JDK 21 for Gradle, JDK 17 for libbox, Android SDK platform 37.1, build-tools
+36.0.0, NDK 28.0.13004108 (r28), and matching `app/libs/libbox.aar`.
+With the core in a sibling checkout, set `JAVA_HOME` to JDK 17 and build the AAR
+using Go 1.26.8:
 
 ```sh
 make lib_install
@@ -182,7 +191,8 @@ go run ./cmd/internal/build_libbox -target android -platform android/arm64
 ```
 
 Copy the generated AARs to this repository's `app/libs/` if the core builder did
-not copy them automatically. In this repository:
+not copy them automatically. Switch `JAVA_HOME` to JDK 21 before running Gradle
+in this repository:
 
 ```sh
 ./gradlew :app:compileOtherReleaseKotlin :app:testOtherDebugUnitTest
