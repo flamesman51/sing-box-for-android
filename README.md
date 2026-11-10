@@ -31,11 +31,15 @@ when importing into this fork. Only one VPN app can be active in an Android user
   Without an app override, conflicting profile lists use include mode and log a
   warning. Only one Android allow/deny list is ever applied. Include mode always
   includes this VPN app, even with an empty selection; exclude mode never excludes it.
-- Managed Mode can bypass Chinese apps, Russian apps, or both. Existing installs
-  retain China-only behavior. Region changes are published only with their completed
-  scan result; leaving the screen cancels the change without replacing stored
-  regions or lists. UI scans and package-change rescans share one process-wide lock.
-  The app selector's **Scan** menu offers both groups separately.
+- Managed Mode bypasses apps matched to the selected regions, China and/or Russia, chosen
+  with highlight-only buttons; clearing both turns automatic bypass off and re-enables
+  **Manage**. A selection applies immediately and its scan runs in the background; a
+  newer selection cancels an older scan. The previous bypass list stays effective until
+  a replacement scan succeeds, and a failed scan keeps it and offers Retry. Existing
+  installs migrate the old switch and regions (an enabled switch without regions means
+  China). UI scans and package-change rescans share one process-wide lock. Scans see
+  only apps installed in the current Android user. The app selector's **Scan** menu
+  offers both groups separately.
   Russian detection combines `app/src/main/assets/ru-apps.json` (413 exact package
   names verified against store listings on 2026-11-04) with specific AppMetrica,
   VK ID/VK SDK, MyTracker, RuStore, and Sber ID component/DEX namespaces.
@@ -49,17 +53,20 @@ when importing into this fork. Only one VPN app can be active in an Android user
   edits, and deletion. WorkManager is inexact. “Last updated” records the last
   successful check, including an unchanged download, and controls update cadence.
   Background update errors are retained and shown in the profile editor.
-- Family-server updates are the default. A successful HTTPS remote-profile fetch
+- Family-server updates are the default, with automatic checks on unless explicitly
+  turned off. A successful HTTPS remote-profile fetch
   discovers `X-SFA-Smart-Update` against the final HTTPS response URL and pins the
-  first accepted origin. Other origins cannot replace that pin. Settings → Updates
-  shows the pinned origin and can forget it without hiding an already pending update.
+  first accepted origin. Other origins cannot replace that pin. **Settings → App →
+  Update server** shows the pinned host and can forget it, after confirmation, without
+  hiding an already pending update.
 - The daily check downloads immutable, size/hash/package/version/signer-verified
   APKs on unmetered networks, or any connected network after 48 hours. **Download
   now** overrides the network wait. A persistent in-app banner, a daily reminder,
   an app-update notification, and the VPN notification expose a pending update.
   Notification denial or channel changes do not remove the in-app fallback.
-- Installation is user-coordinated and never stops the VPN first. Unknown-app
-  permission and Android confirmation are handled visibly. Canceling verification
+- Installation is user-coordinated and never stops the VPN first. After the unknown-app
+  permission is granted, Android's installer confirmation opens on return to the app;
+  denial keeps the explanation with an **Open settings** retry. Canceling verification
   or staging abandons the uncommitted installation; once commit starts, Android
   controls completion. A paused coordinator retains confirmation and failure results
   for its next foreground visit. Restored unsealed sessions rewrite and sync the
@@ -72,7 +79,7 @@ when importing into this fork. Only one VPN app can be active in an Android user
 
 ## Diagnostics and privacy
 
-**Settings → App → Send diagnostics to the profile server** is on by default.
+**Settings → Smart → Send diagnostics** is on by default.
 Turn it off to cancel scheduled uploads; the bounded local journal remains available.
 Diagnostics are sent only for the currently selected remote profile, and only after
 an accepted profile fetch returns the exact header `X-SFA-Smart-Report: 1` from a
@@ -123,14 +130,24 @@ the entire selector snapshot in exactly one fragment; transient failures back of
 Profiles can use the core's `smart` outbound group (see the core's
 `docs/configuration/outbound/smart.md`); `urltest` profiles behave as before.
 
-- **Settings → Smart**: country for the built-in direct-connectivity checks (automatic
-  from network, SIM, timezone, then locale; never IP lookup), an optional per-network
-  history helper (precise and background location, phone state; everything works
-  without them, history just stays coarser), and the "all servers unreachable"
-  notification toggle.
-- **Selector insights**, from a Smart group's card or Tools: selected path and state,
-  network and direct connectivity, member table, speed-test budget, per-network
-  history, recent events and 24 h charts. It polls the running core every 2 s only
+- **Settings → Smart**: the country used by the built-in direct-connectivity checks,
+  shown as `Automatic - <country>` (from network, SIM, timezone, then locale; never IP
+  lookup) with a searchable picker; per-network history, whose status says whether
+  history is detailed or basic; outage alerts; diagnostics; and Selector insights.
+- Per-network history uses precise location for Wi-Fi and cell identity, background
+  location to keep it while the app is closed, and optional phone state for the
+  network type. Everything works without them; history is just less specific. The
+  explanation dialog appears once at first start and from Settings → Smart; it requests
+  each step at runtime when Android allows, otherwise opens app settings (Android 11+
+  background access always needs settings).
+- **Settings → App → Cache Size** counts only Android's temporary cache, so `0 B` is
+  normal. Selector history and the core cache live in **Settings → Core → Data Size**.
+- **Selector insights**, from a Smart group's card, Tools (only when a Smart group
+  exists) or Settings → Smart: a plain status with the current server and network,
+  then servers with expandable details and 24 h charts, technical details (UDP/QUIC,
+  speed-test data, direct internet), networks grouped by name, and recent events with
+  adjacent repeats merged. Network names never show BSSIDs or MAC addresses. Export,
+  import and reset are in the toolbar menu. It polls the running core every 2 s only
   while visible.
 - Smart group cards and Selector insights show a group-level notice when no member
   is healthy. An explicit offline state instead says that the network seems down.
