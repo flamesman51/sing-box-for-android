@@ -25,9 +25,13 @@ internal fun duplicateServerAddresses(tags: List<String>): Map<String, String> {
     }.toMap()
 }
 
-internal fun smartEventServers(from: String?, to: String?): String? {
-    val fromName = from?.takeIf(String::isNotBlank)?.let { displayTag(it).first }
-    val toName = to?.takeIf(String::isNotBlank)?.let { displayTag(it).first }
+internal fun smartEventServers(from: String?, to: String?, addresses: Map<String, String>): String? {
+    fun name(tag: String?): String? = tag?.takeIf(String::isNotBlank)?.let {
+        val displayName = displayTag(it).first
+        addresses[it]?.let { address -> "$displayName ($address)" } ?: displayName
+    }
+    val fromName = name(from)
+    val toName = name(to)
     return if (fromName != null && toName != null) "$fromName → $toName" else fromName ?: toName
 }
 

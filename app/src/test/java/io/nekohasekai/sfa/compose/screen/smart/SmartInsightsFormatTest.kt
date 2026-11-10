@@ -32,13 +32,28 @@ class SmartInsightsFormatTest {
 
     @Test
     fun eventServersUseAnArrowOnlyWithBothEndpoints() {
-        assertEquals("First → Second", smartEventServers("First [first]", "Second [second]"))
-        assertEquals("First", smartEventServers("First [first]", null))
-        assertEquals("Second", smartEventServers(null, "Second [second]"))
-        assertEquals("Second", smartEventServers("", "Second [second]"))
-        assertEquals("First", smartEventServers("First [first]", " "))
-        assertNull(smartEventServers(null, null))
-        assertNull(smartEventServers("", " "))
+        assertEquals("First → Second", smartEventServers("First [first]", "Second [second]", emptyMap()))
+        assertEquals("First", smartEventServers("First [first]", null, emptyMap()))
+        assertEquals("Second", smartEventServers(null, "Second [second]", emptyMap()))
+        assertEquals("Second", smartEventServers("", "Second [second]", emptyMap()))
+        assertEquals("First", smartEventServers("First [first]", " ", emptyMap()))
+        assertNull(smartEventServers(null, null, emptyMap()))
+        assertNull(smartEventServers("", " ", emptyMap()))
+    }
+
+    @Test
+    fun eventServersDisambiguateOnlyNamesSharedByCurrentMembers() {
+        val first = "Shared [first]"
+        val second = "Shared [second]"
+        val unique = "Unique [third]"
+        val addresses = duplicateServerAddresses(listOf(first, second, unique, "Shared"))
+        assertEquals("Shared (first) → Shared (second)", smartEventServers(first, second, addresses))
+        assertEquals("Shared (first) → Unique", smartEventServers(first, unique, addresses))
+        assertEquals("Shared (first)", smartEventServers(first, null, addresses))
+        assertEquals("Shared (second)", smartEventServers(null, second, addresses))
+        assertEquals("Unique", smartEventServers(unique, null, addresses))
+        assertEquals("Shared", smartEventServers("Shared", null, addresses))
+        assertNull(smartEventServers(null, null, addresses))
     }
 
     @Test

@@ -397,9 +397,10 @@ internal fun SmartInsightsNetworksCard(networks: List<SmartNetworkHistory>) {
 }
 
 @Composable
-internal fun SmartInsightsEventsCard(events: List<SmartEvent>, networks: List<SmartNetworkHistory>, currentNetwork: SmartNetwork) {
+internal fun SmartInsightsEventsCard(events: List<SmartEvent>, networks: List<SmartNetworkHistory>, currentNetwork: SmartNetwork, members: List<SmartMember>) {
     var showAll by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
+    val addresses = duplicateServerAddresses(members.map { it.tag })
     val merged = mergeSmartEvents(events)
     val shown = if (showAll) merged else merged.take(20)
     val showMore = !showAll && merged.size > 20
@@ -410,7 +411,7 @@ internal fun SmartInsightsEventsCard(events: List<SmartEvent>, networks: List<Sm
             InsightsRow(
                 headline = if (group.count > 1) stringResource(R.string.smart_event_repeated, kindLabel, group.count) else kindLabel,
                 supporting = joinParts(
-                    smartEventServers(event.from, event.to),
+                    smartEventServers(event.from, event.to, addresses),
                     smartReasonLabel(event.reason)?.let { stringResource(it) },
                     networkLabelForKey(event.network, networks, currentNetwork) { context.getString(smartNetworkFallbackLabel(it)) },
                     if (group.count > 1) smartTimeText(group.oldestTime)?.let { stringResource(R.string.smart_event_since, it) } else null,

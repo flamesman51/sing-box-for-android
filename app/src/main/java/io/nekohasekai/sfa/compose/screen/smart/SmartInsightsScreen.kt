@@ -309,7 +309,7 @@ fun SmartInsightsScreen(navController: NavController, group: String, serviceStat
             if (snapshot.events.isEmpty()) {
                 item { SmartInsightsEmpty(R.string.smart_events_empty) }
             } else {
-                item { SmartInsightsEventsCard(snapshot.events, history, snapshot.network) }
+                item { SmartInsightsEventsCard(snapshot.events, history, snapshot.network, snapshot.members) }
             }
         }
     }
