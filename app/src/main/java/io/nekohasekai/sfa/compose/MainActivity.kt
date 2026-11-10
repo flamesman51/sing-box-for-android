@@ -159,6 +159,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+private const val KEY_LAUNCH_INTENT_PENDING = "launch_intent_pending"
+
 class MainActivity :
     AppCompatActivity(),
     ServiceConnection.Callback {
@@ -178,6 +180,7 @@ class MainActivity :
     private var pendingImportLocalProfileUri by mutableStateOf<Uri?>(null)
     private var newProfileArgs by mutableStateOf(NewProfileArgs())
     private var parseImportLocalProfileJob: Job? = null
+    private var launchIntentUnhandled = false
     private var pendingIntentErrorMessage by mutableStateOf<String?>(null)
 
     private val notificationPermissionLauncher =
@@ -232,6 +235,10 @@ class MainActivity :
             }
         }
         enableEdgeToEdge()
+        // A recreated activity, or a task relaunched from Recents/after process death, still carries its original
+        // launch intent; act on it again only while that request was still unanswered.
+        launchIntentUnhandled = (savedInstanceState?.getBoolean(KEY_LAUNCH_INTENT_PENDING) ?: true) &&
+            (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) == 0
 
         lifecycleScope.launch {
             Settings.dataStore.initialize()
@@ -250,10 +257,9 @@ class MainActivity :
                 }
             }
 
-            // A recreated activity, or a task relaunched from Recents/after process death, still carries
-            // its original launch intent; acting on it again re-offers imports and re-opens links.
-            if (savedInstanceState == null && (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) == 0) {
+            if (launchIntentUnhandled) {
                 handleIntent(intent)
+                launchIntentUnhandled = false
             }
 
             setContent {
@@ -266,7 +272,16 @@ class MainActivity :
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
+        launchIntentUnhandled = false
         handleIntent(intent)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        val pending = launchIntentUnhandled || parseImportLocalProfileJob?.isActive == true ||
+            showImportProfileDialog || showImportLocalProfileDialog
+        outState.putBoolean(KEY_LAUNCH_INTENT_PENDING, pending)
     }
 
     private fun handleIntent(intent: Intent?) {
@@ -1411,8 +1426,9 @@ class MainActivity :
                     GroupsCard(
                         serviceStatus = currentServiceStatus,
                         onSmartInsights = { tag ->
-                            // Let the sheet slide away first; removing it mid-frame makes the push look broken.
-                            scope.launch { groupsSheetState.hide() }.invokeOnCompletion {
+                            scope.launch {
+                                // Let the sheet slide away first; a cancelled hide (user grabbed the sheet) navigates nowhere.
+                                groupsSheetState.hide()
                                 showGroupsSheet = false
                                 navController.navigate(smartInsightsRoute(tag))
                             }
