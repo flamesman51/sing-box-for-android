@@ -314,7 +314,8 @@ private fun MemberValues(member: SmartMember, status: SmartStatus) {
         R.string.smart_country to member.country?.takeIf(String::isNotBlank),
         R.string.smart_weight to numberText(member.weight, R.string.smart_weight_value),
         R.string.smart_probation_label to stringResource(R.string.smart_probation_value, member.probation),
-        R.string.smart_set_aside_until to smartTimeText(member.quarantineUntil),
+        // The core keeps the last quarantine end after it passes; only a future one means "set aside".
+        R.string.smart_set_aside_until to smartTimeText(member.quarantineUntil?.takeIf { it > System.currentTimeMillis() / 1000 }),
         R.string.smart_last_success to smartTimeText(member.lastOk),
         R.string.smart_last_failure to smartTimeText(member.lastFail),
     ).filter { !it.second.isNullOrBlank() }
