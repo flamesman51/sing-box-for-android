@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.SettingsEthernet
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -190,11 +191,10 @@ internal fun SmartInsightsStatusCard(status: SmartStatus) {
             leading = { StateDot(groupColor(status.state)) },
         )
         status.preference?.takeIf { it.engine != "legacy" }?.let {
-            Text(
-                stringResource(R.string.smart_profile_insights, smartRunningProfileLabel(it)),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            InsightsRow(
+                overline = stringResource(R.string.smart_selection_profile),
+                headline = smartRunningProfileLabel(it),
+                leading = { LeadingIcon(Icons.Outlined.Tune) },
             )
         }
         status.availabilityNotice()?.let { SmartAvailabilityNoticeText(it, Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) }

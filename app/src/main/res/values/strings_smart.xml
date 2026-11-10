@@ -232,7 +232,6 @@
     <string name="smart_profile_pending">%1$s · Reload to apply</string>
     <string name="smart_profile_not_used">Not used by this profile</string>
     <string name="smart_profile_custom_based">Custom · based on %1$s</string>
-    <string name="smart_profile_insights">Profile · %1$s</string>
     <string name="smart_profile_from_description">Use the profile\'s own selection settings</string>
     <string name="smart_profile_classic">Classic</string>
     <string name="smart_profile_classic_description">The original selection rules</string>

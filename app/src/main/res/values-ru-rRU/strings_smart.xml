@@ -242,7 +242,6 @@
     <string name="smart_profile_pending">%1$s · Перезагрузите для применения</string>
     <string name="smart_profile_not_used">Не используется в этом профиле</string>
     <string name="smart_profile_custom_based">Свой · на основе %1$s</string>
-    <string name="smart_profile_insights">Профиль · %1$s</string>
     <string name="smart_profile_from_description">Настройки выбора из профиля</string>
     <string name="smart_profile_classic">Классический</string>
     <string name="smart_profile_classic_description">Исходные правила выбора</string>
