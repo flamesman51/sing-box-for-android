@@ -76,6 +76,7 @@ fun ToolsScreen(
     openConnectViewModel: OpenConnectStatusViewModel,
     openVPNViewModel: OpenVPNStatusViewModel,
     showStatusBar: Boolean = false,
+    hasSmartGroups: Boolean = false,
 ) {
     val remoteServers by rememberRemoteServers()
 
@@ -413,28 +414,31 @@ fun ToolsScreen(
                     )
                 },
                 modifier = Modifier
+                    .clip(if (hasSmartGroups) RoundedCornerShape(0.dp) else RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
                     .clickable { navController.navigate("tools/stun_test") },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
-            ListItem(
-                headlineContent = {
-                    Text(
-                        stringResource(R.string.smart_insights),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                },
-                leadingContent = {
-                    Icon(
-                        imageVector = Icons.Outlined.Insights,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                },
-                modifier = Modifier
-                    .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                    .clickable { navController.navigate(smartInsightsRoute()) },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            )
+            if (hasSmartGroups) {
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            stringResource(R.string.smart_insights),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Outlined.Insights,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    },
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                        .clickable { navController.navigate(smartInsightsRoute()) },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                )
+            }
         }
 
         // Crash/OOM reports read local files, which the remote control API

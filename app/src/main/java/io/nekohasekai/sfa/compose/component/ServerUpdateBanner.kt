@@ -20,6 +20,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -95,7 +96,10 @@ fun ServerUpdateBanner() {
 }
 
 @Composable
-fun ServerUpdateForegroundReminder() {
+fun ServerUpdateForegroundReminder(
+    allowPermissionRequest: Boolean = true,
+    onDialogVisibilityChanged: (Boolean) -> Unit = {},
+) {
     if (!Vendor.hasCustomUpdate) return
     val snapshot by ServerUpdates.state.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -103,11 +107,16 @@ fun ServerUpdateForegroundReminder() {
     var updateSource by remember { mutableStateOf(Settings.updateSource) }
     var autoUpdateEnabled by remember { mutableStateOf(Settings.autoUpdateEnabled) }
     var permissionRequested by rememberSaveable { mutableStateOf(false) }
+    var permissionInFlight by rememberSaveable { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        permissionInFlight = false
         ServerUpdateNotifier.refresh(context)
     }
     var resumed by remember { mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) }
     var showReminder by remember { mutableStateOf(false) }
+    val reminderDue = snapshot.pending != null && resumed &&
+        (snapshot.lastReminderAtMillis == 0L || System.currentTimeMillis() - snapshot.lastReminderAtMillis >= TimeUnit.HOURS.toMillis(24))
+    SideEffect { onDialogVisibilityChanged(permissionInFlight || showReminder || reminderDue) }
     DisposableEffect(lifecycleOwner) {
         val preferenceListener = object : OnPreferenceDataStoreChangeListener {
             override fun onPreferenceDataStoreChanged(store: PreferenceDataStore, key: String) {
@@ -128,8 +137,8 @@ fun ServerUpdateForegroundReminder() {
             Settings.dataStore.unregisterChangeListener(preferenceListener)
         }
     }
-    LaunchedEffect(resumed, updateSource, autoUpdateEnabled) {
-        if (resumed && !permissionRequested && ServerUpdateNotifier.permissionNeeded(
+    LaunchedEffect(resumed, updateSource, autoUpdateEnabled, allowPermissionRequest) {
+        if (allowPermissionRequest && resumed && !permissionRequested && ServerUpdateNotifier.permissionNeeded(
                 Build.VERSION.SDK_INT,
                 UpdateSource.fromString(updateSource),
                 autoUpdateEnabled,
@@ -137,6 +146,7 @@ fun ServerUpdateForegroundReminder() {
             )
         ) {
             permissionRequested = true
+            permissionInFlight = true
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }

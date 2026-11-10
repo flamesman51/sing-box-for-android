@@ -9,4 +9,6 @@ object SmartSettings {
     var countryOverride by Settings.dataStore.string("smart_country_override")
     internal var automaticCountry by Settings.dataStore.string("smart_automatic_country")
     var notificationsEnabled by Settings.dataStore.boolean("smart_notifications_enabled") { true }
+    internal var historyPermissionPrompted by Settings.dataStore.boolean("smart_history_permission_prompted")
+    internal var historyForegroundRequested by Settings.dataStore.boolean("smart_history_foreground_requested")
 }

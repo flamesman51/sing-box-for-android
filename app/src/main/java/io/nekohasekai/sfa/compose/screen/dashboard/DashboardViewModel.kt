@@ -52,6 +52,7 @@ data class DashboardUiState(
     val selectedProfileName: String? = null,
     val isLoading: Boolean = false,
     val hasGroups: Boolean = false,
+    val hasSmartGroups: Boolean = false,
     val groupsCount: Int = 0,
     val connectionsCount: Int = 0,
     val serviceStartTime: Long? = null,
@@ -466,6 +467,7 @@ class DashboardViewModel :
                 updateState {
                     copy(
                         hasGroups = false,
+                        hasSmartGroups = false,
                         groupsCount = 0,
                         connectionsCount = 0,
                         serviceStartTime = null,
@@ -642,7 +644,7 @@ class DashboardViewModel :
         viewModelScope.launch(Dispatchers.Main) {
             val hasGroups = newGroups.isNotEmpty()
             updateState {
-                copy(hasGroups = hasGroups, groupsCount = newGroups.size)
+                copy(hasGroups = hasGroups, hasSmartGroups = newGroups.any { it.type == "smart" }, groupsCount = newGroups.size)
             }
         }
     }

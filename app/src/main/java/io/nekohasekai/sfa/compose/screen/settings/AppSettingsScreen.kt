@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -40,10 +39,12 @@ import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.DeleteSweep
+import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Refresh
@@ -85,10 +86,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.os.LocaleListCompat
@@ -107,7 +108,6 @@ import io.nekohasekai.sfa.compose.topbar.LocalScaffoldPadding
 import io.nekohasekai.sfa.compose.topbar.OverrideTopBar
 import io.nekohasekai.sfa.constant.Status
 import io.nekohasekai.sfa.database.Settings
-import io.nekohasekai.sfa.diagnostics.DiagnosticsWork
 import io.nekohasekai.sfa.ktx.clipboardText
 import io.nekohasekai.sfa.update.ServerUpdateWork
 import io.nekohasekai.sfa.update.ServerUpdates
@@ -160,8 +160,8 @@ fun AppSettingsScreen(
     var showGitHubTokenDialog by remember { mutableStateOf(false) }
     var githubToken by remember { mutableStateOf(Settings.githubToken) }
     var checkUpdateEnabled by remember { mutableStateOf(Settings.checkUpdateEnabled) }
-    var sendDiagnostics by remember { mutableStateOf(Settings.sendDiagnostics) }
     var showErrorDialog by remember { mutableStateOf<String?>(null) }
+    var showForgetServerDialog by remember { mutableStateOf(false) }
 
     var silentInstallEnabled by remember { mutableStateOf(Settings.silentInstallEnabled) }
     var silentInstallMethod by remember { mutableStateOf(Settings.silentInstallMethod) }
@@ -242,6 +242,22 @@ fun AppSettingsScreen(
                 }
             }
         }
+    }
+
+    if (showForgetServerDialog) {
+        AlertDialog(
+            onDismissRequest = { showForgetServerDialog = false },
+            title = { Text(stringResource(R.string.smart_forget_update_server_title)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showForgetServerDialog = false
+                    scope.launch(Dispatchers.IO) { ServerUpdates.forgetServer() }
+                }) { Text(stringResource(R.string.smart_forget)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showForgetServerDialog = false }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
     }
 
     if (showSourceDialog) {
@@ -483,8 +499,6 @@ fun AppSettingsScreen(
                 bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
             ),
     ) {
-        io.nekohasekai.sfa.compose.screen.smart.SmartSettingsSection()
-
         // Info Card
         Card(
             modifier =
@@ -710,50 +724,6 @@ fun AppSettingsScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ),
-        ) {
-            ListItem(
-                headlineContent = {
-                    Text(
-                        stringResource(R.string.send_diagnostics),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                },
-                supportingContent = { Text(stringResource(R.string.send_diagnostics_description)) },
-                leadingContent = {
-                    Icon(
-                        imageVector = Icons.Outlined.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                },
-                trailingContent = {
-                    Switch(checked = sendDiagnostics, onCheckedChange = null)
-                },
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .toggleable(
-                        value = sendDiagnostics,
-                        role = Role.Switch,
-                        onValueChange = { checked ->
-                            sendDiagnostics = checked
-                            scope.launch(Dispatchers.IO) {
-                                Settings.sendDiagnostics = checked
-                                Settings.dataStore.flush()
-                                DiagnosticsWork.schedule(context)
-                            }
-                        },
-                    ),
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
         Text(
             text = stringResource(R.string.notification_settings),
             style = MaterialTheme.typography.labelLarge,
@@ -869,6 +839,9 @@ fun AppSettingsScreen(
                         if (Vendor.updateSources.size > 1) {
                             count += 1
                         }
+                        if (Vendor.hasCustomUpdate && isServer) {
+                            count += 1
+                        }
                         if (Vendor.hasCustomUpdate && !isServer) {
                             count += 1
                         }
@@ -892,7 +865,6 @@ fun AppSettingsScreen(
                             }
                         }
                         if (Vendor.hasCustomUpdate) {
-                            count += 1
                             count += 1
                         }
                         count
@@ -943,22 +915,26 @@ fun AppSettingsScreen(
                     )
                 }
 
-                if (Vendor.hasCustomUpdate) {
+                if (Vendor.hasCustomUpdate && isServer) {
                     ListItem(
-                        headlineContent = { Text(stringResource(R.string.update_server_origin)) },
+                        headlineContent = { Text(stringResource(R.string.smart_update_server), style = MaterialTheme.typography.bodyLarge) },
                         supportingContent = {
-                            Text(serverUpdateState.origin ?: stringResource(R.string.update_server_not_pinned))
+                            Text(
+                                serverUpdateState.origin?.let { Uri.parse(it).host } ?: stringResource(R.string.update_server_not_pinned),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         },
+                        leadingContent = { Icon(Icons.Outlined.Dns, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                         trailingContent = {
-                            TextButton(
+                            IconButton(
                                 enabled = serverUpdateState.origin != null,
-                                onClick = {
-                                    scope.launch(Dispatchers.IO) {
-                                        ServerUpdates.forgetServer()
-                                    }
-                                },
+                                onClick = { showForgetServerDialog = true },
                             ) {
-                                Text(stringResource(R.string.update_server_forget))
+                                Icon(Icons.Outlined.LinkOff, contentDescription = stringResource(R.string.smart_forget_update_server))
                             }
                         },
                         modifier = updateItemModifier(),
@@ -1312,8 +1288,10 @@ fun AppSettingsScreen(
                         supportingContent = {
                             Text(
                                 stringResource(if (isServer) R.string.server_update_auto_description else R.string.auto_update_description),
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp),
+                                maxLines = 2,
                             )
                         },
                         leadingContent = {

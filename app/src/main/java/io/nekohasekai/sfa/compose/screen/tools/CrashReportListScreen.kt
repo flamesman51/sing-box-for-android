@@ -91,7 +91,7 @@ fun CrashReportListScreen(navController: NavController) {
                     ) {
                         if (BuildConfig.DEBUG) {
                             DropdownMenuItem(
-                                text = { Text("Crash Trigger") },
+                                text = { Text(stringResource(R.string.smart_crash_trigger)) },
                                 leadingIcon = {
                                     Icon(
                                         Icons.Outlined.FlashOn,

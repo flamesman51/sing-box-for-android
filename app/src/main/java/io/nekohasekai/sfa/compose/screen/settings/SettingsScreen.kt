@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.AdminPanelSettings
+import androidx.compose.material.icons.outlined.AltRoute
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Favorite
@@ -146,6 +147,17 @@ fun SettingsScreen(navController: NavController) {
                     ListItemDefaults.colors(
                         containerColor = Color.Transparent,
                     ),
+                )
+
+                ListItem(
+                    headlineContent = {
+                        Text(stringResource(R.string.smart_settings), style = MaterialTheme.typography.bodyLarge)
+                    },
+                    leadingContent = {
+                        Icon(Icons.Outlined.AltRoute, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    },
+                    modifier = Modifier.clickable { navController.navigate("settings/smart") },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 )
 
                 ListItem(

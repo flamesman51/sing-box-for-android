@@ -40,7 +40,9 @@ import io.nekohasekai.sfa.compose.screen.settings.TailscaleGhosttyConfigEditorSc
 import io.nekohasekai.sfa.compose.screen.settings.TailscaleTerminalConfigScreen
 import io.nekohasekai.sfa.compose.screen.settings.TailscaleThemePickerScreen
 import io.nekohasekai.sfa.compose.screen.smart.SMART_INSIGHTS_ROUTE
+import io.nekohasekai.sfa.compose.screen.smart.SmartCountryPickerScreen
 import io.nekohasekai.sfa.compose.screen.smart.SmartInsightsScreen
+import io.nekohasekai.sfa.compose.screen.smart.SmartSettingsScreen
 import io.nekohasekai.sfa.compose.screen.smart.smartInsightsRoute
 import io.nekohasekai.sfa.compose.screen.tools.CrashReportDetailScreen
 import io.nekohasekai.sfa.compose.screen.tools.CrashReportFileContentScreen
@@ -98,6 +100,7 @@ fun NavHost(
     serviceStatus: Status = Status.Stopped,
     showStartFab: Boolean = false,
     showStatusBar: Boolean = false,
+    hasSmartGroups: Boolean = false,
     newProfileArgs: NewProfileArgs = NewProfileArgs(),
     onClearNewProfileArgs: () -> Unit = {},
     onOpenNewProfile: (NewProfileArgs) -> Unit = {},
@@ -264,7 +267,7 @@ fun NavHost(
             val usbIPViewModel: USBIPStatusViewModel = usbIPStatusViewModel ?: viewModel()
             val openConnectViewModel: OpenConnectStatusViewModel = openConnectStatusViewModel ?: viewModel()
             val openVPNViewModel: OpenVPNStatusViewModel = openVPNStatusViewModel ?: viewModel()
-            ToolsScreen(navController = navController, tailscaleViewModel = tailscaleViewModel, sshSharedViewModel = sshSharedViewModel, usbIPViewModel = usbIPViewModel, openConnectViewModel = openConnectViewModel, openVPNViewModel = openVPNViewModel, showStatusBar = showStatusBar)
+            ToolsScreen(navController = navController, tailscaleViewModel = tailscaleViewModel, sshSharedViewModel = sshSharedViewModel, usbIPViewModel = usbIPViewModel, openConnectViewModel = openConnectViewModel, openVPNViewModel = openVPNViewModel, showStatusBar = showStatusBar, hasSmartGroups = hasSmartGroups)
         }
 
         composable(
@@ -660,6 +663,26 @@ fun NavHost(
             popExitTransition = slideOutToRight,
         ) {
             CoreSettingsScreen(navController = navController)
+        }
+
+        composable(
+            route = "settings/smart",
+            enterTransition = slideInFromRight,
+            exitTransition = slideOutToLeft,
+            popEnterTransition = slideInFromLeft,
+            popExitTransition = slideOutToRight,
+        ) {
+            SmartSettingsScreen(navController = navController)
+        }
+
+        composable(
+            route = "settings/smart/country",
+            enterTransition = slideInFromRight,
+            exitTransition = slideOutToLeft,
+            popEnterTransition = slideInFromLeft,
+            popExitTransition = slideOutToRight,
+        ) {
+            SmartCountryPickerScreen(navController = navController)
         }
 
         composable(

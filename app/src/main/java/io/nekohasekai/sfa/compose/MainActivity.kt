@@ -75,6 +75,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -85,8 +86,11 @@ import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.os.ConfigurationCompat
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -130,6 +134,8 @@ import io.nekohasekai.sfa.compose.screen.dashboard.DashboardViewModel
 import io.nekohasekai.sfa.compose.screen.dashboard.GroupsCard
 import io.nekohasekai.sfa.compose.screen.dashboard.groups.GroupsViewModel
 import io.nekohasekai.sfa.compose.screen.log.LogViewModel
+import io.nekohasekai.sfa.compose.screen.smart.SmartHistoryPermissionDialog
+import io.nekohasekai.sfa.compose.screen.smart.SmartSettings
 import io.nekohasekai.sfa.compose.screen.smart.smartInsightsRoute
 import io.nekohasekai.sfa.compose.screen.tools.OpenConnectStatusViewModel
 import io.nekohasekai.sfa.compose.screen.tools.OpenVPNStatusViewModel
@@ -173,6 +179,7 @@ class MainActivity :
     private var showLocalNetworkPermissionDialog by mutableStateOf(false)
     private var notificationPermissionRequested = false
     private var localNetworkPermissionRequested = false
+    private var systemPermissionActive by mutableStateOf(false)
     private var showImportProfileDialog by mutableStateOf(false)
     private var pendingImportProfile by mutableStateOf<Triple<String, String, String>?>(null)
     private var showImportLocalProfileDialog by mutableStateOf(false)
@@ -187,11 +194,13 @@ class MainActivity :
         registerForActivityResult(
             ActivityResultContracts.RequestPermission(),
         ) {
+            systemPermissionActive = false
             startService()
         }
 
     private val locationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            systemPermissionActive = false
             if (it) {
                 if (it && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     requestBackgroundLocationPermission()
@@ -203,6 +212,7 @@ class MainActivity :
 
     private val backgroundLocationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            systemPermissionActive = false
             if (it) {
                 startService()
             }
@@ -210,6 +220,7 @@ class MainActivity :
 
     private val localNetworkPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            systemPermissionActive = false
             startService()
         }
 
@@ -217,6 +228,7 @@ class MainActivity :
         registerForActivityResult(
             ActivityResultContracts.StartActivityForResult(),
         ) { result ->
+            systemPermissionActive = false
             if (result.resultCode == RESULT_OK) {
                 startService0()
             } else {
@@ -350,6 +362,7 @@ class MainActivity :
             if (Settings.dynamicNotification && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !ServiceNotification.checkPermission()) {
                 if (!notificationPermissionRequested) {
                     notificationPermissionRequested = true
+                    systemPermissionActive = true
                     notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                     return@launch
                 }
@@ -364,6 +377,7 @@ class MainActivity :
                 if (ActivityCompat.shouldShowRequestPermissionRationale(this@MainActivity, Manifest.permission.ACCESS_LOCAL_NETWORK)) {
                     showLocalNetworkPermissionDialog = true
                 } else {
+                    systemPermissionActive = true
                     localNetworkPermissionLauncher.launch(Manifest.permission.ACCESS_LOCAL_NETWORK)
                 }
                 return@launch
@@ -392,12 +406,14 @@ class MainActivity :
         try {
             val intent = VpnService.prepare(this@MainActivity)
             if (intent != null) {
+                systemPermissionActive = true
                 prepareLauncher.launch(intent)
                 true
             } else {
                 false
             }
         } catch (e: Exception) {
+            systemPermissionActive = false
             onServiceAlert(Alert.RequestVPNPermission, e.message)
             true
         }
@@ -412,6 +428,13 @@ class MainActivity :
         val currentRoute = currentDestination?.route
         val scope = rememberCoroutineScope()
         val importHandler = remember { ProfileImportHandler(this@MainActivity) }
+        val lifecycle = LocalLifecycleOwner.current.lifecycle
+        var resumed by remember { mutableStateOf(lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) }
+        LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { resumed = true }
+        LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { resumed = false }
+        var historyPrompted by remember { mutableStateOf(SmartSettings.historyPermissionPrompted) }
+        var showHistoryPermissions by rememberSaveable { mutableStateOf(false) }
+        var serverUpdateDialogVisible by remember { mutableStateOf(false) }
 
         val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
         val useNavigationRail =
@@ -551,6 +574,7 @@ class MainActivity :
             LocationPermissionDialog(onConfirm = {
                 showLocationPermissionDialog = false
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    systemPermissionActive = true
                     locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                 }
             }, onDismiss = { showLocationPermissionDialog = false })
@@ -560,6 +584,7 @@ class MainActivity :
             BackgroundLocationPermissionDialog(onConfirm = {
                 showBackgroundLocationDialog = false
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    systemPermissionActive = true
                     backgroundLocationPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
                 }
             }, onDismiss = { showBackgroundLocationDialog = false })
@@ -568,6 +593,7 @@ class MainActivity :
         if (showLocalNetworkPermissionDialog) {
             LocalNetworkPermissionDialog(onConfirm = {
                 showLocalNetworkPermissionDialog = false
+                systemPermissionActive = true
                 localNetworkPermissionLauncher.launch(Manifest.permission.ACCESS_LOCAL_NETWORK)
             }, onDismiss = {
                 showLocalNetworkPermissionDialog = false
@@ -744,7 +770,6 @@ class MainActivity :
                 },
             )
         }
-        ServerUpdateForegroundReminder()
 
         // Download progress dialog
         if (showDownloadDialog) {
@@ -835,6 +860,36 @@ class MainActivity :
                     }
                 } else {
                     null
+                },
+            )
+        }
+
+        val otherDialogVisible = currentAlert != null || showErrorDialog || pendingIntentError != null ||
+            showLocationPermissionDialog || showBackgroundLocationDialog || showLocalNetworkPermissionDialog ||
+            showImportProfileDialog || showImportLocalProfileDialog || showUpdateCheckPrompt ||
+            (showUpdateDialog && shouldShowUpdateDialog) || showDownloadDialog ||
+            (dashboardUiState.showDeprecatedDialog && dashboardUiState.deprecatedNotes.isNotEmpty()) ||
+            dashboardUiState.showAddProfileSheet || dashboardUiState.showProfilePickerSheet || dashboardUiState.showCardSettingsDialog ||
+            showGroupsSheet || showConnectionsSheet || systemPermissionActive
+        if (!showHistoryPermissions) {
+            ServerUpdateForegroundReminder(
+                allowPermissionRequest = historyPrompted && !otherDialogVisible,
+                onDialogVisibilityChanged = { serverUpdateDialogVisible = it },
+            )
+        }
+        LaunchedEffect(resumed, currentRoute, historyPrompted, otherDialogVisible, serverUpdateDialogVisible) {
+            if (resumed && !historyPrompted && !otherDialogVisible && !serverUpdateDialogVisible &&
+                bottomNavigationScreens.any { it.route == currentRoute }
+            ) {
+                showHistoryPermissions = true
+            }
+        }
+        if (showHistoryPermissions) {
+            SmartHistoryPermissionDialog(
+                onDismiss = { showHistoryPermissions = false },
+                onInteraction = {
+                    SmartSettings.historyPermissionPrompted = true
+                    historyPrompted = true
                 },
             )
         }
@@ -1064,6 +1119,7 @@ class MainActivity :
                         serviceStatus = currentServiceStatus,
                         showStartFab = showStartFab,
                         showStatusBar = showStatusBar,
+                        hasSmartGroups = dashboardUiState.hasSmartGroups,
                         newProfileArgs = newProfileArgs,
                         onClearNewProfileArgs = { newProfileArgs = NewProfileArgs() },
                         onOpenNewProfile = openNewProfile,
