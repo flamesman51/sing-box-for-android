@@ -107,6 +107,8 @@
   <string name="smart_history_empty">Истории по сетям пока нет</string>
   <string name="smart_last_seen">последнее использование %1$s</string>
   <string name="smart_show_all">Показать все (%d)</string>
+  <string name="smart_event_repeated">%1$s ×%2$d</string>
+  <string name="smart_event_since">с %1$s</string>
   <string name="smart_starting">Проверка серверов</string>
   <string name="smart_ok">Работает</string>
   <string name="smart_degraded">Ограниченная доступность</string>

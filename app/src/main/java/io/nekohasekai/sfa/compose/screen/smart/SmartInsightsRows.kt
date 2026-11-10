@@ -397,20 +397,23 @@ internal fun SmartInsightsNetworksCard(networks: List<SmartNetworkHistory>) {
 }
 
 @Composable
-internal fun SmartInsightsEventsCard(events: List<SmartEvent>, networks: List<SmartNetworkHistory>) {
+internal fun SmartInsightsEventsCard(events: List<SmartEvent>, networks: List<SmartNetworkHistory>, currentNetwork: SmartNetwork) {
     var showAll by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
-    val sorted = events.sortedByDescending { it.time }
-    val shown = if (showAll) sorted else sorted.take(20)
-    val showMore = !showAll && sorted.size > 20
+    val merged = mergeSmartEvents(events)
+    val shown = if (showAll) merged else merged.take(20)
+    val showMore = !showAll && merged.size > 20
     InsightsCard {
-        shown.forEachIndexed { index, event ->
+        shown.forEachIndexed { index, group ->
+            val event = group.event
+            val kindLabel = stringResource(smartEventLabel(event.kind))
             InsightsRow(
-                headline = stringResource(smartEventLabel(event.kind)),
+                headline = if (group.count > 1) stringResource(R.string.smart_event_repeated, kindLabel, group.count) else kindLabel,
                 supporting = joinParts(
                     smartEventServers(event.from, event.to),
                     smartReasonLabel(event.reason)?.let { stringResource(it) },
-                    networkLabelForKey(event.network, networks) { context.getString(smartNetworkFallbackLabel(it)) },
+                    networkLabelForKey(event.network, networks, currentNetwork) { context.getString(smartNetworkFallbackLabel(it)) },
+                    if (group.count > 1) smartTimeText(group.oldestTime)?.let { stringResource(R.string.smart_event_since, it) } else null,
                 ),
                 modifier = Modifier.rowCorners(index == 0, index == shown.lastIndex && !showMore),
                 trailing = {
@@ -421,7 +424,7 @@ internal fun SmartInsightsEventsCard(events: List<SmartEvent>, networks: List<Sm
         }
         if (showMore) {
             TextButton(onClick = { showAll = true }, modifier = Modifier.padding(start = 8.dp)) {
-                Text(stringResource(R.string.smart_show_all, sorted.size))
+                Text(stringResource(R.string.smart_show_all, merged.size))
             }
         }
     }

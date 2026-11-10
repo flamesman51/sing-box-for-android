@@ -306,6 +306,8 @@ class SmartInsightsLabelsTest {
             Triple("smart_events_empty", "No events yet", "Событий пока нет"),
             Triple("smart_unnamed_wifi", "Unnamed Wi‑Fi network", "Сеть Wi‑Fi без имени"),
             Triple("smart_unnamed_mobile", "Unnamed mobile network", "Мобильная сеть без имени"),
+            Triple("smart_event_repeated", "%1\$s ×%2\$d", "%1\$s ×%2\$d"),
+            Triple("smart_event_since", "since %1\$s", "с %1\$s"),
         )
         val english = strings("values")
         val russian = strings("values-ru-rRU")

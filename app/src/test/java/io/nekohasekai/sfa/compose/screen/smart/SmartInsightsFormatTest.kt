@@ -42,6 +42,54 @@ class SmartInsightsFormatTest {
     }
 
     @Test
+    fun adjacentDuplicateEventsKeepTheNewestEventAndOldestTime() {
+        val newest = event(30)
+        assertEquals(listOf(SmartEventGroup(newest, 3, 10)), mergeSmartEvents(listOf(event(10), newest, event(20))))
+        assertEquals(listOf(SmartEventGroup(newest, 1, 30)), mergeSmartEvents(listOf(newest)))
+        assertTrue(mergeSmartEvents(emptyList()).isEmpty())
+    }
+
+    @Test
+    fun identicalEventsSeparatedByAnotherEventAreNotMerged() {
+        val middle = event(20).copy(kind = "recover")
+        assertEquals(
+            listOf(SmartEventGroup(event(30), 1, 30), SmartEventGroup(middle, 1, 20), SmartEventGroup(event(10), 1, 10)),
+            mergeSmartEvents(listOf(event(10), event(30), middle)),
+        )
+    }
+
+    @Test
+    fun everyEventIdentityFieldMustMatchBeforeMerging() {
+        val newest = event(30)
+        val differentEvents = listOf(
+            newest.copy(time = 20, kind = "recover"),
+            newest.copy(time = 20, from = "Server [second]"),
+            newest.copy(time = 20, to = "Server [second]"),
+            newest.copy(time = 20, reason = "different reason"),
+            newest.copy(time = 20, network = "different-network"),
+        )
+        differentEvents.forEach { different ->
+            assertEquals(listOf(SmartEventGroup(newest, 1, 30), SmartEventGroup(different, 1, 20)), mergeSmartEvents(listOf(newest, different)))
+        }
+        assertEquals(2, mergeSmartEvents(listOf(newest, newest.copy(time = 20, to = ""))).size)
+    }
+
+    @Test
+    fun repeatedEventsCountAsOneRowBeforeTheTwentyRowLimit() {
+        val repeated = List(25) { event(100L - it) }
+        assertEquals(1, mergeSmartEvents(repeated).size)
+        val distinct = List(20) { event(20L - it).copy(reason = "Reason $it") }
+        val merged = mergeSmartEvents(repeated + distinct)
+        assertEquals(21, merged.size)
+        assertEquals(20, merged.take(20).size)
+        assertEquals(25, merged.first().count)
+        assertEquals(100L, merged.first().event.time)
+        assertEquals(76L, merged.first().oldestTime)
+    }
+
+    private fun event(time: Long) = SmartEvent(time, "quarantine", "Server [first]", null, "network-key", "reason")
+
+    @Test
     fun safeNetworkLabelRemovesMacsAndUsesLocalizedFallbacks() {
         assertEquals("Guest", safeNetworkLabel("Guest aA:bB:cC:dD:eE:fF", "Carrier", "Wi‑Fi"))
         assertEquals("Carrier", safeNetworkLabel("AA:BB:CC:DD:EE:FF", "Carrier", "Wi‑Fi"))
@@ -56,10 +104,23 @@ class SmartInsightsFormatTest {
     @Test
     fun networkLookupNeverFallsBackToTheKey() {
         val network = SmartNetworkHistory("network-key", "wifi", "Guest AA:BB:CC:DD:EE:FF", null, null, 1, 1.0, emptyList())
-        assertEquals("Guest", networkLabelForKey("network-key", listOf(network)) { "Wi‑Fi" })
-        assertEquals("Другая", networkLabelForKey("network-key", listOf(network.copy(label = null))) { "Другая" })
-        assertNull(networkLabelForKey("missing", listOf(network)) { "Wi‑Fi" })
-        assertNull(networkLabelForKey(null, listOf(network)) { "Wi‑Fi" })
+        assertEquals("Guest", networkLabelForKey("network-key", listOf(network), null) { "Wi‑Fi" })
+        assertEquals("Другая", networkLabelForKey("network-key", listOf(network.copy(label = null)), null) { "Другая" })
+        assertNull(networkLabelForKey("missing", listOf(network), null) { "Wi‑Fi" })
+        assertNull(networkLabelForKey(null, listOf(network), null) { "Wi‑Fi" })
+    }
+
+    @Test
+    fun currentNetworkLabelTakesPrecedenceOverHistoryForMatchingKeys() {
+        val history = listOf(network("network-key", "wifi", "History", null, 1, 1))
+        val current = SmartNetwork("network-key", "wifi", "Current Guest AA:BB:CC:DD:EE:FF", null, null, null)
+        val fallback = { _: String -> "Unnamed Wi‑Fi network" }
+        assertEquals("Current Guest", networkLabelForKey("network-key", history, current, fallback))
+        assertEquals("Current Guest", networkLabelForKey("network-key", emptyList(), current, fallback))
+        assertEquals("History", networkLabelForKey("network-key", history, current.copy(key = "different-network"), fallback))
+        assertEquals("Carrier", networkLabelForKey("network-key", history, current.copy(label = null, carrier = "Carrier"), fallback))
+        assertEquals("Unnamed Wi‑Fi network", networkLabelForKey("network-key", history, current.copy(label = null), fallback))
+        assertNull(networkLabelForKey("missing", history, current, fallback))
     }
 
     @Test
@@ -106,9 +167,9 @@ class SmartInsightsFormatTest {
             ),
             groupSmartNetworks(networks, fallback),
         )
-        assertEquals("Unnamed Wi‑Fi network", networkLabelForKey("first", networks, fallback))
-        assertEquals("Unnamed mobile network", networkLabelForKey("third", networks, fallback))
-        assertEquals("Other", networkLabelForKey("fourth", networks, fallback))
+        assertEquals("Unnamed Wi‑Fi network", networkLabelForKey("first", networks, null, fallback))
+        assertEquals("Unnamed mobile network", networkLabelForKey("third", networks, null, fallback))
+        assertEquals("Other", networkLabelForKey("fourth", networks, null, fallback))
     }
 
     private fun network(key: String, type: String, label: String?, carrier: String?, lastSeen: Long, servers: Int) = SmartNetworkHistory(

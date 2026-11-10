@@ -31,6 +31,27 @@ internal fun smartEventServers(from: String?, to: String?): String? {
     return if (fromName != null && toName != null) "$fromName → $toName" else fromName ?: toName
 }
 
+internal data class SmartEventGroup(val event: SmartEvent, val count: Int, val oldestTime: Long)
+
+internal fun mergeSmartEvents(events: List<SmartEvent>): List<SmartEventGroup> {
+    val groups = mutableListOf<SmartEventGroup>()
+    for (event in events.sortedByDescending { it.time }) {
+        val previous = groups.lastOrNull()
+        if (previous != null &&
+            previous.event.kind == event.kind &&
+            previous.event.from == event.from &&
+            previous.event.to == event.to &&
+            previous.event.reason == event.reason &&
+            previous.event.network == event.network
+        ) {
+            groups[groups.lastIndex] = previous.copy(count = previous.count + 1, oldestTime = event.time)
+        } else {
+            groups.add(SmartEventGroup(event, 1, event.time))
+        }
+    }
+    return groups
+}
+
 internal fun safeNetworkLabel(label: String?, carrier: String?, fallbackLabel: String): String {
     fun clean(value: String?): String? = value?.replace(smartTrailingMac, "")?.trim()?.takeUnless {
         it.isBlank() || smartMac.matches(it) || smartNetworkKey.matches(it)
@@ -38,7 +59,12 @@ internal fun safeNetworkLabel(label: String?, carrier: String?, fallbackLabel: S
     return clean(label) ?: clean(carrier) ?: fallbackLabel
 }
 
-internal fun networkLabelForKey(key: String?, networks: List<SmartNetworkHistory>, fallbackLabel: (String) -> String): String? = networks.firstOrNull { it.key == key }?.let { safeNetworkLabel(it.label, it.carrier, fallbackLabel(it.type)) }
+internal fun networkLabelForKey(key: String?, networks: List<SmartNetworkHistory>, currentNetwork: SmartNetwork?, fallbackLabel: (String) -> String): String? {
+    if (currentNetwork != null && currentNetwork.key == key) {
+        return safeNetworkLabel(currentNetwork.label, currentNetwork.carrier, fallbackLabel(currentNetwork.type))
+    }
+    return networks.firstOrNull { it.key == key }?.let { safeNetworkLabel(it.label, it.carrier, fallbackLabel(it.type)) }
+}
 
 internal data class SmartNetworkGroup(val label: String, val type: String, val count: Int, val servers: Int, val lastUsed: Long)
 
