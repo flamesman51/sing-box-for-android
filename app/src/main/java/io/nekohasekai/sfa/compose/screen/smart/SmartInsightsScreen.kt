@@ -9,6 +9,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,10 +22,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.FileUpload
+import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -100,6 +108,7 @@ fun SmartInsightsScreen(navController: NavController, group: String, serviceStat
     var rawWarning by remember { mutableStateOf(false) }
     var resetConfirmation by remember { mutableStateOf(false) }
     var notice by remember { mutableStateOf<Int?>(null) }
+    var actionsExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(lifecycle, group, remoteServer, serviceStatus) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -230,6 +239,52 @@ fun SmartInsightsScreen(navController: NavController, group: String, serviceStat
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.content_description_back))
                 }
             },
+            actions = {
+                Box {
+                    IconButton(onClick = { actionsExpanded = true }) {
+                        Icon(Icons.Default.MoreVert, stringResource(R.string.content_description_more_options))
+                    }
+                    DropdownMenu(expanded = actionsExpanded, onDismissRequest = { actionsExpanded = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.smart_export)) },
+                            leadingIcon = { Icon(Icons.Outlined.FileUpload, contentDescription = null) },
+                            enabled = client != null && !busy && status != null,
+                            onClick = {
+                                actionsExpanded = false
+                                export(false)
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.smart_export_raw)) },
+                            leadingIcon = { Icon(Icons.Outlined.FileUpload, contentDescription = null) },
+                            enabled = client != null && !busy && status != null,
+                            onClick = {
+                                actionsExpanded = false
+                                rawWarning = true
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.smart_import)) },
+                            leadingIcon = { Icon(Icons.Outlined.FileDownload, contentDescription = null) },
+                            enabled = !busy && client != null,
+                            onClick = {
+                                actionsExpanded = false
+                                openDocument.launch(arrayOf("application/json", "text/*", "application/octet-stream"))
+                            },
+                        )
+                        HorizontalDivider()
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.smart_reset), color = MaterialTheme.colorScheme.error) },
+                            leadingIcon = { Icon(Icons.Outlined.RestartAlt, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                            enabled = !busy && client != null && status != null,
+                            onClick = {
+                                actionsExpanded = false
+                                resetConfirmation = true
+                            },
+                        )
+                    }
+                }
+            },
         )
     }
     LazyColumn(
@@ -241,12 +296,6 @@ fun SmartInsightsScreen(navController: NavController, group: String, serviceStat
         contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
     ) {
         item {
-            Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                TextButton(onClick = { export(false) }, enabled = client != null && !busy && status != null) { Text(stringResource(R.string.smart_export)) }
-                TextButton(onClick = { rawWarning = true }, enabled = client != null && !busy && status != null) { Text(stringResource(R.string.smart_export_raw)) }
-                TextButton(onClick = { openDocument.launch(arrayOf("application/json", "text/*", "application/octet-stream")) }, enabled = !busy && client != null) { Text(stringResource(R.string.smart_import)) }
-                TextButton(onClick = { resetConfirmation = true }, enabled = !busy && client != null && status != null) { Text(stringResource(R.string.smart_reset)) }
-            }
             if (busy || (status == null && pollingError == null)) CircularProgressIndicator()
             pollingError?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.onSurfaceVariant) }
             notice?.let { Text(stringResource(it)) }
@@ -399,7 +448,7 @@ fun SmartInsightsScreen(navController: NavController, group: String, serviceStat
                     items(result.ignored) { entry -> Text(stringResource(R.string.smart_import_ignored, entry.network, smartLabel(entry.reason))) }
                 }
             },
-            confirmButton = { TextButton(onClick = { report = null }) { Text(stringResource(R.string.smart_close)) } },
+            confirmButton = { TextButton(onClick = { report = null }) { Text(stringResource(R.string.close)) } },
         )
     }
     actionError?.let { message ->
@@ -407,7 +456,7 @@ fun SmartInsightsScreen(navController: NavController, group: String, serviceStat
             onDismissRequest = { actionError = null },
             title = { Text(stringResource(R.string.smart_error)) },
             text = { Text(message) },
-            confirmButton = { TextButton(onClick = { actionError = null }) { Text(stringResource(R.string.smart_close)) } },
+            confirmButton = { TextButton(onClick = { actionError = null }) { Text(stringResource(R.string.close)) } },
         )
     }
 }
@@ -505,7 +554,7 @@ private fun SmartConfirmDialog(title: String, message: String, enabled: Boolean 
         title = { Text(title) },
         text = { Text(message) },
         confirmButton = { TextButton(onClick = onConfirm, enabled = enabled) { Text(stringResource(R.string.smart_continue)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.smart_cancel)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }
 

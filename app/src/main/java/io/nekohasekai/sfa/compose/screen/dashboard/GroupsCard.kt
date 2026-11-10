@@ -27,6 +27,8 @@ import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.UnfoldLess
 import androidx.compose.material.icons.filled.UnfoldMore
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.SignalWifiOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -76,7 +78,7 @@ import io.nekohasekai.sfa.compose.model.Group
 import io.nekohasekai.sfa.compose.model.GroupItem
 import io.nekohasekai.sfa.compose.screen.dashboard.groups.GroupsUiState
 import io.nekohasekai.sfa.compose.screen.dashboard.groups.GroupsViewModel
-import io.nekohasekai.sfa.compose.screen.smart.SmartAvailabilityNoticeText
+import io.nekohasekai.sfa.compose.screen.smart.SmartAvailabilityNotice
 import io.nekohasekai.sfa.compose.topbar.LocalScaffoldPadding
 import io.nekohasekai.sfa.compose.topbar.OverrideTopBar
 import io.nekohasekai.sfa.compose.util.rememberSheetDismissFromContentOnlyIfGestureStartedAtTopModifier
@@ -291,10 +293,25 @@ private fun GroupsCardContent(
                                 modifier = Modifier.fillMaxWidth().animateItem(),
                                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                             ) {
-                                SmartAvailabilityNoticeText(
-                                    notice,
+                                val networkDown = notice == SmartAvailabilityNotice.NetworkDown
+                                val noticeColor = if (networkDown) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                                Row(
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                )
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        imageVector = if (networkDown) Icons.Outlined.SignalWifiOff else Icons.Outlined.CloudOff,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = noticeColor,
+                                    )
+                                    Text(
+                                        stringResource(if (networkDown) R.string.smart_network_down else R.string.smart_no_servers_responding),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = noticeColor,
+                                    )
+                                }
                             }
                         }
                     }

@@ -109,4 +109,15 @@
   <string name="smart_foreign_key">Location key from another installation</string>
   <string name="smart_unknown_member">Unknown server</string>
   <string name="smart_stale">Expired statistics</string>
+  <string name="smart_managed_description">Automatically bypass apps matched to these regions</string>
+  <string name="smart_managed_manual_hint">Clear regions above to choose apps manually</string>
+  <string name="smart_managed_off">Automatic bypass off</string>
+  <string name="smart_managed_scanning">Scanning apps…</string>
+  <string name="smart_managed_sdk_hint">SDK matches can include apps from other countries.</string>
+  <string name="smart_managed_failed">Couldn\'t update apps. The previous list stays active.</string>
+  <string name="smart_managed_retry">Retry</string>
+  <plurals name="smart_managed_app_count">
+    <item quantity="one">%d app bypasses the VPN</item>
+    <item quantity="other">%d apps bypass the VPN</item>
+  </plurals>
 </resources>

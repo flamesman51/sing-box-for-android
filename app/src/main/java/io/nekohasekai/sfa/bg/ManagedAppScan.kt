@@ -13,6 +13,8 @@ object ManagedAppScan {
         ManagedScanController(
             scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate),
             initialRegions = selectedRegions(),
+            initialAppliedRegions = if (Settings.perAppProxyManagedMode) AppScanRegion.fromSettings(Settings.perAppProxyManagedRegions) else emptySet(),
+            initialAppCount = Settings.perAppProxyManagedList.size,
             saveSelection = { regions -> Settings.perAppProxySelectedRegions = regions.map { it.name }.toSet() },
             scan = { regions -> PerAppProxyScanner.scanAllManagedApps(regions) },
             publish = { regions, apps ->
@@ -28,12 +30,12 @@ object ManagedAppScan {
 
     internal val state get() = controller.state
 
-    private fun selectedRegions(): Set<AppScanRegion> = AppScanRegion.entries.filter { it.name in Settings.perAppProxySelectedRegions }.toSet()
+    private fun selectedRegions(): Set<AppScanRegion> = AppScanRegion.fromSettings(Settings.perAppProxySelectedRegions)
 
     fun select(regions: Set<AppScanRegion>) = controller.select(regions)
 
-    suspend fun update(regions: Set<AppScanRegion>? = null) = withContext(Dispatchers.Main.immediate) {
-        if (regions == null && (!Settings.perAppProxyEnabled || controller.state.value.regions.isEmpty())) return@withContext
-        controller.select(regions ?: controller.state.value.regions).join()
+    suspend fun update() = withContext(Dispatchers.Main.immediate) {
+        if (!Settings.perAppProxyEnabled || controller.state.value.regions.isEmpty()) return@withContext
+        controller.select(controller.state.value.regions).join()
     }
 }

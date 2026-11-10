@@ -18,7 +18,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.AppShortcut
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Route
@@ -29,12 +28,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MultiChoiceSegmentedButtonRow
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -49,11 +48,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -61,9 +62,11 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
 import io.nekohasekai.sfa.R
 import io.nekohasekai.sfa.bg.ManagedAppScan
+import io.nekohasekai.sfa.bg.ManagedScanStatus
 import io.nekohasekai.sfa.bg.RootClient
 import io.nekohasekai.sfa.compose.base.UiEvent
 import io.nekohasekai.sfa.compose.base.rememberApplyServiceChangeNotifier
+import io.nekohasekai.sfa.compose.shared.ModeSegmentedButton
 import io.nekohasekai.sfa.compose.topbar.LocalScaffoldPadding
 import io.nekohasekai.sfa.compose.topbar.OverrideTopBar
 import io.nekohasekai.sfa.constant.Status
@@ -99,24 +102,20 @@ fun ProfileOverrideScreen(
 
     var autoRedirect by remember { mutableStateOf(Settings.autoRedirect) }
     var perAppProxyEnabled by remember { mutableStateOf(Settings.perAppProxyEnabled) }
-    var managedModeEnabled by remember { mutableStateOf(Settings.perAppProxySelectedRegions.isNotEmpty()) }
-    var managedRegions by remember { mutableStateOf(AppScanRegion.fromSettings(Settings.perAppProxySelectedRegions)) }
-    var isScanning by remember { mutableStateOf(false) }
+    val managedScan by ManagedAppScan.state.collectAsState()
+    val managedRegions = managedScan.regions
+    val managedModeEnabled = managedRegions.isNotEmpty()
     val notifyApplyChange = rememberApplyServiceChangeNotifier(serviceStatus)
 
-    fun scanAndSaveManagedList(shouldNotify: Boolean = false) {
-        val regions = managedRegions
-        val enableManagedMode = managedModeEnabled
-        isScanning = true
-        scope.launch {
-            try {
-                ManagedAppScan.update(if (enableManagedMode) regions else emptySet())
-                if (shouldNotify) {
-                    notifyApplyChange(UiEvent.ApplyServiceChange.Mode.Reload)
-                }
-            } finally {
-                isScanning = false
-            }
+    val initialAppliedRevision = remember { managedScan.appliedRevision }
+    LaunchedEffect(managedScan.appliedRevision) {
+        if (managedScan.appliedRevision != initialAppliedRevision) {
+            notifyApplyChange(UiEvent.ApplyServiceChange.Mode.Reload)
+        }
+    }
+    LaunchedEffect(Unit) {
+        if (managedScan.status == ManagedScanStatus.Scanning && !managedScan.isScanning) {
+            ManagedAppScan.select(managedRegions)
         }
     }
 
@@ -188,7 +187,7 @@ fun ProfileOverrideScreen(
                 Settings.perAppProxyEnabled = true
             }
             if (managedModeEnabled) {
-                scanAndSaveManagedList(shouldNotify = true)
+                ManagedAppScan.select(managedRegions)
             } else {
                 notifyApplyChange(UiEvent.ApplyServiceChange.Mode.Reload)
             }
@@ -401,11 +400,10 @@ fun ProfileOverrideScreen(
                                         }
                                     }
                                     if (checked && managedModeEnabled) {
-                                        scanAndSaveManagedList(shouldNotify = true)
+                                        ManagedAppScan.select(managedRegions)
                                     }
                                 }
                             },
-                            enabled = !isScanning,
                         )
                     },
                     modifier =
@@ -440,6 +438,18 @@ fun ProfileOverrideScreen(
                                 },
                             )
                         },
+                        supportingContent = if (managedModeEnabled) {
+                            {
+                                Text(
+                                    stringResource(R.string.smart_managed_manual_hint),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            }
+                        } else {
+                            null
+                        },
                         leadingContent = {
                             Icon(
                                 imageVector = Icons.Outlined.AppShortcut,
@@ -472,7 +482,6 @@ fun ProfileOverrideScreen(
                         ),
                     )
 
-                    // Managed Mode toggle
                     ListItem(
                         headlineContent = {
                             Text(
@@ -482,7 +491,7 @@ fun ProfileOverrideScreen(
                         },
                         supportingContent = {
                             Text(
-                                stringResource(R.string.per_app_proxy_managed_mode_description),
+                                stringResource(R.string.smart_managed_description),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 4.dp),
@@ -495,83 +504,80 @@ fun ProfileOverrideScreen(
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         },
-                        trailingContent = {
-                            if (isScanning) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp,
-                                )
-                            } else {
-                                Switch(
-                                    checked = managedModeEnabled,
-                                    onCheckedChange = { checked ->
-                                        if (checked) {
-                                            managedModeEnabled = true
-                                            scanAndSaveManagedList(shouldNotify = true)
-                                        } else {
-                                            managedModeEnabled = false
-                                            ManagedAppScan.select(emptySet())
-                                            scope.launch {
-                                                withContext(Dispatchers.Main) {
-                                                    notifyApplyChange(UiEvent.ApplyServiceChange.Mode.Reload)
-                                                }
-                                            }
-                                        }
-                                    },
-                                )
-                            }
-                        },
-                        modifier = Modifier.clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)),
-                        colors =
-                        ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        ),
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
-                    if (managedModeEnabled) {
-                        Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
-                            Text(
-                                stringResource(R.string.per_app_proxy_managed_regions),
-                                style = MaterialTheme.typography.labelLarge,
+                    MultiChoiceSegmentedButtonRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 56.dp, end = 16.dp, bottom = 12.dp),
+                    ) {
+                        AppScanRegion.entries.forEachIndexed { index, region ->
+                            val selected = region in managedRegions
+                            ModeSegmentedButton(
+                                index = index,
+                                count = AppScanRegion.entries.size,
+                                checked = selected,
+                                onCheckedChange = {
+                                    ManagedAppScan.select(if (selected) managedRegions - region else managedRegions + region)
+                                },
+                                label = stringResource(
+                                    when (region) {
+                                        AppScanRegion.China -> R.string.per_app_proxy_region_china
+                                        AppScanRegion.Russia -> R.string.per_app_proxy_region_russia
+                                    },
+                                ),
                             )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                AppScanRegion.entries.forEach { region ->
-                                    val selected = region in managedRegions
-                                    FilterChip(
-                                        selected = selected,
-                                        enabled = !isScanning && (!selected || managedRegions.size > 1),
-                                        onClick = {
-                                            managedRegions = if (selected) managedRegions - region else managedRegions + region
-                                            scanAndSaveManagedList(shouldNotify = true)
-                                        },
-                                        leadingIcon = if (selected) {
-                                            {
-                                                Icon(
-                                                    imageVector = Icons.Default.Check,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(18.dp),
-                                                )
-                                            }
-                                        } else {
-                                            null
-                                        },
-                                        label = {
-                                            Text(
-                                                stringResource(
-                                                    when (region) {
-                                                        AppScanRegion.China -> R.string.per_app_proxy_region_china
-                                                        AppScanRegion.Russia -> R.string.per_app_proxy_region_russia
-                                                    },
-                                                ),
-                                            )
-                                        },
-                                    )
-                                }
-                            }
-                            Text(
-                                stringResource(R.string.per_app_proxy_managed_detection_hint),
+                        }
+                    }
+                    Column(
+                        modifier = Modifier.padding(start = 56.dp, end = 16.dp, bottom = 12.dp),
+                    ) {
+                        when (managedScan.status) {
+                            ManagedScanStatus.Off -> Text(
+                                stringResource(R.string.smart_managed_off),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            ManagedScanStatus.Scanning -> Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(12.dp),
+                                    strokeWidth = 1.5.dp,
+                                )
+                                Text(
+                                    stringResource(R.string.smart_managed_scanning),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            ManagedScanStatus.Applied -> {
+                                Text(
+                                    pluralStringResource(
+                                        R.plurals.smart_managed_app_count,
+                                        managedScan.bypassedAppCount,
+                                        managedScan.bypassedAppCount,
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    stringResource(R.string.smart_managed_sdk_hint),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            ManagedScanStatus.Failed -> {
+                                Text(
+                                    stringResource(R.string.smart_managed_failed),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                                TextButton(onClick = { ManagedAppScan.select(managedRegions) }) {
+                                    Text(stringResource(R.string.smart_managed_retry))
+                                }
+                            }
                         }
                     }
                 }
@@ -604,7 +610,7 @@ fun ProfileOverrideScreen(
                                         }
                                     }
                                     if (managedModeEnabled) {
-                                        scanAndSaveManagedList(shouldNotify = true)
+                                        ManagedAppScan.select(managedRegions)
                                     }
                                 },
                             ) {
@@ -680,7 +686,7 @@ fun ProfileOverrideScreen(
                                         Settings.perAppProxyEnabled = true
                                     }
                                     if (managedModeEnabled) {
-                                        scanAndSaveManagedList(shouldNotify = true)
+                                        ManagedAppScan.select(managedRegions)
                                     } else {
                                         notifyApplyChange(UiEvent.ApplyServiceChange.Mode.Reload)
                                     }

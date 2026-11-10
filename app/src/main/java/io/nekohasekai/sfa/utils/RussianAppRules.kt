@@ -6,7 +6,7 @@ enum class AppScanRegion {
     ;
 
     companion object {
-        fun fromSettings(values: Set<String>): Set<AppScanRegion> = entries.filter { it.name in values }.toSet().ifEmpty { setOf(China) }
+        fun fromSettings(values: Set<String>): Set<AppScanRegion> = entries.filter { it.name in values }.toSet()
     }
 }
 
@@ -14,7 +14,7 @@ const val MAX_SCANNED_DEX_BYTES = 15_000_000L
 
 fun canParseAppDex(size: Long): Boolean = size in 0..MAX_SCANNED_DEX_BYTES
 
-fun managedRegionSelection(enabled: Boolean, values: Set<String>): Set<AppScanRegion> = if (enabled) AppScanRegion.fromSettings(values) else emptySet()
+fun managedRegionSelection(enabled: Boolean, values: Set<String>): Set<AppScanRegion> = if (enabled) AppScanRegion.fromSettings(values).ifEmpty { setOf(AppScanRegion.China) } else emptySet()
 
 class RussianAppRules(private val packages: Set<String>) {
     fun matchesPackage(packageName: String): Boolean = packageName in packages

@@ -39,6 +39,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import io.nekohasekai.sfa.R
 import io.nekohasekai.sfa.compose.shared.ModeSegmentedButton
+import io.nekohasekai.sfa.utils.fittingSegmentWidths
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,18 +79,15 @@ fun ClashModeCard(modes: List<String>, selectedMode: String, onModeSelected: (St
                 val textStyle = MaterialTheme.typography.labelLarge
                 val density = LocalDensity.current
 
-                val totalTextWidth = remember(modes, textStyle, density) {
-                    modes.sumOf { mode ->
-                        textMeasurer.measure(mode, textStyle).size.width
-                    }
+                val segmentWidths = remember(modes, textStyle, density, maxWidth) {
+                    fittingSegmentWidths(
+                        labelWidths = modes.map { mode -> textMeasurer.measure(mode, textStyle).size.width },
+                        density = density.density,
+                        availableWidth = with(density) { maxWidth.toPx() },
+                    )
                 }
-                val buttonPadding = with(density) { (24.dp * modes.size).roundToPx() }
-                val estimatedWidth = totalTextWidth + buttonPadding
-                val availableWidth = with(density) { maxWidth.roundToPx() }
 
-                val useDropdown = estimatedWidth > availableWidth
-
-                if (useDropdown) {
+                if (segmentWidths == null) {
                     ModeDropdown(
                         modes = modes,
                         selectedMode = selectedMode,
@@ -99,14 +97,19 @@ fun ClashModeCard(modes: List<String>, selectedMode: String, onModeSelected: (St
                     SingleChoiceSegmentedButtonRow(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
+                        val rowScope = this
                         modes.forEachIndexed { index, mode ->
-                            ModeSegmentedButton(
-                                index = index,
-                                count = modes.size,
-                                onClick = { onModeSelected(mode) },
-                                selected = mode == selectedMode,
-                                label = mode,
-                            )
+                            // Material's button enforces weight(1f), so apply proportional weights to its parent.
+                            Box(modifier = Modifier.weight(segmentWidths[index])) {
+                                rowScope.ModeSegmentedButton(
+                                    index = index,
+                                    count = modes.size,
+                                    onClick = { onModeSelected(mode) },
+                                    selected = mode == selectedMode,
+                                    label = mode,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
                         }
                     }
                 }

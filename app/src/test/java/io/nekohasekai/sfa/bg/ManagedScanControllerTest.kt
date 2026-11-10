@@ -126,4 +126,79 @@ class ManagedScanControllerTest {
         assertEquals(setOf("new.app"), effectiveApps)
         assertEquals(null, controller.state.value.failure)
     }
+
+    @Test
+    fun statusShowsCountOnlyForTheAppliedSelectionAndRevision() {
+        val applied = ManagedScanState(
+            regions = china,
+            appliedRegions = china,
+            requestedRevision = 3,
+            appliedRevision = 3,
+            bypassedAppCount = 7,
+        )
+        assertEquals(ManagedScanStatus.Applied, applied.status)
+        assertEquals(7, applied.bypassedAppCount)
+        assertEquals(ManagedScanStatus.Scanning, applied.copy(regions = russia).status)
+        assertEquals(ManagedScanStatus.Scanning, applied.copy(requestedRevision = 4).status)
+        assertEquals(ManagedScanStatus.Scanning, applied.copy(isScanning = true).status)
+        assertEquals(ManagedScanStatus.Failed, applied.copy(failure = IllegalStateException()).status)
+        assertEquals(
+            ManagedScanStatus.Scanning,
+            applied.copy(isScanning = true, failure = IllegalStateException()).status,
+        )
+        assertEquals(
+            ManagedScanStatus.Off,
+            applied.copy(regions = emptySet(), isScanning = true, failure = IllegalStateException()).status,
+        )
+    }
+
+    @Test
+    fun retryReplacesFailureWithProgressAndThenTheCurrentCount() = runBlocking {
+        var fail = true
+        val controller = ManagedScanController(
+            scope = this,
+            initialRegions = russia,
+            initialAppliedRegions = china,
+            initialAppCount = 4,
+            saveSelection = {},
+            scan = {
+                if (fail) error("scan failed")
+                setOf("one.app", "two.app")
+            },
+            publish = { _, _ -> },
+        )
+        controller.select(russia).join()
+        assertEquals(ManagedScanStatus.Failed, controller.state.value.status)
+        assertEquals(china, controller.state.value.appliedRegions)
+        assertEquals(4, controller.state.value.bypassedAppCount)
+        fail = false
+        val retry = controller.select(russia)
+        assertEquals(ManagedScanStatus.Scanning, controller.state.value.status)
+        retry.join()
+        assertEquals(ManagedScanStatus.Applied, controller.state.value.status)
+        assertEquals(russia, controller.state.value.appliedRegions)
+        assertEquals(2, controller.state.value.bypassedAppCount)
+    }
+
+    @Test
+    fun clearingRegionsStaysOffWhenTheControllerIsRecreated() = runBlocking {
+        var saved = china
+        val controller = ManagedScanController(
+            scope = this,
+            initialRegions = saved,
+            saveSelection = { saved = it },
+            scan = { emptySet() },
+            publish = { _, _ -> },
+        )
+        controller.select(emptySet()).join()
+        val reopened = ManagedScanController(
+            scope = this,
+            initialRegions = AppScanRegion.fromSettings(saved.map { it.name }.toSet()),
+            saveSelection = {},
+            scan = { emptySet() },
+            publish = { _, _ -> },
+        )
+        assertEquals(emptySet<AppScanRegion>(), reopened.state.value.regions)
+        assertEquals(ManagedScanStatus.Off, reopened.state.value.status)
+    }
 }

@@ -109,4 +109,17 @@
   <string name="smart_foreign_key">Ключ местоположения другой установки</string>
   <string name="smart_unknown_member">Неизвестный сервер</string>
   <string name="smart_stale">Устаревшая статистика</string>
+  <string name="smart_managed_description">Автоматически пускать в обход приложения, связанные с этими регионами</string>
+  <string name="smart_managed_manual_hint">Снимите выбор регионов, чтобы выбрать приложения вручную</string>
+  <string name="smart_managed_off">Автоматический обход выключен</string>
+  <string name="smart_managed_scanning">Поиск приложений…</string>
+  <string name="smart_managed_sdk_hint">Совпадения по SDK могут включать приложения из других стран.</string>
+  <string name="smart_managed_failed">Не удалось обновить список. Действует предыдущий.</string>
+  <string name="smart_managed_retry">Повторить</string>
+  <plurals name="smart_managed_app_count">
+    <item quantity="one">%d приложение идёт в обход VPN</item>
+    <item quantity="few">%d приложения идут в обход VPN</item>
+    <item quantity="many">%d приложений идут в обход VPN</item>
+    <item quantity="other">%d приложений идут в обход VPN</item>
+  </plurals>
 </resources>

@@ -50,9 +50,9 @@ class RussianAppRulesTest {
     }
 
     @Test
-    fun existingAndUnknownSettingsDefaultToChinaAndChoicesRoundTrip() {
-        assertEquals(setOf(AppScanRegion.China), AppScanRegion.fromSettings(emptySet()))
-        assertEquals(setOf(AppScanRegion.China), AppScanRegion.fromSettings(setOf("unknown")))
+    fun emptyAndUnknownSelectionsStayOffAndChoicesRoundTrip() {
+        assertEquals(emptySet<AppScanRegion>(), AppScanRegion.fromSettings(emptySet()))
+        assertEquals(emptySet<AppScanRegion>(), AppScanRegion.fromSettings(setOf("unknown")))
         for (regions in listOf(setOf(AppScanRegion.China), setOf(AppScanRegion.Russia), AppScanRegion.entries.toSet())) {
             assertEquals(regions, AppScanRegion.fromSettings(regions.map { it.name }.toSet()))
         }
