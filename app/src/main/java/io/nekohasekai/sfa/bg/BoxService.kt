@@ -234,7 +234,9 @@ class BoxService(private val service: Service, private val platformInterface: Pl
             withContext(Dispatchers.Main) {
                 activeDiagnosticsProfileSource = diagnosticsProfileSource
                 activeDiagnosticsProfileId = selectedProfileId
-                DiagnosticsJournal.record("vpn_start", mapOf("reason" to activeStartReason.name), profileId = diagnosticsProfileId, profileSource = diagnosticsProfileSource)
+                runCatching {
+                    DiagnosticsJournal.record("vpn_start", mapOf("reason" to activeStartReason.name), profileId = diagnosticsProfileId, profileSource = diagnosticsProfileSource)
+                }
                 Log.i(TAG, "VPN started: ${activeStartReason.name}")
                 status.value = Status.Started
                 notification.show(lastProfileName, R.string.status_started)
@@ -355,7 +357,9 @@ class BoxService(private val service: Service, private val platformInterface: Pl
         alert: Alert? = null,
         message: String? = null,
     ) {
-        DiagnosticsJournal.record("vpn_stop", mapOf("reason" to (reason?.name ?: "ProcessDestroyed"), "alert" to alert?.name), profileId = diagnosticsProfileId, profileSource = diagnosticsProfileSource)
+        runCatching {
+            DiagnosticsJournal.record("vpn_stop", mapOf("reason" to (reason?.name ?: "ProcessDestroyed"), "alert" to alert?.name), profileId = diagnosticsProfileId, profileSource = diagnosticsProfileSource)
+        }
         activeDiagnosticsProfileId = null
         activeDiagnosticsProfileSource = null
         Log.i(TAG, "VPN stopping: ${reason?.name ?: "ProcessDestroyed"}")
@@ -407,7 +411,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
                     }
                 }
                 Libbox.discardPowerReportDraft()
-                PowerReportManager.refresh()
+                DiagnosticsReportDiscovery.shared.scheduleRefresh()
             } finally {
                 withContext(Dispatchers.Main) {
                     if (alert != null) {
@@ -436,10 +440,12 @@ class BoxService(private val service: Service, private val platformInterface: Pl
     }
 
     private suspend fun stopAndAlert(type: Alert, message: String? = null, error: Throwable? = null) {
-        val failure = error?.let(DiagnosticsProjection::failure) ?: mapOf("type" to type.name)
-        DiagnosticsJournal.record("vpn_start_failed", mapOf("reason" to activeStartReason.name, "failure" to type.name) + failure, profileId = diagnosticsProfileId, profileSource = diagnosticsProfileSource)
+        runCatching {
+            val failure = error?.let(DiagnosticsProjection::failure) ?: mapOf("type" to type.name)
+            DiagnosticsJournal.record("vpn_start_failed", mapOf("reason" to activeStartReason.name, "failure" to type.name) + failure, profileId = diagnosticsProfileId, profileSource = diagnosticsProfileSource)
+        }
         Log.e(TAG, "VPN start failed: ${type.name}")
-        DiagnosticsWork.enqueue(service)
+        runCatching { DiagnosticsWork.enqueue(service) }
         withContext(Dispatchers.Main) {
             stopService(ServiceStopReason.FatalConfiguration, type, message)
         }
@@ -450,7 +456,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
     internal fun onStartCommand(reason: ServiceStartReason, startId: Int): Int {
         lastStartId = startId
         val generation = stopGeneration
-        DiagnosticsJournal.record("vpn_start_request", mapOf("reason" to reason.name, "start_id" to startId, "state" to status.value?.name))
+        runCatching { DiagnosticsJournal.record("vpn_start_request", mapOf("reason" to reason.name, "start_id" to startId, "state" to status.value?.name)) }
         Log.i(TAG, "VPN start requested: ${reason.name}, state=${status.value}")
         if (status.value == Status.Stopped) {
             notification.show(lastProfileName, R.string.status_starting)
@@ -476,13 +482,13 @@ class BoxService(private val service: Service, private val platformInterface: Pl
                 Settings.dataStore.initialize()
                 shutdownJob?.join()
                 if (generation != stopGeneration) {
-                    DiagnosticsJournal.record("vpn_start_skipped", mapOf("reason" to reason.name, "decision" to "superseded_by_stop"))
+                    runCatching { DiagnosticsJournal.record("vpn_start_skipped", mapOf("reason" to reason.name, "decision" to "superseded_by_stop")) }
                     service.stopSelf(startId)
                     return@launch
                 }
                 val persistedShouldRun = Settings.shouldRun
                 if (!ServiceStartPolicy.shouldRun(reason, persistedShouldRun)) {
-                    DiagnosticsJournal.record("vpn_start_skipped", mapOf("reason" to reason.name, "decision" to "not_requested"))
+                    runCatching { DiagnosticsJournal.record("vpn_start_skipped", mapOf("reason" to reason.name, "decision" to "not_requested")) }
                     notification.close()
                     if (status.value == Status.Stopped) {
                         service.stopSelf(startId)
@@ -493,7 +499,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
                 }
                 Settings.shouldRun = true
                 if (status.value != Status.Stopped) {
-                    DiagnosticsJournal.record("vpn_start_skipped", mapOf("reason" to reason.name, "decision" to "already_active"))
+                    runCatching { DiagnosticsJournal.record("vpn_start_skipped", mapOf("reason" to reason.name, "decision" to "already_active")) }
                     Settings.dataStore.flush()
                     return@launch
                 }

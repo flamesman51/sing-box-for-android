@@ -31,6 +31,24 @@ class DiagnosticsScrubberTest {
     }
 
     @Test
+    fun preservesEveryTrailingPunctuationAfterRedactingEveryIpv6Form() {
+        val addresses = listOf(
+            "2001:db8:1:2:3:4:5:6",
+            "2001:db8::1",
+            "2001:db8::",
+            "::",
+            "::ffff:192.0.2.10",
+            "2001:db8:1:2:3:4:192.0.2.10",
+        )
+        for (address in addresses) {
+            for (suffix in listOf(".", ",", ":", ";", ")", "]", "\"", "'")) {
+                assertEquals("$address$suffix", "connect <ip>$suffix", DiagnosticsScrubber.text("connect $address$suffix"))
+            }
+            assertEquals("connect <ip>", DiagnosticsScrubber.text("connect $address"))
+        }
+    }
+
+    @Test
     fun keepsOnlyStrictJvmAndAlreadyScrubbedGoFrames() {
         val frames = DiagnosticsScrubber.stack(
             """

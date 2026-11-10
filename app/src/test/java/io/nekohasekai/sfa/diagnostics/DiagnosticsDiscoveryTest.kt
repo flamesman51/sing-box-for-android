@@ -11,13 +11,20 @@ import kotlinx.serialization.json.jsonObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executor
+import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
+import java.util.concurrent.atomic.AtomicInteger
 
 class DiagnosticsDiscoveryTest {
     @get:Rule val temporary = TemporaryFolder()
@@ -75,7 +82,7 @@ class DiagnosticsDiscoveryTest {
             val archived = File(workingDirectory, "crash_reports/2026-11-10T10-00-00")
             assertTrue(archived.mkdirs())
             assertTrue(pending.renameTo(File(archived, "go.log")))
-        }
+        }?.join()
 
         val key = DiagnosticsStore.crashKey("crash_report", "2026-11-10T10-00-00")
         assertFalse(pending.exists())
@@ -96,7 +103,7 @@ class DiagnosticsDiscoveryTest {
         discovery.afterPromotion {
             val reports = File(workingDirectory, "oom_reports").apply { mkdirs() }
             assertTrue(draft.renameTo(File(reports, "2026-11-10T11-00-00")))
-        }
+        }?.join()
 
         assertEquals(
             setOf(DiagnosticsStore.crashKey("oom_report", "2026-11-10T11-00-00")),
@@ -132,5 +139,97 @@ class DiagnosticsDiscoveryTest {
 
         assertTrue(discovery.unsent(store, destination.owner).isEmpty())
         assertEquals(1, enqueued)
+    }
+
+    @Test
+    fun rejectedDiagnosticsFlushDoesNotFailPromotionOrStartupContinuation() {
+        assertFlushFailureDoesNotFailStartup(RejectedExecutionException("diagnostics writer rejected"))
+    }
+
+    @Test
+    fun timedOutDiagnosticsFlushDoesNotFailPromotionOrStartupContinuation() {
+        assertFlushFailureDoesNotFailStartup(TimeoutException("diagnostics writer timed out"))
+    }
+
+    @Test
+    fun startupContinuationDoesNotWaitForBlockedDiagnosticsScan() {
+        val scanStarted = CountDownLatch(1)
+        val releaseScan = CountDownLatch(1)
+        val scanFinished = CountDownLatch(1)
+        val continued = CountDownLatch(1)
+        val startup = Executors.newSingleThreadExecutor()
+        val blockedDiscovery = DiagnosticsReportDiscovery(
+            {
+                scanStarted.countDown()
+                try {
+                    assertTrue("Test did not release the diagnostics scan", releaseScan.await(30, TimeUnit.SECONDS))
+                } finally {
+                    scanFinished.countDown()
+                }
+            },
+            {},
+        )
+        val result = startup.submit {
+            runBlocking {
+                blockedDiscovery.afterPromotion {}
+                continued.countDown()
+            }
+        }
+        try {
+            assertTrue("Diagnostics scan did not start", scanStarted.await(5, TimeUnit.SECONDS))
+            assertTrue("Diagnostics scan blocked startup continuation", continued.await(5, TimeUnit.SECONDS))
+        } finally {
+            releaseScan.countDown()
+            try {
+                result.get(5, TimeUnit.SECONDS)
+                assertTrue("Diagnostics scan did not finish", scanFinished.await(5, TimeUnit.SECONDS))
+            } finally {
+                startup.shutdownNow()
+            }
+        }
+    }
+
+    @Test
+    fun actualPromotionFailureStillPropagatesWithoutScanningDiagnostics() {
+        val failure = IllegalStateException("native promotion failed")
+        var scanned = false
+        val failingDiscovery = DiagnosticsReportDiscovery({ scanned = true }, {})
+
+        val observed = runCatching {
+            runBlocking { failingDiscovery.afterPromotion { throw failure } }
+        }.exceptionOrNull()
+
+        assertSame(failure, observed)
+        assertFalse(scanned)
+    }
+
+    private fun assertFlushFailureDoesNotFailStartup(failure: Exception) {
+        val flushed = CountDownLatch(1)
+        val flushAttempts = AtomicInteger()
+        var promoted = false
+        var continued = false
+        val failingDiscovery = DiagnosticsReportDiscovery(
+            {},
+            {
+                if (flushAttempts.incrementAndGet() == 1) {
+                    flushed.countDown()
+                    throw failure
+                }
+            },
+        )
+
+        runBlocking {
+            failingDiscovery.afterPromotion { promoted = true }
+            continued = true
+        }
+
+        assertTrue(promoted)
+        assertTrue(continued)
+        assertTrue("Diagnostics flush was not attempted", flushed.await(5, TimeUnit.SECONDS))
+
+        runBlocking {
+            assertTrue(failingDiscovery.unsent(store, destination.owner).isEmpty())
+        }
+        assertEquals(2, flushAttempts.get())
     }
 }

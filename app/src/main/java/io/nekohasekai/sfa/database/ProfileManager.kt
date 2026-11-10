@@ -5,6 +5,7 @@ import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.sfa.Application
 import io.nekohasekai.sfa.bg.UpdateProfileWork
 import io.nekohasekai.sfa.constant.Path
+import io.nekohasekai.sfa.diagnostics.DiagnosticsSources
 import io.nekohasekai.sfa.diagnostics.ReportCapabilities
 import io.nekohasekai.sfa.utils.HTTPClient
 import kotlinx.coroutines.CancellationException
@@ -17,6 +18,11 @@ import java.io.File
 object ProfileManager {
     private val callbacks = mutableListOf<() -> Unit>()
     private val profileAccess = Any()
+    private val diagnosticsSources = DiagnosticsSources(profileAccess) { id ->
+        instance.profileDao().get(id)?.typed?.takeIf { it.type == TypedProfile.Type.Remote }?.remoteURL
+    }
+
+    internal fun captureDiagnosticsSource(id: Long): () -> String? = diagnosticsSources.capture(id)
 
     fun registerCallback(callback: () -> Unit) {
         callbacks.add(callback)
@@ -55,6 +61,7 @@ object ProfileManager {
     ): Profile {
         synchronized(profileAccess) {
             profile.id = instance.profileDao().insert(profile)
+            diagnosticsSources.created(profile.id)
             ReportCapabilities.clear(profile.id)
             if (profile.typed.type == TypedProfile.Type.Remote && fetchedProfile != null) {
                 ReportCapabilities.accepted(
@@ -75,6 +82,7 @@ object ProfileManager {
     suspend fun update(profile: Profile): Int {
         try {
             return synchronized(profileAccess) {
+                diagnosticsSources.changing(profile.id)
                 ReportCapabilities.profileChanged(
                     profile.id,
                     profile.typed.remoteURL.takeIf { profile.typed.type == TypedProfile.Type.Remote },
@@ -90,6 +98,7 @@ object ProfileManager {
         try {
             return synchronized(profileAccess) {
                 for (profile in profiles) {
+                    diagnosticsSources.changing(profile.id)
                     ReportCapabilities.profileChanged(
                         profile.id,
                         profile.typed.remoteURL.takeIf { profile.typed.type == TypedProfile.Type.Remote },
@@ -105,6 +114,7 @@ object ProfileManager {
     suspend fun delete(profile: Profile): Int {
         try {
             return synchronized(profileAccess) {
+                diagnosticsSources.changing(profile.id)
                 ReportCapabilities.clear(profile.id)
                 instance.profileDao().delete(profile)
             }
@@ -116,7 +126,10 @@ object ProfileManager {
     suspend fun delete(profiles: List<Profile>): Int {
         try {
             return synchronized(profileAccess) {
-                profiles.forEach { ReportCapabilities.clear(it.id) }
+                profiles.forEach {
+                    diagnosticsSources.changing(it.id)
+                    ReportCapabilities.clear(it.id)
+                }
                 instance.profileDao().delete(profiles)
             }
         } finally {

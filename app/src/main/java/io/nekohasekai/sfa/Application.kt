@@ -44,6 +44,8 @@ import io.nekohasekai.sfa.Application as BoxApplication
 
 class Application : Application() {
     val coreReady = CompletableDeferred<Unit>()
+
+    @Volatile
     var previousVersionCode: Int? = null
         private set
 
@@ -55,10 +57,17 @@ class Application : Application() {
     override fun onCreate() {
         super.onCreate()
         AppLifecycleObserver.register(this)
-        val diagnosticsPreferences = getSharedPreferences("diagnostics-lifecycle", Context.MODE_PRIVATE)
-        previousVersionCode = diagnosticsPreferences.getInt("installed_version", -1).takeIf { it >= 0 }
-        diagnosticsPreferences.edit().putInt("installed_version", BuildConfig.VERSION_CODE).apply()
-        DiagnosticsJournal.record("process_start", mapOf("version_code" to BuildConfig.VERSION_CODE))
+        runCatching {
+            @Suppress("OPT_IN_USAGE")
+            GlobalScope.launch(Dispatchers.IO) {
+                runCatching {
+                    val preferences = getSharedPreferences("diagnostics-lifecycle", Context.MODE_PRIVATE)
+                    previousVersionCode = preferences.getInt("installed_version", -1).takeIf { it >= 0 }
+                    preferences.edit().putInt("installed_version", BuildConfig.VERSION_CODE).apply()
+                }
+            }
+        }
+        runCatching { DiagnosticsJournal.record("process_start", mapOf("version_code" to BuildConfig.VERSION_CODE)) }
 
 //        Seq.setContext(this)
         runCatching {
@@ -74,27 +83,24 @@ class Application : Application() {
         tempDir.mkdirs()
         if (workingDir != null) {
             workingDir.mkdirs()
-            CrashReportManager.install(workingDir, baseDir)
-            OOMReportManager.install(workingDir)
-            PowerReportManager.install(workingDir)
+            runCatching { CrashReportManager.install(workingDir, baseDir) }
+            runCatching { OOMReportManager.install(workingDir) }
+            runCatching { PowerReportManager.install(workingDir) }
         }
 
         @Suppress("OPT_IN_USAGE")
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 Settings.dataStore.initialize()
-                DiagnosticsJournal.preferencesReady()
-                DiagnosticsWork.schedule(this@Application)
-                if (workingDir != null) {
-                    DiagnosticsReportDiscovery.shared.refresh()
-                }
+                runCatching { DiagnosticsJournal.preferencesReady() }
+                runCatching { DiagnosticsWork.schedule(this@Application) }
                 initialize(baseDir, workingDir, tempDir)
                 coreReady.complete(Unit)
-                DiagnosticsJournal.record("core_ready")
+                runCatching { DiagnosticsJournal.record("core_ready") }
             } catch (error: Exception) {
                 coreReady.completeExceptionally(error)
-                DiagnosticsJournal.record("core_setup_failed", DiagnosticsProjection.failure(error))
-                DiagnosticsWork.enqueue(this@Application)
+                runCatching { DiagnosticsJournal.record("core_setup_failed", DiagnosticsProjection.failure(error)) }
+                runCatching { DiagnosticsWork.enqueue(this@Application) }
                 Log.e("Application", "Core initialization failed")
                 return@launch
             }

@@ -5,14 +5,12 @@ import io.nekohasekai.sfa.Application
 import io.nekohasekai.sfa.database.ProfileManager
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.database.TypedProfile
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import java.io.File
 import java.net.URI
-import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executor
-import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
 internal fun diagnosticsAssociation(profileId: Long, source: String?): String = DiagnosticsStore.digest("$profileId\n${source?.let { "remote\n$it" } ?: "local"}")
@@ -22,9 +20,44 @@ internal data class DiagnosticsDestination(val profileId: Long, val source: Stri
     val association: String = diagnosticsAssociation(profileId, source)
 }
 
-internal data class DiagnosticsProfile(val id: Long, val source: String?) {
+internal data class DiagnosticsProfile(val id: Long, val source: String?, val resolveSource: (() -> String?)? = null) {
     val association: String = diagnosticsAssociation(id, source)
     val localOwner: String get() = "local:$association"
+}
+
+internal class DiagnosticsSources(private val access: Any, private val read: (Long) -> String?) {
+    private inner class Snapshot(private val id: Long) {
+        private var resolved = false
+        private var source: String? = null
+
+        fun resolve(): String? = synchronized(access) {
+            if (!resolved) {
+                source = runCatching { read(id) }.getOrNull()
+                resolved = true
+            }
+            source
+        }
+
+        fun missing() = synchronized(access) {
+            source = null
+            resolved = true
+        }
+    }
+
+    private val snapshots = ConcurrentHashMap<Long, Snapshot>()
+
+    fun capture(id: Long): () -> String? = snapshots.getOrPut(id) { Snapshot(id) }::resolve
+
+    // Source mutations hold the same lock, preserving the old source before replacing its token.
+    fun changing(id: Long) = synchronized(access) {
+        snapshots.remove(id)?.resolve()
+        Unit
+    }
+
+    fun created(id: Long) = synchronized(access) {
+        snapshots.remove(id)?.missing()
+        Unit
+    }
 }
 
 internal class DiagnosticsOwnership(
@@ -46,18 +79,27 @@ internal class DiagnosticsOwnership(
     private val lock = Any()
     private val deferred = ArrayDeque<Deferred>()
     private var ready = false
+    private var scheduled = false
 
     fun preferencesReady() = synchronized(lock) {
         ready = true
-        drain()
+        deferred.forEach {
+            if (!it.associated) {
+                it.profile = captureProfile()
+                it.associated = true
+            }
+        }
+        dispatch()
     }
 
-    fun retry() = synchronized(lock) { drain() }
+    fun retry() = synchronized(lock) { dispatch() }
+
+    fun hasPending(): Boolean = synchronized(lock) { deferred.isNotEmpty() }
 
     fun record(kind: String, detail: Map<String, Any?>, profile: DiagnosticsProfile? = null) {
         val event = DiagnosticsProjection.event(kind, detail)
         synchronized(lock) {
-            defer(Deferred(event, profile ?: if (ready) selectedProfile() else null, associated = profile != null || ready))
+            defer(Deferred(event, profile ?: if (ready) captureProfile() else null, associated = profile != null || ready))
         }
     }
 
@@ -65,74 +107,76 @@ internal class DiagnosticsOwnership(
         if (kind !in setOf("crash_report", "oom_report", "power_report")) return
         val event = DiagnosticsProjection.event(kind, emptyMap())
         synchronized(lock) {
-            val profile = if (ready) selectedProfile() else null
+            val profile = if (ready) captureProfile() else null
             if (deferred.none { it.reportKind == kind && it.reportId == id }) {
                 defer(Deferred(event, profile, associated = ready, reportKind = kind, reportId = id))
             } else {
-                drain()
+                dispatch()
             }
         }
     }
 
+    private fun captureProfile(): DiagnosticsProfile? = runCatching(selectedProfile).getOrNull()
+
     private fun defer(entry: Deferred) {
-        if (!ready && deferred.size == 256) deferred.removeFirst()
+        if (deferred.size == 1000) deferred.removeFirst()
         deferred.addLast(entry)
-        drain()
+        dispatch()
+    }
+
+    private fun dispatch() {
+        if (!ready || scheduled || deferred.isEmpty()) return
+        scheduled = true
+        try {
+            writer.execute(::drain)
+        } catch (_: Throwable) {
+            scheduled = false
+        }
     }
 
     private fun drain() {
-        if (!ready) return
-        val entries = deferred.iterator()
-        while (entries.hasNext()) {
-            val entry = entries.next()
-            if (!entry.associated) {
-                entry.profile = selectedProfile()
-                entry.associated = true
-            }
-            val profile = entry.profile ?: DiagnosticsProfile(-1L, null)
-            val target = destination(profile)?.takeIf {
-                profile.source != null && it.profileId == profile.id && it.source == profile.source
-            }
-            val owner = target?.owner ?: profile.localOwner
-            val write = Runnable {
-                try {
-                    val storage = store()
-                    if (entry.reportKind == null) {
-                        storage.record(owner, entry.event)
-                        recorded(entry.event)
-                    } else {
-                        val observation = storage.observe(profile.association, owner, entry.reportKind, requireNotNull(entry.reportId), entry.event)
-                        if (observation == DiagnosticsStore.Observation.RECORDED) recorded(entry.event)
-                        if (observation != DiagnosticsStore.Observation.OTHER_ASSOCIATION && target != null &&
-                            storage.discover(owner, entry.reportKind, entry.reportId)
-                        ) {
-                            discovered(entry.reportKind)
-                        }
-                    }
-                } catch (_: Throwable) {
-                    // Diagnostics must never affect the tunnel or its crash handler.
-                }
-            }
+        while (true) {
+            val entry = synchronized(lock) {
+                deferred.firstOrNull().also { if (it == null) scheduled = false }
+            } ?: return
             try {
-                writer.execute(write)
-            } catch (_: java.util.concurrent.RejectedExecutionException) {
-                // A saturated writer must not turn ready events into a volatile backlog.
-                write.run()
+                persist(entry)
+            } catch (_: Throwable) {
+                synchronized(lock) { scheduled = false }
+                return
             }
-            entries.remove()
+            synchronized(lock) { if (deferred.firstOrNull() === entry) deferred.removeFirst() }
+        }
+    }
+
+    private fun persist(entry: Deferred) {
+        val captured = entry.profile ?: DiagnosticsProfile(-1L, null)
+        val profile = captured.resolveSource?.let { DiagnosticsProfile(captured.id, it()) } ?: captured
+        entry.profile = profile
+        val target = runCatching { destination(profile) }.getOrNull()?.takeIf {
+            profile.source != null && it.profileId == profile.id && it.source == profile.source
+        }
+        val owner = target?.owner ?: profile.localOwner
+        val storage = store()
+        if (entry.reportKind == null) {
+            storage.record(owner, entry.event)
+            runCatching { recorded(entry.event) }
+        } else {
+            val observation = storage.observe(profile.association, owner, entry.reportKind, requireNotNull(entry.reportId), entry.event)
+            if (observation == DiagnosticsStore.Observation.RECORDED) runCatching { recorded(entry.event) }
+            if (observation != DiagnosticsStore.Observation.OTHER_ASSOCIATION && target != null &&
+                storage.discover(owner, entry.reportKind, entry.reportId)
+            ) {
+                runCatching { discovered(entry.reportKind) }
+            }
         }
     }
 }
 
 object DiagnosticsJournal {
-    private val writer = ThreadPoolExecutor(
+    private val writer = ScheduledThreadPoolExecutor(
         1,
-        1,
-        0,
-        TimeUnit.SECONDS,
-        ArrayBlockingQueue(256),
         { runnable -> Thread(runnable, "diagnostics-journal").apply { isDaemon = true } },
-        ThreadPoolExecutor.AbortPolicy(),
     )
 
     internal val store: DiagnosticsStore by lazy {
@@ -141,13 +185,7 @@ object DiagnosticsJournal {
     private val ownership = DiagnosticsOwnership(
         { store },
         writer,
-        {
-            runBlocking(Dispatchers.IO) {
-                val id = Settings.selectedProfile
-                val profile = ProfileManager.get(id)
-                DiagnosticsProfile(id, profile?.typed?.takeIf { it.type == TypedProfile.Type.Remote }?.remoteURL)
-            }
-        },
+        { captureProfile(Settings.selectedProfile) },
         { profile ->
             profile.source?.let { source ->
                 ReportCapabilities.destination(profile.id, source)?.takeIf(::validDestination)?.let {
@@ -159,6 +197,12 @@ object DiagnosticsJournal {
         { event -> Log.i("DiagnosticsJournal", event.toString()) },
     )
 
+    init {
+        runCatching { writer.scheduleWithFixedDelay({ ownership.retry() }, 1, 1, TimeUnit.SECONDS) }
+    }
+
+    private fun captureProfile(id: Long): DiagnosticsProfile = DiagnosticsProfile(id, null, ProfileManager.captureDiagnosticsSource(id))
+
     internal fun preferencesReady() {
         try {
             ownership.preferencesReady()
@@ -169,6 +213,7 @@ object DiagnosticsJournal {
     internal fun flush() {
         ownership.retry()
         writer.submit {}.get(30, TimeUnit.SECONDS)
+        check(!ownership.hasPending()) { "Diagnostics journal writes remain pending" }
     }
 
     internal suspend fun selectedDestination(): DiagnosticsDestination? {
@@ -189,12 +234,7 @@ object DiagnosticsJournal {
 
     fun record(kind: String, detail: Map<String, Any?> = emptyMap(), profileId: Long? = null) {
         try {
-            val profile = profileId?.let { id ->
-                runBlocking(Dispatchers.IO) {
-                    val profile = ProfileManager.get(id)
-                    DiagnosticsProfile(id, profile?.typed?.takeIf { it.type == TypedProfile.Type.Remote }?.remoteURL)
-                }
-            }
+            val profile = profileId?.let(::captureProfile)
             ownership.record(kind, detail, profile)
         } catch (_: Throwable) {
         }

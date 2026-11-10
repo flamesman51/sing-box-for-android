@@ -32,22 +32,25 @@ class BootReceiver : BroadcastReceiver() {
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 Settings.dataStore.initialize()
+                runCatching { DiagnosticsJournal.preferencesReady() }
                 val packageReplaced = intent.action == Intent.ACTION_MY_PACKAGE_REPLACED
                 if (packageReplaced) {
-                    DiagnosticsJournal.record(
-                        "update_installed",
-                        mapOf("from" to Application.application.previousVersionCode, "to" to BuildConfig.VERSION_CODE),
-                    )
-                    DiagnosticsWork.enqueue(context)
+                    runCatching {
+                        DiagnosticsJournal.record(
+                            "update_installed",
+                            mapOf("from" to Application.application.previousVersionCode, "to" to BuildConfig.VERSION_CODE),
+                        )
+                    }
+                    runCatching { DiagnosticsWork.enqueue(context) }
                 }
                 val hasUnreadCrashes = if (!packageReplaced && Settings.shouldRun) {
-                    CrashReportManager.refresh()
+                    CrashReportManager.refresh { _, _ -> }
                     CrashReportManager.unreadCount.value > 0
                 } else {
                     false
                 }
                 val decision = ServiceStartPolicy.receiverDecision(packageReplaced, Settings.shouldRun, hasUnreadCrashes)
-                DiagnosticsJournal.record("boot_receiver", mapOf("action" to action, "decision" to decision.name))
+                runCatching { DiagnosticsJournal.record("boot_receiver", mapOf("action" to action, "decision" to decision.name)) }
                 Log.i("BootReceiver", "VPN restart: ${intent.action}, decision=${decision.name}")
                 when (decision) {
                     ReceiverStartDecision.Start -> withContext(Dispatchers.Main) {
@@ -62,7 +65,9 @@ class BootReceiver : BroadcastReceiver() {
                     ServerUpdateNotifier.refresh(context)
                 }
             } catch (error: Exception) {
-                DiagnosticsJournal.record("boot_receiver", mapOf("action" to action, "decision" to "failed") + DiagnosticsProjection.failure(error))
+                runCatching {
+                    DiagnosticsJournal.record("boot_receiver", mapOf("action" to action, "decision" to "failed") + DiagnosticsProjection.failure(error))
+                }
                 Log.e("BootReceiver", "VPN restart receiver failed")
             } finally {
                 Settings.dataStore.flush()

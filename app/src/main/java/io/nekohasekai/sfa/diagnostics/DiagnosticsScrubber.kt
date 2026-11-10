@@ -1,6 +1,8 @@
 package io.nekohasekai.sfa.diagnostics
 
 import java.io.Reader
+import java.net.URI
+import java.net.URISyntaxException
 
 object DiagnosticsScrubber {
     private val url = Regex("(?i)\\b[a-z][a-z0-9+.-]*://[^\\s<>\\\"']+")
@@ -17,13 +19,21 @@ object DiagnosticsScrubber {
 
     fun text(value: String, maxBytes: Int = 512): String {
         var result = url.replace(value.take(64 * 1024), "<url>")
-        result = ipv6.replace(result) {
-            val address = it.value.substringBefore('%')
-            val colons = address.count { character -> character == ':' }
-            if ("::" in address || colons == 7 || (colons == 6 && ipv4.containsMatchIn(address))) {
-                "<ip>" + it.value.takeLastWhile { character -> character == '.' }
+        result = ipv6.replace(result) { match ->
+            val candidate = match.value
+            val trimmed = candidate.trimEnd('.', ',', ':', ';', ')', ']', '"', '\'')
+            var end = trimmed.length
+            while (true) {
+                if (validIpv6(candidate.substring(0, end))) return@replace "<ip>" + candidate.substring(end)
+                // A terminal :: belongs to the address, not its punctuation suffix.
+                if (end == candidate.length || candidate[end] != ':') break
+                end++
+            }
+            val port = trimmed.lastIndexOf(':')
+            if (port > 0 && trimmed.substring(port + 1).all(Char::isDigit) && validIpv6(trimmed.substring(0, port))) {
+                "<ip>" + candidate.substring(port)
             } else {
-                it.value
+                candidate
             }
         }
         result = ipv4.replace(result, "<ip>")
@@ -31,6 +41,14 @@ object DiagnosticsScrubber {
         result = namedHost.replace(result) { "${it.groupValues[1]}<host>" }
         result = path.replace(result, "<path>")
         return utf8(result, maxBytes)
+    }
+
+    private fun validIpv6(value: String): Boolean = try {
+        // URI parses bracketed numeric literals without DNS or network access.
+        URI("http://[${value.substringBefore('%')}]/")
+        true
+    } catch (_: URISyntaxException) {
+        false
     }
 
     fun utf8(value: String, maxBytes: Int): String {

@@ -12,7 +12,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executor
+import java.util.concurrent.TimeUnit
 
 class DiagnosticsOwnershipTest {
     @get:Rule val temporary = TemporaryFolder()
@@ -294,22 +296,182 @@ class DiagnosticsOwnershipTest {
     }
 
     @Test
-    fun saturatedWriterPersistsReadyEventsWithoutLeavingAVolatileBacklog() {
-        val directory = temporary.newFolder()
-        val store = DiagnosticsStore(directory)
+    fun rejectingWriterNeverRunsStorageOnLifecycleCallerAndRetriesCapturedAssociation() {
+        val store = DiagnosticsStore(temporary.newFolder())
+        val lifecycleThread = Thread.currentThread()
+        val storageThreads = mutableListOf<Thread>()
+        val writes = ArrayDeque<Runnable>()
+        var rejecting = true
+        var selected = firstProfile
         val journal = DiagnosticsOwnership(
-            { store },
-            Executor { throw java.util.concurrent.RejectedExecutionException() },
-            { DiagnosticsProfile(7, null) },
-            { null },
+            {
+                storageThreads += Thread.currentThread()
+                store
+            },
+            Executor {
+                if (rejecting) throw java.util.concurrent.RejectedExecutionException("saturated")
+                writes.addLast(it)
+            },
+            { selected },
+            { if (it == firstProfile) firstDestination else secondDestination },
         )
+        journal.record("process_start", emptyMap())
         journal.preferencesReady()
         journal.record("core_ready", emptyMap())
         journal.reportFound("oom_report", "oom-1")
         journal.reportFound("oom_report", "oom-1")
+        assertFalse(storageThreads.contains(lifecycleThread))
+        assertEquals(0, store.eventCount())
 
-        assertEquals(2, DiagnosticsStore(directory).eventCount())
-        assertTrue(store.unsentDiscoveries(firstDestination.owner).isEmpty())
+        selected = secondProfile
+        rejecting = false
+        journal.retry()
+        val worker = Thread { while (writes.isNotEmpty()) writes.removeFirst().run() }
+        worker.start()
+        worker.join()
+
+        assertFalse(storageThreads.contains(lifecycleThread))
+        val first = store.prepare(firstDestination.owner, JsonObject(emptyMap()), null, emptyList())!!
+        assertEquals(listOf("process_start", "core_ready", "oom_report"), first.envelope.array("events").map { it.jsonObject.string("kind") })
+        assertTrue(store.prepare(secondDestination.owner, JsonObject(emptyMap()), null, emptyList())!!.envelope.array("events").isEmpty())
+    }
+
+    @Test
+    fun writerDispatchFailuresNeverEscapeLifecycleCallsAndRemainRetryable() {
+        val store = DiagnosticsStore(temporary.newFolder())
+        var failing = true
+        val writes = ArrayDeque<Runnable>()
+        val journal = DiagnosticsOwnership(
+            { store },
+            Executor {
+                if (failing) throw IllegalStateException("writer unavailable")
+                writes.addLast(it)
+            },
+            { firstProfile },
+            { firstDestination },
+        )
+        journal.record("process_start", emptyMap())
+        journal.preferencesReady()
+        journal.record("core_ready", emptyMap())
+        journal.reportFound("crash_report", "crash-1")
+        journal.retry()
+        assertEquals(0, store.eventCount())
+
+        failing = false
+        journal.retry()
+        while (writes.isNotEmpty()) writes.removeFirst().run()
+
+        val batch = store.prepare(firstDestination.owner, JsonObject(emptyMap()), null, emptyList())!!
+        assertEquals(listOf("process_start", "core_ready", "crash_report"), batch.envelope.array("events").map { it.jsonObject.string("kind") })
+    }
+
+    @Test
+    fun queuedColdCaptureRetainsOriginalSourceWhenProfileChangesBeforeStorageRuns() {
+        val store = DiagnosticsStore(temporary.newFolder())
+        val access = Any()
+        var source = firstProfile.source
+        val sources = DiagnosticsSources(access) { source }
+        val replacementSource = "https://first.example/replaced"
+        val replacementDestination = firstDestination.copy(source = replacementSource)
+        val writes = ArrayDeque<Runnable>()
+        val journal = DiagnosticsOwnership(
+            { store },
+            Executor { writes.addLast(it) },
+            { DiagnosticsProfile(firstProfile.id, null, sources.capture(firstProfile.id)) },
+            { if (it.source == firstProfile.source) firstDestination else replacementDestination },
+        )
+        journal.preferencesReady()
+        journal.record("process_start", emptyMap())
+        journal.reportFound("crash_report", "crash-1")
+
+        synchronized(access) {
+            sources.changing(firstProfile.id)
+            source = replacementSource
+        }
+        journal.record("core_ready", emptyMap())
+        while (writes.isNotEmpty()) writes.removeFirst().run()
+
+        val first = store.prepare(firstDestination.owner, JsonObject(emptyMap()), null, emptyList())!!
+        assertEquals(listOf("process_start", "crash_report"), first.envelope.array("events").map { it.jsonObject.string("kind") })
+        val replacement = store.prepare(replacementDestination.owner, JsonObject(emptyMap()), null, emptyList())!!
+        assertEquals(listOf("core_ready"), replacement.envelope.array("events").map { it.jsonObject.string("kind") })
+        assertTrue(store.unsentDiscoveries(replacementDestination.owner).isEmpty())
+    }
+
+    @Test
+    fun lifecycleCaptureDoesNotWaitForProfileStorageLockOrResolveSource() {
+        val store = DiagnosticsStore(temporary.newFolder())
+        val access = Any()
+        var reads = 0
+        val sources = DiagnosticsSources(access) {
+            reads++
+            firstProfile.source
+        }
+        val writes = ArrayDeque<Runnable>()
+        val journal = DiagnosticsOwnership(
+            { store },
+            Executor { writes.addLast(it) },
+            { DiagnosticsProfile(firstProfile.id, null, sources.capture(firstProfile.id)) },
+            { firstDestination },
+        )
+        journal.preferencesReady()
+        val locked = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val captured = CountDownLatch(1)
+        val storage = Thread {
+            synchronized(access) {
+                locked.countDown()
+                release.await()
+            }
+        }
+        val lifecycle = Thread {
+            journal.record("core_ready", emptyMap())
+            captured.countDown()
+        }
+        storage.start()
+        var capturedWithoutStorage = false
+        try {
+            assertTrue(locked.await(5, TimeUnit.SECONDS))
+            lifecycle.start()
+            capturedWithoutStorage = captured.await(5, TimeUnit.SECONDS)
+        } finally {
+            release.countDown()
+            storage.join()
+            lifecycle.join()
+        }
+        assertTrue(capturedWithoutStorage)
+        assertEquals(0, reads)
+
+        while (writes.isNotEmpty()) writes.removeFirst().run()
+        assertEquals(1, reads)
+        assertEquals(1, store.eventCount())
+    }
+
+    @Test
+    fun failedStorageRemainsQueuedWithoutResolvingLaterProfileSelection() {
+        val store = DiagnosticsStore(temporary.newFolder())
+        var failing = true
+        var selected = firstProfile
+        val journal = DiagnosticsOwnership(
+            { if (failing) throw IllegalStateException("storage unavailable") else store },
+            Executor { it.run() },
+            { selected },
+            { if (it == firstProfile) firstDestination else secondDestination },
+        )
+        journal.preferencesReady()
+        journal.record("core_ready", emptyMap())
+        journal.reportFound("oom_report", "oom-1")
+        assertTrue(journal.hasPending())
+        assertEquals(0, store.eventCount())
+
+        selected = secondProfile
+        failing = false
+        journal.retry()
+
+        assertFalse(journal.hasPending())
+        val first = store.prepare(firstDestination.owner, JsonObject(emptyMap()), null, emptyList())!!
+        assertEquals(listOf("core_ready", "oom_report"), first.envelope.array("events").map { it.jsonObject.string("kind") })
+        assertTrue(store.prepare(secondDestination.owner, JsonObject(emptyMap()), null, emptyList())!!.envelope.array("events").isEmpty())
     }
 
     @Test

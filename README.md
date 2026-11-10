@@ -74,8 +74,10 @@ The server receiving a report can still see the connection's source address.
 
 WorkManager requests a network-constrained upload every six hours and an expedited
 one-off after a new crash/OOM report, VPN startup failure, or installed update.
-Android may delay either request. Startup scans again after core setup archives
-native crashes, and every upload refreshes crash discovery before preparing its batch.
+Android may delay either request. Startup schedules a best-effort background scan
+after core setup archives native crashes; diagnostics never gate VPN startup.
+Failed scans retry on the next upload, which refreshes discovery before preparing
+its batch.
 Local events are persisted even for local profiles or profiles without reporting
 capability, with a hashed profile/source association rather than the profile URL.
 Those records become uploadable only if that same profile with the same source later
