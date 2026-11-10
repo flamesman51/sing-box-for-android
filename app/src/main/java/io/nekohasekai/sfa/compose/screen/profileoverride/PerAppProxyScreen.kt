@@ -98,6 +98,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -1363,6 +1365,8 @@ object PerAppProxyScanner {
     }
 
     suspend fun scanPackage(packageInfo: PackageInfo, regions: Set<AppScanRegion>): Boolean {
+        val scanContext = currentCoroutineContext()
+        scanContext.ensureActive()
         val packageName = packageInfo.packageName
         if (packageName == Application.application.packageName) return false
         val scanChina = AppScanRegion.China in regions
@@ -1405,6 +1409,7 @@ object PerAppProxyScanner {
                     val hasFirebase = it.entries().asSequence().any { entry -> entry.name.startsWith("firebase-") }
                     if (hasFirebase && !scanRussia) return false
                     for (packageEntry in it.entries()) {
+                        scanContext.ensureActive()
                         if (!(
                                 packageEntry.name.startsWith("classes") &&
                                     packageEntry.name.endsWith(".dex")
@@ -1423,6 +1428,7 @@ object PerAppProxyScanner {
                         val matched = it.getInputStream(packageEntry).buffered().use { input ->
                             val dexFile = DexBackedDexFile.fromInputStream(null, input)
                             dexFile.classes.any { clazz ->
+                                scanContext.ensureActive()
                                 val clazzName =
                                     clazz.type.substring(1, clazz.type.length - 1).replace("/", ".")
                                         .replace("$", ".")

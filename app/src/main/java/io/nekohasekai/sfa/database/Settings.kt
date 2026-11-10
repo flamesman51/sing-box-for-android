@@ -19,6 +19,7 @@ import io.nekohasekai.sfa.ktx.map
 import io.nekohasekai.sfa.ktx.string
 import io.nekohasekai.sfa.ktx.stringSet
 import io.nekohasekai.sfa.update.UpdateSource
+import io.nekohasekai.sfa.utils.managedRegionSelection
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -85,6 +86,10 @@ object Settings {
     var perAppProxyManagedMode by dataStore.boolean(SettingsKey.PER_APP_PROXY_MANAGED_MODE) { false }
     var perAppProxyManagedList by dataStore.stringSet(SettingsKey.PER_APP_PROXY_MANAGED_LIST) { emptySet() }
     var perAppProxyManagedRegions by dataStore.stringSet(SettingsKey.PER_APP_PROXY_MANAGED_REGIONS) { setOf("China") }
+    var perAppProxySelectedRegions by dataStore.stringSet(SettingsKey.PER_APP_PROXY_SELECTED_REGIONS) {
+        managedRegionSelection(perAppProxyManagedMode, perAppProxyManagedRegions)
+            .map { it.name }.toSet()
+    }
 
     const val PACKAGE_QUERY_MODE_SHIZUKU = "SHIZUKU"
     const val PACKAGE_QUERY_MODE_ROOT = "ROOT"

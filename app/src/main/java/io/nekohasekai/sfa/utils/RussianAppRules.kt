@@ -14,11 +14,7 @@ const val MAX_SCANNED_DEX_BYTES = 15_000_000L
 
 fun canParseAppDex(size: Long): Boolean = size in 0..MAX_SCANNED_DEX_BYTES
 
-fun shouldPublishManagedScan(
-    scannedRegions: Set<AppScanRegion>,
-    currentRegions: Set<AppScanRegion>,
-    managedModeEnabled: Boolean,
-): Boolean = managedModeEnabled && scannedRegions == currentRegions
+fun managedRegionSelection(enabled: Boolean, values: Set<String>): Set<AppScanRegion> = if (enabled) AppScanRegion.fromSettings(values) else emptySet()
 
 class RussianAppRules(private val packages: Set<String>) {
     fun matchesPackage(packageName: String): Boolean = packageName in packages

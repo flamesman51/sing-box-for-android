@@ -99,8 +99,8 @@ fun ProfileOverrideScreen(
 
     var autoRedirect by remember { mutableStateOf(Settings.autoRedirect) }
     var perAppProxyEnabled by remember { mutableStateOf(Settings.perAppProxyEnabled) }
-    var managedModeEnabled by remember { mutableStateOf(Settings.perAppProxyManagedMode) }
-    var managedRegions by remember { mutableStateOf(AppScanRegion.fromSettings(Settings.perAppProxyManagedRegions)) }
+    var managedModeEnabled by remember { mutableStateOf(Settings.perAppProxySelectedRegions.isNotEmpty()) }
+    var managedRegions by remember { mutableStateOf(AppScanRegion.fromSettings(Settings.perAppProxySelectedRegions)) }
     var isScanning by remember { mutableStateOf(false) }
     val notifyApplyChange = rememberApplyServiceChangeNotifier(serviceStatus)
 
@@ -110,7 +110,7 @@ fun ProfileOverrideScreen(
         isScanning = true
         scope.launch {
             try {
-                ManagedAppScan.update(regions, enableManagedMode)
+                ManagedAppScan.update(if (enableManagedMode) regions else emptySet())
                 if (shouldNotify) {
                     notifyApplyChange(UiEvent.ApplyServiceChange.Mode.Reload)
                 }
@@ -510,8 +510,8 @@ fun ProfileOverrideScreen(
                                             scanAndSaveManagedList(shouldNotify = true)
                                         } else {
                                             managedModeEnabled = false
-                                            scope.launch(Dispatchers.IO) {
-                                                Settings.perAppProxyManagedMode = false
+                                            ManagedAppScan.select(emptySet())
+                                            scope.launch {
                                                 withContext(Dispatchers.Main) {
                                                     notifyApplyChange(UiEvent.ApplyServiceChange.Mode.Reload)
                                                 }

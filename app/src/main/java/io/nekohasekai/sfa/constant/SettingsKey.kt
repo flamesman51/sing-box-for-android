@@ -24,6 +24,7 @@ object SettingsKey {
     const val PER_APP_PROXY_MANAGED_MODE = "per_app_proxy_managed_mode"
     const val PER_APP_PROXY_MANAGED_LIST = "per_app_proxy_managed_list"
     const val PER_APP_PROXY_MANAGED_REGIONS = "per_app_proxy_managed_regions"
+    const val PER_APP_PROXY_SELECTED_REGIONS = "per_app_proxy_selected_regions"
     const val PER_APP_PROXY_PACKAGE_QUERY_MODE = "per_app_proxy_package_query_mode"
 
     const val ALLOW_BYPASS = "allow_bypass"

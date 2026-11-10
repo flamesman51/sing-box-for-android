@@ -22,8 +22,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import io.nekohasekai.sfa.R
+import io.nekohasekai.sfa.compose.shared.ModeSegmentedButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,17 +100,13 @@ fun ClashModeCard(modes: List<String>, selectedMode: String, onModeSelected: (St
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         modes.forEachIndexed { index, mode ->
-                            SegmentedButton(
-                                shape =
-                                SegmentedButtonDefaults.itemShape(
-                                    index = index,
-                                    count = modes.size,
-                                ),
+                            ModeSegmentedButton(
+                                index = index,
+                                count = modes.size,
                                 onClick = { onModeSelected(mode) },
                                 selected = mode == selectedMode,
-                            ) {
-                                Text(mode)
-                            }
+                                label = mode,
+                            )
                         }
                     }
                 }

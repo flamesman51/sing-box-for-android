@@ -59,14 +59,15 @@ class RussianAppRulesTest {
     }
 
     @Test
-    fun managedScanPublishesOnlyTheCurrentEnabledRegionSnapshot() {
-        val choices = listOf(setOf(AppScanRegion.China), setOf(AppScanRegion.Russia), AppScanRegion.entries.toSet())
-        for (snapshot in choices) {
-            for (current in choices) {
-                assertEquals(snapshot == current, shouldPublishManagedScan(snapshot, current, true))
-                assertFalse(shouldPublishManagedScan(snapshot, current, false))
-            }
+    fun legacyToggleMapsToASelectionAndEmptySelectionMeansOff() {
+        for (regions in listOf(setOf("China"), setOf("Russia"), setOf("China", "Russia"))) {
+            assertEquals(emptySet<AppScanRegion>(), managedRegionSelection(false, regions))
+            val selection = managedRegionSelection(true, regions)
+            assertEquals(regions, selection.map { it.name }.toSet())
+            assertTrue(selection.isNotEmpty())
         }
+        assertEquals(setOf(AppScanRegion.China), managedRegionSelection(true, emptySet()))
+        assertEquals(setOf(AppScanRegion.China), managedRegionSelection(true, setOf("unknown")))
     }
 
     @Test

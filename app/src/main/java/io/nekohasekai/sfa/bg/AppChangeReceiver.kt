@@ -26,7 +26,7 @@ class AppChangeReceiver : BroadcastReceiver() {
                     Log.d(TAG, "per app proxy disabled")
                     return@launch
                 }
-                if (!Settings.perAppProxyManagedMode) {
+                if (Settings.perAppProxySelectedRegions.isEmpty()) {
                     Log.d(TAG, "managed mode disabled")
                     return@launch
                 }
