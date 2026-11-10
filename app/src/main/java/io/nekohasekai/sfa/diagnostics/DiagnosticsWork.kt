@@ -1,20 +1,15 @@
 package io.nekohasekai.sfa.diagnostics
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.util.Log
-import androidx.core.app.NotificationCompat
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
-import androidx.work.ForegroundInfo
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequest
-import androidx.work.OutOfQuotaPolicy
 import androidx.work.PeriodicWorkRequest
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -80,7 +75,8 @@ object DiagnosticsWork {
                     val request = OneTimeWorkRequest.Builder(Upload::class.java)
                         .setConstraints(connected)
                         .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 5, TimeUnit.MINUTES)
-                        .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                        // Startup triggers run before the command server; wait so the report carries smart status.
+                        .setInitialDelay(1, TimeUnit.MINUTES)
                         .build()
                     WorkManager.getInstance(context).enqueueUniqueWork(IMMEDIATE, ExistingWorkPolicy.KEEP, request)
                 }
@@ -92,22 +88,6 @@ object DiagnosticsWork {
     class Upload(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
         companion object {
             private val uploadLock = Mutex()
-        }
-
-        override suspend fun getForegroundInfo(): ForegroundInfo {
-            val context = applicationContext
-            val label = context.applicationInfo.loadLabel(context.packageManager)
-            val channel = "diagnostics"
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                manager.createNotificationChannel(NotificationChannel(channel, label, NotificationManager.IMPORTANCE_LOW))
-            }
-            val notification = NotificationCompat.Builder(context, channel)
-                .setSmallIcon(android.R.drawable.stat_notify_sync_noanim)
-                .setContentTitle(label)
-                .setOngoing(true)
-                .build()
-            return ForegroundInfo(0x444941, notification)
         }
 
         override suspend fun doWork(): Result = uploadLock.withLock {
