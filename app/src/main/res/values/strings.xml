@@ -306,7 +306,7 @@
     <string name="server_update_later">Later</string>
     <string name="server_update_notifications_degraded">Update alerts are blocked or silent. Review notification settings.</string>
     <string name="server_update_notification_settings">Notification settings</string>
-    <string name="server_update_reminder_title">App update required</string>
+    <string name="server_update_reminder_title">App update</string>
     <string name="server_update_confirm_title">Confirm app update</string>
     <string name="server_update_confirm_notice">Tap to confirm installation and finish updating the app.</string>
     <string name="server_update_preparing">Verifying and preparing the update…</string>

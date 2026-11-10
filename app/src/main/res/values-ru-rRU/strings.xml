@@ -314,7 +314,7 @@
     <string name="server_update_later">Позже</string>
     <string name="server_update_notifications_degraded">Уведомления об обновлениях заблокированы или без звука. Проверьте настройки уведомлений.</string>
     <string name="server_update_notification_settings">Настройки уведомлений</string>
-    <string name="server_update_reminder_title">Требуется обновление приложения</string>
+    <string name="server_update_reminder_title">Обновление приложения</string>
     <string name="server_update_confirm_title">Подтвердите обновление приложения</string>
     <string name="server_update_confirm_notice">Нажмите, чтобы подтвердить установку и завершить обновление приложения.</string>
     <string name="server_update_preparing">Проверка и подготовка обновления…</string>
