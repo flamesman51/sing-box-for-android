@@ -127,7 +127,7 @@
   <string name="smart_unknown_member">Неизвестный сервер</string>
   <string name="smart_stale">Устаревшая статистика</string>
   <string name="smart_managed_description">Автоматически пускать в обход приложения, связанные с этими регионами</string>
-  <string name="smart_managed_manual_hint">Снимите выбор регионов, чтобы выбрать приложения вручную</string>
+  <string name="smart_managed_manual_hint">Снимите выбор регионов ниже, чтобы выбрать приложения вручную</string>
   <string name="smart_managed_off">Автоматический обход выключен</string>
   <string name="smart_managed_scanning">Поиск приложений…</string>
   <string name="smart_managed_sdk_hint">Совпадения по SDK могут включать приложения из других стран.</string>

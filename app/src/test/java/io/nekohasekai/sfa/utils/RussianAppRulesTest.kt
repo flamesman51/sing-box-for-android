@@ -1,9 +1,14 @@
 package io.nekohasekai.sfa.utils
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class RussianAppRulesTest {
     private val rules = RussianAppRules(setOf("ru.verified.bank", "com.verified.payment"))
@@ -77,5 +82,22 @@ class RussianAppRulesTest {
         assertFalse(canParseAppDex(MAX_SCANNED_DEX_BYTES + 1))
         assertFalse(canParseAppDex(-1))
         assertFalse(canParseAppDex(Long.MAX_VALUE))
+    }
+
+    @Test
+    fun bundledRulesMatchTheReportedInstalledRussianPackages() {
+        val packages = Json.parseToJsonElement(File("src/main/assets/ru-apps.json").readText())
+            .jsonObject.getValue("packages").jsonArray.map { it.jsonPrimitive.content }.toSet()
+        val bundledRules = RussianAppRules(packages)
+        for (packageName in listOf(
+            "com.vk.im",
+            "ru.alfabank.mobile.android",
+            "com.avito.android",
+            "com.wildberries.ru",
+            "ru.gosuslugi.auto",
+            "ru.gosuslugi.goskey",
+        )) {
+            assertTrue(packageName, bundledRules.matchesPackage(packageName))
+        }
     }
 }
