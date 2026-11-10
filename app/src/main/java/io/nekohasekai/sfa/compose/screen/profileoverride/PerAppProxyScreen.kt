@@ -1327,7 +1327,7 @@ object PerAppProxyScanner {
         val packages = JSONObject(content).getJSONArray("packages")
         RussianAppRules((0 until packages.length()).map { packages.getString(it) }.toSet())
     }
-    private val dexParseSlots = Semaphore(2)
+    private val archiveScanSlots = Semaphore(2)
 
     suspend fun scanAllManagedApps(
         regions: Set<AppScanRegion>,
@@ -1400,27 +1400,27 @@ object PerAppProxyScanner {
                 }
             }
             if (!chinaCandidate && !scanRussia) return false
-            ZipFile(File(appInfo.publicSourceDir)).use {
-                val hasFirebase = it.entries().asSequence().any { entry -> entry.name.startsWith("firebase-") }
-                if (hasFirebase && !scanRussia) return false
-                for (packageEntry in it.entries()) {
-                    if (!(
-                            packageEntry.name.startsWith("classes") &&
-                                packageEntry.name.endsWith(".dex")
+            archiveScanSlots.withPermit {
+                ZipFile(File(appInfo.publicSourceDir)).use {
+                    val hasFirebase = it.entries().asSequence().any { entry -> entry.name.startsWith("firebase-") }
+                    if (hasFirebase && !scanRussia) return false
+                    for (packageEntry in it.entries()) {
+                        if (!(
+                                packageEntry.name.startsWith("classes") &&
+                                    packageEntry.name.endsWith(".dex")
+                                )
+                        ) {
+                            continue
+                        }
+                        if (chinaCandidate && !hasFirebase && packageEntry.size > MAX_SCANNED_DEX_BYTES) {
+                            Log.d(
+                                "PerAppProxyScanner",
+                                "Confirm $packageName due to large dex file",
                             )
-                    ) {
-                        continue
-                    }
-                    if (chinaCandidate && !hasFirebase && packageEntry.size > MAX_SCANNED_DEX_BYTES) {
-                        Log.d(
-                            "PerAppProxyScanner",
-                            "Confirm $packageName due to large dex file",
-                        )
-                        return true
-                    }
-                    if (!canParseAppDex(packageEntry.size)) continue
-                    val matched = dexParseSlots.withPermit {
-                        it.getInputStream(packageEntry).buffered().use { input ->
+                            return true
+                        }
+                        if (!canParseAppDex(packageEntry.size)) continue
+                        val matched = it.getInputStream(packageEntry).buffered().use { input ->
                             val dexFile = DexBackedDexFile.fromInputStream(null, input)
                             dexFile.classes.any { clazz ->
                                 val clazzName =
@@ -1430,10 +1430,10 @@ object PerAppProxyScanner {
                                     (scanRussia && russianRules.matchesClass(clazzName))
                             }
                         }
-                    }
-                    if (matched) {
-                        Log.d("PerAppProxyScanner", "Match SDK class in $packageName")
-                        return true
+                        if (matched) {
+                            Log.d("PerAppProxyScanner", "Match SDK class in $packageName")
+                            return true
+                        }
                     }
                 }
             }

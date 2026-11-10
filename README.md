@@ -42,8 +42,9 @@ when importing into this fork. Only one VPN app can be active in an Android user
   It does not infer Russian apps from generic `ru.*`, Yandex, or VK prefixes, DEX
   size, or the absence of Firebase. SDK detection can still match international
   apps using those SDKs; manual per-app selection remains available.
-  DEX parsing is limited to two concurrent files of at most 15 MB each. Russian
-  detection in larger files relies on exact-package and manifest-component checks.
+  APK scanning is limited to two open archives at a time, with each DEX parse capped
+  at 15 MB. Russian detection in larger files relies on exact-package and
+  manifest-component checks.
 - Remote-profile mutations reconfigure WorkManager, including imports, interval-only
   edits, and deletion. WorkManager is inexact. “Last updated” records the last
   successful check, including an unchanged download, and controls update cadence.
