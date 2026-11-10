@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -63,6 +64,11 @@ class ServerUpdateInstallModel : ViewModel() {
     var resultStatus: Int? = null
     private var cancellation = InstallCancellation()
     private var preparationJob: Job? = null
+
+    fun permissionResult(granted: Boolean) {
+        waitingForPermission = false
+        permissionExplanation = !granted
+    }
 
     fun recordResult(sessionId: Int, ready: ReadyServerUpdate?, status: Int, confirmation: Intent?): Boolean {
         if (sessionId < 0 || this.sessionId != sessionId || this.ready != ready) return false
@@ -131,8 +137,8 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
     private var checkingConfirmation = false
     private var stateInitialized = false
     private val permissionLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        model.waitingForPermission = false
-        continueInstall()
+        model.permissionResult(canInstallPackages())
+        continueCoordinator()
     }
     private val confirmationLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         finish()
@@ -156,6 +162,19 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
             model.error = savedInstanceState?.getInt("error")?.takeUnless { it == 0 }
             model.resumeSession = model.sessionId >= 0 && model.confirmation == null && !model.confirmationLaunched
         }
+        lifecycle.addObserver(
+            LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_RESUME -> {
+                        visible = WeakReference(this)
+                        if (model.waitingForPermission) model.permissionResult(canInstallPackages())
+                        continueCoordinator()
+                    }
+                    Lifecycle.Event.ON_PAUSE -> if (visible.get() === this) visible.clear()
+                    else -> Unit
+                }
+            },
+        )
         lifecycleScope.launch {
             try {
                 withContext(Dispatchers.IO) {
@@ -220,17 +239,6 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
                 }
             }
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        visible = WeakReference(this)
-        continueCoordinator()
-    }
-
-    override fun onPause() {
-        if (visible.get() === this) visible.clear()
-        super.onPause()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -303,6 +311,8 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
         if (model.confirmation != null) launchConfirmation() else continueInstall()
     }
 
+    private fun canInstallPackages(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.O || packageManager.canRequestPackageInstalls()
+
     private fun continueInstall() {
         if (!stateInitialized || model.preparing || (model.committed && !model.resumeSession) ||
             model.waitingForPermission || model.error != null
@@ -314,7 +324,7 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
             model.error = R.string.server_update_unavailable
             return
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !packageManager.canRequestPackageInstalls()) {
+        if (!canInstallPackages()) {
             model.permissionExplanation = true
             return
         }

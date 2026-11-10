@@ -17,6 +17,34 @@ class ServerUpdateInstallModelTest {
     }
 
     @Test
+    fun grantedInstallPermissionClearsThePendingRequest() {
+        val model = ServerUpdateInstallModel().apply {
+            waitingForPermission = true
+            permissionExplanation = true
+        }
+
+        model.permissionResult(granted = true)
+
+        assertFalse(model.waitingForPermission)
+        assertFalse(model.permissionExplanation)
+        assertFalse(model.preparing)
+        assertFalse(model.committed)
+    }
+
+    @Test
+    fun deniedInstallPermissionOffersTheExistingSettingsRetry() {
+        val model = ServerUpdateInstallModel().apply {
+            waitingForPermission = true
+        }
+
+        model.permissionResult(granted = false)
+
+        assertFalse(model.waitingForPermission)
+        assertTrue(model.permissionExplanation)
+        assertFalse(model.committed)
+    }
+
+    @Test
     fun pendingConfirmationResultIsRetainedWithoutAResumedActivity() {
         val model = model()
 
