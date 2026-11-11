@@ -131,7 +131,11 @@ object DiagnosticsWork {
                             null
                         }
                         val crashes = DiagnosticsSnapshot.crashes(unsent)
-                        batch = store.prepare(destination.owner, app, smart, crashes, association = destination.association)
+                        val runtime = DiagnosticsSnapshot.runtime {
+                            coreReady && BoxService.activeDiagnosticsProfileId == destination.profileId &&
+                                BoxService.activeDiagnosticsProfileSource == destination.source
+                        }
+                        batch = store.prepare(destination.owner, app, smart, crashes, association = destination.association, runtime = { runtime })
                     }
                     repeat(8) {
                         val pending = batch ?: return@withContext Result.success()

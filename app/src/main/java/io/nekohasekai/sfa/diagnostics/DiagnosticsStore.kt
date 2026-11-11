@@ -208,7 +208,7 @@ internal class DiagnosticsStore(private val directory: File) {
         queue(owner).firstOrNull()
     }
 
-    fun prepare(owner: String, app: JsonObject, smart: JsonObject?, crashes: List<DiagnosticsCrash>, association: String? = null): DiagnosticsBatch? = synchronized(lock) {
+    fun prepare(owner: String, app: JsonObject, smart: JsonObject?, crashes: List<DiagnosticsCrash>, association: String? = null, runtime: () -> DiagnosticsRuntime? = { null }): DiagnosticsBatch? = synchronized(lock) {
         state()
         queue(owner).firstOrNull()?.let { return it }
         val journal = events()
@@ -234,18 +234,19 @@ internal class DiagnosticsStore(private val directory: File) {
         }
         val unsent = unsentDiscoveries(owner)
         val selectedCrashes = crashes.filter { it.key in unsent }.take(5)
-        val batch = newBatch(app, selectedEvents, selectedCrashes.map { it.report }, smart, eventIds, selectedCrashes.map { it.key })
+        val batch = newBatch(app, selectedEvents, selectedCrashes.map { it.report }, smart, eventIds, selectedCrashes.map { it.key }, runtime = runtime()?.report())
         require(batch.body.toByteArray(Charsets.UTF_8).size <= MAX_BODY_BYTES)
         saveQueue(owner, listOf(batch))
         batch
     }
 
-    private fun newBatch(app: JsonObject, events: List<JsonElement>, crashes: List<JsonElement>, smart: JsonObject?, eventIds: List<String>, crashKeys: List<String>, at: String = DiagnosticsProjection.utc()): DiagnosticsBatch = DiagnosticsBatch(
+    private fun newBatch(app: JsonObject, events: List<JsonElement>, crashes: List<JsonElement>, smart: JsonObject?, eventIds: List<String>, crashKeys: List<String>, at: String = DiagnosticsProjection.utc(), runtime: JsonObject? = null): DiagnosticsBatch = DiagnosticsBatch(
         buildJsonObject {
             put("schema", 1)
             put("report_id", UUID.randomUUID().toString())
             put("created_at", at)
             put("app", app)
+            runtime?.let { put("runtime", it) }
             put("events", JsonArray(events.map { DiagnosticsProjection.sanitizeEvent(it.jsonObject) }))
             put("smart", smart?.let(DiagnosticsProjection::sanitizeSmart) ?: JsonNull)
             put("crashes", JsonArray(crashes.map { DiagnosticsProjection.sanitizeCrash(it.jsonObject) }))
@@ -307,6 +308,7 @@ internal class DiagnosticsStore(private val directory: File) {
                 eventIndexes.map { batch.eventIds[it] },
                 crashIndexes.map { batch.crashKeys[it] },
                 requireNotNull(batch.envelope.string("created_at")),
+                batch.envelope.obj("runtime"),
             )
         }
     }

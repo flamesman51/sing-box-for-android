@@ -116,7 +116,16 @@ included in a report.
 
 Reports contain app/core versions, Android SDK and device model, VPN and update
 events with fixed categories and numbers, and selector health/selection/throughput/
-budgets. Failures and crashes include an exception class or core error type and a
+budgets. A runtime sample adds a UTC sample time, app process uptime in milliseconds,
+and, while the selected profile's local service is running, process memory in bytes,
+goroutine count, and service uptime in milliseconds. Memory and goroutines use the
+same local command-server status as the dashboard Debug card. Unavailable service
+fields are omitted, not replaced by zeros; remote-control targets are never sampled.
+Process uptime includes sleep and starts at application construction on Android 5–6,
+or the platform process-start clock on Android 7 and later. Service uptime uses the
+core's start time and resets on reload. No battery figure is sent because the public
+battery API reports device-wide properties, not cheap per-app consumption.
+Failures and crashes include an exception class or core error type and a
 fixed category, never an exception or panic message. Stack traces contain only
 strictly validated JVM frames or the core's scrubbed Go function/file pairs.
 Reports never contain configuration files, private keys, raw log tails, browsing

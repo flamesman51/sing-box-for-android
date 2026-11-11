@@ -10,6 +10,7 @@ import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.getSystemService
 import io.nekohasekai.libbox.Libbox
@@ -45,6 +46,7 @@ import io.nekohasekai.sfa.Application as BoxApplication
 
 class Application : Application() {
     val coreReady = CompletableDeferred<Unit>()
+    internal val processStartedAtElapsedMillis = SystemClock.elapsedRealtime()
 
     internal val installedVersion = DiagnosticsInstalledVersion()
 

@@ -25,6 +25,62 @@ class DiagnosticsStoreTest {
 
     private fun event(count: Int = 0, kind: String = "vpn_start") = DiagnosticsProjection.event(kind, mapOf("count" to count, "reason" to "User"))
 
+    @Test
+    fun reportIncludesRuntimeFromStatsSourceAndKeepsSampleAcrossRetry() {
+        val directory = temporary.newFolder()
+        val store = DiagnosticsStore(directory)
+        var samples = 0
+        val batch = requireNotNull(
+            store.prepare("owner", app, null, emptyList(), runtime = {
+                samples++
+                DiagnosticsRuntime(0, 12000, 1048576, 42, 9000)
+            }),
+        )
+        assertEquals(
+            Json.parseToJsonElement("""{"sampled_at":"1970-01-01T00:00:00.000Z","app_process_uptime_ms":12000,"memory_bytes":1048576,"goroutines":42,"service_uptime_ms":9000}"""),
+            batch.envelope["runtime"],
+        )
+        val retried = requireNotNull(
+            DiagnosticsStore(directory).prepare("owner", app, null, emptyList(), runtime = {
+                error("Pending reports must not resample runtime")
+            }),
+        )
+        assertEquals(batch.body, retried.body)
+        assertEquals(1, samples)
+    }
+
+    @Test
+    fun stoppedServiceOmitsUnavailableRuntimeFieldsInsteadOfSendingZeros() {
+        val batch = requireNotNull(
+            DiagnosticsStore(temporary.newFolder()).prepare("owner", app, null, emptyList(), runtime = {
+                DiagnosticsRuntime(0, 12000)
+            }),
+        )
+        assertEquals(
+            Json.parseToJsonElement("""{"sampled_at":"1970-01-01T00:00:00.000Z","app_process_uptime_ms":12000}"""),
+            batch.envelope["runtime"],
+        )
+    }
+
+    @Test
+    fun splitReportsRetainOriginalRuntimeSample() {
+        val store = DiagnosticsStore(temporary.newFolder())
+        store.record("owner", event(1))
+        store.record("owner", event(2))
+        val original = requireNotNull(
+            store.prepare("owner", app, null, emptyList(), runtime = {
+                DiagnosticsRuntime(0, 12000, 1048576, 42, 9000)
+            }),
+        )
+        assertEquals(DiagnosticsStore.Outcome.SPLIT, store.respond("owner", original.id, 413))
+        repeat(2) {
+            val fragment = requireNotNull(store.pending("owner"))
+            assertEquals(original.envelope["runtime"], fragment.envelope["runtime"])
+            store.respond("owner", fragment.id, 204)
+        }
+        assertNull(store.pending("owner"))
+    }
+
     private fun crash(id: String): DiagnosticsCrash = DiagnosticsCrash(
         DiagnosticsStore.crashKey("crash_report", id),
         DiagnosticsProjection.crash(

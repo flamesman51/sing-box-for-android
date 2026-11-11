@@ -1,5 +1,8 @@
 package io.nekohasekai.sfa.diagnostics
 
+import android.os.Build
+import android.os.Process
+import android.os.SystemClock
 import io.nekohasekai.libbox.CommandClient
 import io.nekohasekai.libbox.CommandClientHandler
 import io.nekohasekai.libbox.CommandClientOptions
@@ -10,6 +13,7 @@ import io.nekohasekai.libbox.OutboundGroupItemIterator
 import io.nekohasekai.libbox.OutboundGroupIterator
 import io.nekohasekai.libbox.StatusMessage
 import io.nekohasekai.libbox.StringIterator
+import io.nekohasekai.sfa.Application
 import io.nekohasekai.sfa.bg.CrashReportManager
 import io.nekohasekai.sfa.bg.OOMReportManager
 import io.nekohasekai.sfa.bg.PowerReportManager
@@ -23,13 +27,60 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import java.io.File
 
 internal object DiagnosticsSnapshot {
+    suspend fun runtime(serviceAvailable: () -> Boolean): DiagnosticsRuntime = coroutineScope {
+        fun processSample(): DiagnosticsRuntime {
+            val startedAt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                Process.getStartElapsedRealtime()
+            } else {
+                Application.application.processStartedAtElapsedMillis
+            }
+            return DiagnosticsRuntime(
+                System.currentTimeMillis(),
+                (SystemClock.elapsedRealtime() - startedAt).coerceAtLeast(0),
+            )
+        }
+        if (!serviceAvailable()) return@coroutineScope processSample()
+        val status = CompletableDeferred<StatusMessage?>()
+        val handler = SnapshotHandler(status = status)
+        val options = CommandClientOptions().apply {
+            addCommand(Libbox.CommandStatus)
+            statusInterval = 1_000_000_000
+        }
+        // A local client avoids sampling a remote-control target instead of this process.
+        val client = CommandClient(handler, options)
+        val snapshot = async(Dispatchers.IO) {
+            try {
+                val startedAt = Libbox.newStandaloneCommandClient().startedAt
+                client.connect()
+                val sample = status.await()
+                sample?.takeIf { serviceAvailable() && startedAt > 0 && startedAt == client.startedAt }?.let {
+                    val process = processSample()
+                    process.copy(
+                        memoryBytes = it.memory.takeIf { bytes -> bytes > 0 },
+                        goroutines = it.goroutines.takeIf { count -> count > 0 },
+                        serviceUptimeMillis = (process.sampledAt - startedAt).coerceAtLeast(0),
+                    )
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                null
+            }
+        }
+        try {
+            withTimeoutOrNull(5_000) { snapshot.await() } ?: processSample()
+        } finally {
+            runCatching { client.disconnect() }
+            snapshot.cancel()
+        }
+    }
+
     suspend fun smart(): JsonObject? = coroutineScope {
         val tags = CompletableDeferred<List<String>>()
-        val handler = GroupsHandler(tags)
+        val handler = SnapshotHandler(tags)
         val options = CommandClientOptions().apply { addCommand(Libbox.CommandGroup) }
         // Always local: remote-control UI targets must never influence diagnostics ownership.
         val client = CommandClient(handler, options)
@@ -96,8 +147,12 @@ internal object DiagnosticsSnapshot {
         return DiagnosticsProjection.crash(candidate.kind, DiagnosticsProjection.utc(candidate.time), metadata, frames)
     }
 
-    private class GroupsHandler(private val tags: CompletableDeferred<List<String>>) : CommandClientHandler {
+    private class SnapshotHandler(
+        private val tags: CompletableDeferred<List<String>>? = null,
+        private val status: CompletableDeferred<StatusMessage?>? = null,
+    ) : CommandClientHandler {
         override fun writeGroups(groups: OutboundGroupIterator?) {
+            val tags = tags ?: return
             if (tags.isCompleted || groups == null) return
             val found = mutableListOf<String>()
             var seen = 0
@@ -109,7 +164,8 @@ internal object DiagnosticsSnapshot {
         }
         override fun connected() {}
         override fun disconnected(message: String?) {
-            tags.complete(emptyList())
+            tags?.complete(emptyList())
+            status?.complete(null)
         }
         override fun clearLogs() {}
         override fun initializeClashMode(modeList: StringIterator?, currentMode: String?) {}
@@ -118,6 +174,8 @@ internal object DiagnosticsSnapshot {
         override fun writeConnectionEvents(events: ConnectionEvents?) {}
         override fun writeLogs(logs: LogIterator?) {}
         override fun writeOutbounds(outbounds: OutboundGroupItemIterator?) {}
-        override fun writeStatus(status: StatusMessage?) {}
+        override fun writeStatus(status: StatusMessage?) {
+            this.status?.complete(status)
+        }
     }
 }
