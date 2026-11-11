@@ -92,6 +92,12 @@ when importing into this fork. Only one VPN app can be active in an Android user
   shows running profiles read-only even when the local VPN is stopped; local
   overrides are never compared with remote status.
 
+Remote profile refreshes skip the full core configuration check only when the fetched
+content matches the stored file and its last successful validation used the current
+app version code. Changed content and the first refresh after an app update are
+checked before acceptance. Validation hashes are stored per profile outside backups;
+missing state safely triggers a check without a database schema migration.
+
 ## Diagnostics and privacy
 
 **Settings → Smart → Send diagnostics** is on by default.

@@ -3,6 +3,7 @@ package io.nekohasekai.sfa.database
 import androidx.room.Room
 import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.sfa.Application
+import io.nekohasekai.sfa.BuildConfig
 import io.nekohasekai.sfa.bg.UpdateProfileWork
 import io.nekohasekai.sfa.constant.Path
 import io.nekohasekai.sfa.diagnostics.DiagnosticsSources
@@ -18,6 +19,9 @@ import java.io.File
 object ProfileManager {
     private val callbacks = mutableListOf<() -> Unit>()
     private val profileAccess = Any()
+    private val remoteValidator by lazy {
+        RemoteProfileValidator(File(Application.application.noBackupFilesDir, "profile_validation"), Libbox::checkConfig)
+    }
     private val diagnosticsSources = DiagnosticsSources(profileAccess) { id ->
         instance.profileDao().get(id)?.typed?.takeIf { it.type == TypedProfile.Type.Remote }?.remoteURL
     }
@@ -63,6 +67,7 @@ object ProfileManager {
             profile.id = instance.profileDao().insert(profile)
             diagnosticsSources.created(profile.id)
             ReportCapabilities.clear(profile.id)
+            remoteValidator.clear(profile.id)
             if (profile.typed.type == TypedProfile.Type.Remote && fetchedProfile != null) {
                 ReportCapabilities.accepted(
                     profile.id,
@@ -116,6 +121,7 @@ object ProfileManager {
             return synchronized(profileAccess) {
                 diagnosticsSources.changing(profile.id)
                 ReportCapabilities.clear(profile.id)
+                remoteValidator.clear(profile.id)
                 instance.profileDao().delete(profile)
             }
         } finally {
@@ -129,6 +135,7 @@ object ProfileManager {
                 profiles.forEach {
                     diagnosticsSources.changing(it.id)
                     ReportCapabilities.clear(it.id)
+                    remoteValidator.clear(it.id)
                 }
                 instance.profileDao().delete(profiles)
             }
@@ -142,7 +149,7 @@ object ProfileManager {
         val contentChanged =
             try {
                 val fetchedProfile = HTTPClient().use { it.getProfile(remoteURL) }
-                synchronized(profileAccess) {
+                val stored = synchronized(profileAccess) {
                     val current = instance.profileDao().get(profile.id) ?: return false
                     if (current.typed.type != TypedProfile.Type.Remote || current.typed.remoteURL != remoteURL) return false
                     ReportCapabilities.withdrawIfUnsupported(
@@ -151,8 +158,9 @@ object ProfileManager {
                         fetchedProfile.finalURL,
                         fetchedProfile.reportHeader,
                     )
+                    File(current.typed.path).takeIf { it.exists() }?.readText()
                 }
-                Libbox.checkConfig(fetchedProfile.content)
+                remoteValidator.validate(profile.id, stored, fetchedProfile.content, BuildConfig.VERSION_CODE)
                 synchronized(profileAccess) {
                     val current = instance.profileDao().get(profile.id) ?: return false
                     if (current.typed.type != TypedProfile.Type.Remote || current.typed.remoteURL != remoteURL) return false
