@@ -9,9 +9,7 @@ import io.nekohasekai.sfa.xposed.HookErrorStore
 import io.nekohasekai.sfa.xposed.VpnSanitizer
 import io.nekohasekai.sfa.xposed.hooks.SafeMethodHook
 
-class HookConnectivityManagerGetLinkProperties(
-    private val helper: ConnectivityServiceHookHelper,
-) {
+class HookConnectivityManagerGetLinkProperties(private val helper: ConnectivityServiceHookHelper) {
     private companion object {
         private const val SOURCE = "HookGetLinkProperties"
     }

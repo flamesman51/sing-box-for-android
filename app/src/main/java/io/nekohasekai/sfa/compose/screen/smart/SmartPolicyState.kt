@@ -16,10 +16,7 @@ internal data class SmartPolicySnapshot(
     val loading: Boolean = false,
 )
 
-internal fun smartPolicyStatusEnabled(
-    serviceStatus: Status,
-    remote: Boolean,
-): Boolean = remote || serviceStatus == Status.Started
+internal fun smartPolicyStatusEnabled(serviceStatus: Status, remote: Boolean): Boolean = remote || serviceStatus == Status.Started
 
 internal fun smartPolicySnapshotForTarget(
     serviceStatus: Status,
@@ -27,58 +24,45 @@ internal fun smartPolicySnapshotForTarget(
     snapshot: SmartPolicySnapshot,
 ): SmartPolicySnapshot = if (smartPolicyStatusEnabled(serviceStatus, remote)) snapshot else SmartPolicySnapshot()
 
-internal fun smartPolicyHash(value: String): String =
-    if (value.isEmpty()) {
-        ""
-    } else {
-        val digest = MessageDigest.getInstance("SHA-256").digest(value.toByteArray(Charsets.UTF_8))
-        val hex = "0123456789abcdef"
-        buildString(digest.size * 2) {
-            for (byte in digest) {
-                val value = byte.toInt() and 0xff
-                append(hex[value ushr 4])
-                append(hex[value and 0x0f])
-            }
+internal fun smartPolicyHash(value: String): String = if (value.isEmpty()) {
+    ""
+} else {
+    val digest = MessageDigest.getInstance("SHA-256").digest(value.toByteArray(Charsets.UTF_8))
+    val hex = "0123456789abcdef"
+    buildString(digest.size * 2) {
+        for (byte in digest) {
+            val value = byte.toInt() and 0xff
+            append(hex[value ushr 4])
+            append(hex[value and 0x0f])
         }
     }
+}
 
 internal fun smartPolicyApplyState(
     serviceStatus: Status,
     storedPolicy: String,
     snapshot: List<SmartStatus>?,
     remote: Boolean,
-): SmartPolicyApplyState? =
-    when {
-        remote -> {
-            null
-        }
-        serviceStatus == Status.Stopped -> {
-            SmartPolicyApplyState.NextStart
-        }
-        serviceStatus != Status.Started || snapshot == null -> {
-            SmartPolicyApplyState.Unknown
-        }
-        snapshot.isEmpty() -> {
-            SmartPolicyApplyState.NotUsed
-        }
-        else -> {
-            val expected = smartPolicyHash(storedPolicy)
-            if (snapshot.all { (it.preference?.overrideHash ?: "") == expected }) {
-                SmartPolicyApplyState.Applied
-            } else {
-                SmartPolicyApplyState.Pending
-            }
+): SmartPolicyApplyState? = when {
+    remote -> null
+    serviceStatus == Status.Stopped -> SmartPolicyApplyState.NextStart
+    serviceStatus != Status.Started || snapshot == null -> SmartPolicyApplyState.Unknown
+    snapshot.isEmpty() -> SmartPolicyApplyState.NotUsed
+    else -> {
+        val expected = smartPolicyHash(storedPolicy)
+        if (snapshot.all { (it.preference?.overrideHash ?: "") == expected }) {
+            SmartPolicyApplyState.Applied
+        } else {
+            SmartPolicyApplyState.Pending
         }
     }
+}
 
 internal class SmartPolicyReconcileTracker {
     private var instance: Long? = null
     private val determinedPolicies = mutableSetOf<String>()
 
-    fun markSaved(
-        serviceInstance: Long,
-        storedPolicy: String,
-    ) {
+    fun markSaved(serviceInstance: Long, storedPolicy: String) {
         useInstance(serviceInstance)
         determinedPolicies.add(storedPolicy)
     }

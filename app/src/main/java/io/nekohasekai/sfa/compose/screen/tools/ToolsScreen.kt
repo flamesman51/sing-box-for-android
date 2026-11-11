@@ -122,13 +122,12 @@ fun ToolsScreen(
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .verticalScroll(rememberScrollState())
-                .padding(scaffoldPadding)
-                .padding(top = 8.dp, bottom = if (showStatusBar) STATUS_BAR_CONTENT_PADDING else 8.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .verticalScroll(rememberScrollState())
+            .padding(scaffoldPadding)
+            .padding(top = 8.dp, bottom = if (showStatusBar) STATUS_BAR_CONTENT_PADDING else 8.dp),
     ) {
         val tailscaleEndpoints = tailscaleState.endpoints
         val openConnectEndpoints = openConnectState.endpoints
@@ -143,26 +142,23 @@ fun ToolsScreen(
             )
 
             Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
             ) {
                 val endpoints = tailscaleEndpoints
                 endpoints.forEachIndexed { index, endpoint ->
                     val shape = endpointRowShape(index, endpointRowCount)
                     var showSSHMenu by remember { mutableStateOf(false) }
-                    val sshPeers =
-                        remember(endpoint) {
-                            endpoint.userGroups.flatMap { it.peers }.filter { peer ->
-                                peer.online && peer.sshHostKeys.isNotEmpty() &&
-                                    peer.tailscaleIPs.isNotEmpty() && peer.id != endpoint.selfPeer?.id
-                            }
+                    val sshPeers = remember(endpoint) {
+                        endpoint.userGroups.flatMap { it.peers }.filter { peer ->
+                            peer.online && peer.sshHostKeys.isNotEmpty() &&
+                                peer.tailscaleIPs.isNotEmpty() && peer.id != endpoint.selfPeer?.id
                         }
+                    }
                     Box {
                         ListItem(
                             headlineContent = {
@@ -193,19 +189,18 @@ fun ToolsScreen(
                                     }
                                 }
                             },
-                            modifier =
-                                Modifier
-                                    .clip(shape)
-                                    .combinedClickable(
-                                        onClick = {
-                                            navController.navigate("tools/tailscale/${Uri.encode(endpoint.endpointTag)}")
-                                        },
-                                        onLongClick = {
-                                            if (sshPeers.isNotEmpty()) {
-                                                showSSHMenu = true
-                                            }
-                                        },
-                                    ),
+                            modifier = Modifier
+                                .clip(shape)
+                                .combinedClickable(
+                                    onClick = {
+                                        navController.navigate("tools/tailscale/${Uri.encode(endpoint.endpointTag)}")
+                                    },
+                                    onLongClick = {
+                                        if (sshPeers.isNotEmpty()) {
+                                            showSSHMenu = true
+                                        }
+                                    },
+                                ),
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         )
                         DropdownMenu(
@@ -274,12 +269,11 @@ fun ToolsScreen(
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         },
-                        modifier =
-                            Modifier
-                                .clip(endpointRowShape(tailscaleEndpoints.size + index, endpointRowCount))
-                                .clickable {
-                                    navController.navigate("tools/openconnect/${Uri.encode(endpoint.endpointTag)}")
-                                },
+                        modifier = Modifier
+                            .clip(endpointRowShape(tailscaleEndpoints.size + index, endpointRowCount))
+                            .clickable {
+                                navController.navigate("tools/openconnect/${Uri.encode(endpoint.endpointTag)}")
+                            },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
                 }
@@ -302,16 +296,16 @@ fun ToolsScreen(
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         },
-                        modifier =
-                            Modifier
-                                .clip(
-                                    endpointRowShape(
-                                        tailscaleEndpoints.size + openConnectEndpoints.size + index,
-                                        endpointRowCount,
-                                    ),
-                                ).clickable {
-                                    navController.navigate("tools/openvpn/${Uri.encode(endpoint.endpointTag)}")
-                                },
+                        modifier = Modifier
+                            .clip(
+                                endpointRowShape(
+                                    tailscaleEndpoints.size + openConnectEndpoints.size + index,
+                                    endpointRowCount,
+                                ),
+                            )
+                            .clickable {
+                                navController.navigate("tools/openvpn/${Uri.encode(endpoint.endpointTag)}")
+                            },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
                 }
@@ -327,24 +321,21 @@ fun ToolsScreen(
             )
 
             Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
             ) {
                 val servers = usbIPState.servers
                 servers.forEachIndexed { index, server ->
-                    val shape =
-                        when {
-                            servers.size == 1 -> RoundedCornerShape(12.dp)
-                            index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                            index == servers.size - 1 -> RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
-                            else -> RoundedCornerShape(0.dp)
-                        }
+                    val shape = when {
+                        servers.size == 1 -> RoundedCornerShape(12.dp)
+                        index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                        index == servers.size - 1 -> RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+                        else -> RoundedCornerShape(0.dp)
+                    }
                     ListItem(
                         headlineContent = {
                             Text(
@@ -363,12 +354,11 @@ fun ToolsScreen(
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         },
-                        modifier =
-                            Modifier
-                                .clip(shape)
-                                .clickable {
-                                    navController.navigate("tools/usbip/${Uri.encode(server.serverTag)}")
-                                },
+                        modifier = Modifier
+                            .clip(shape)
+                            .clickable {
+                                navController.navigate("tools/usbip/${Uri.encode(server.serverTag)}")
+                            },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
                 }
@@ -383,14 +373,12 @@ fun ToolsScreen(
         )
 
         Card(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             ListItem(
                 headlineContent = {
@@ -406,10 +394,9 @@ fun ToolsScreen(
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 },
-                modifier =
-                    Modifier
-                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                        .clickable { navController.navigate("tools/network_quality") },
+                modifier = Modifier
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                    .clickable { navController.navigate("tools/network_quality") },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
             ListItem(
@@ -426,10 +413,9 @@ fun ToolsScreen(
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 },
-                modifier =
-                    Modifier
-                        .clip(if (hasSmartGroups) RoundedCornerShape(0.dp) else RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                        .clickable { navController.navigate("tools/stun_test") },
+                modifier = Modifier
+                    .clip(if (hasSmartGroups) RoundedCornerShape(0.dp) else RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                    .clickable { navController.navigate("tools/stun_test") },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
             if (hasSmartGroups) {
@@ -447,10 +433,9 @@ fun ToolsScreen(
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     },
-                    modifier =
-                        Modifier
-                            .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                            .clickable { navController.navigate(smartInsightsRoute()) },
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                        .clickable { navController.navigate(smartInsightsRoute()) },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 )
             }
@@ -467,14 +452,12 @@ fun ToolsScreen(
             )
 
             Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
             ) {
                 val debugRowCount = 3
                 ListItem(
@@ -498,10 +481,9 @@ fun ToolsScreen(
                             }
                         }
                     },
-                    modifier =
-                        Modifier
-                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                            .clickable { navController.navigate("tools/crash_report") },
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                        .clickable { navController.navigate("tools/crash_report") },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 )
                 ListItem(
@@ -525,10 +507,9 @@ fun ToolsScreen(
                             }
                         }
                     },
-                    modifier =
-                        Modifier
-                            .clip(endpointRowShape(1, debugRowCount))
-                            .clickable { navController.navigate("tools/oom_report") },
+                    modifier = Modifier
+                        .clip(endpointRowShape(1, debugRowCount))
+                        .clickable { navController.navigate("tools/oom_report") },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 )
                 ListItem(
@@ -552,10 +533,9 @@ fun ToolsScreen(
                             }
                         }
                     },
-                    modifier =
-                        Modifier
-                            .clip(endpointRowShape(2, debugRowCount))
-                            .clickable { navController.navigate("tools/power_report") },
+                    modifier = Modifier
+                        .clip(endpointRowShape(2, debugRowCount))
+                        .clickable { navController.navigate("tools/power_report") },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 )
             }
@@ -565,16 +545,12 @@ fun ToolsScreen(
 
 private val STATUS_BAR_CONTENT_PADDING = 74.dp
 
-private fun endpointRowShape(
-    index: Int,
-    count: Int,
-): RoundedCornerShape =
-    when {
-        count == 1 -> RoundedCornerShape(12.dp)
-        index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-        index == count - 1 -> RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
-        else -> RoundedCornerShape(0.dp)
-    }
+private fun endpointRowShape(index: Int, count: Int): RoundedCornerShape = when {
+    count == 1 -> RoundedCornerShape(12.dp)
+    index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+    index == count - 1 -> RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+    else -> RoundedCornerShape(0.dp)
+}
 
 internal fun handleSSHNavigation(
     navController: NavController,
@@ -592,9 +568,8 @@ internal fun handleSSHNavigation(
                 peerHostName = peer.hostName,
                 peerAddress = peer.tailscaleIPs.first(),
                 username = usernames[peer.stableID]?.takeIf { it.isNotBlank() } ?: DEFAULT_SSH_USERNAME,
-                terminalType =
-                    terminalTypes[peer.stableID]?.takeIf { it.isNotBlank() }
-                        ?: DEFAULT_SSH_TERMINAL_TYPE,
+                terminalType = terminalTypes[peer.stableID]?.takeIf { it.isNotBlank() }
+                    ?: DEFAULT_SSH_TERMINAL_TYPE,
                 hostKeys = peer.sshHostKeys,
             ),
         )

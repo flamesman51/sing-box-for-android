@@ -77,10 +77,7 @@ internal fun SmartInsightsHeader(label: Int) {
 }
 
 @Composable
-private fun InsightsCard(
-    first: Boolean = false,
-    content: @Composable ColumnScope.() -> Unit,
-) {
+private fun InsightsCard(first: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = if (first) 8.dp else 0.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
@@ -88,18 +85,14 @@ private fun InsightsCard(
     )
 }
 
-private fun Modifier.rowCorners(
-    first: Boolean,
-    last: Boolean,
-): Modifier =
-    clip(
-        RoundedCornerShape(
-            topStart = if (first) 12.dp else 0.dp,
-            topEnd = if (first) 12.dp else 0.dp,
-            bottomStart = if (last) 12.dp else 0.dp,
-            bottomEnd = if (last) 12.dp else 0.dp,
-        ),
-    )
+private fun Modifier.rowCorners(first: Boolean, last: Boolean): Modifier = clip(
+    RoundedCornerShape(
+        topStart = if (first) 12.dp else 0.dp,
+        topEnd = if (first) 12.dp else 0.dp,
+        bottomStart = if (last) 12.dp else 0.dp,
+        bottomEnd = if (last) 12.dp else 0.dp,
+    ),
+)
 
 @Composable
 private fun InsightsRow(
@@ -117,19 +110,18 @@ private fun InsightsRow(
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         headlineContent = { Text(headline, style = MaterialTheme.typography.bodyLarge, maxLines = headlineMaxLines, overflow = TextOverflow.Ellipsis) },
         overlineContent = overline?.let { { Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) } },
-        supportingContent =
-            supporting?.takeIf(String::isNotBlank)?.let {
-                {
-                    Text(
-                        it,
-                        modifier = Modifier.padding(top = 4.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = supportingMaxLines,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            },
+        supportingContent = supporting?.takeIf(String::isNotBlank)?.let {
+            {
+                Text(
+                    it,
+                    modifier = Modifier.padding(top = 4.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = supportingMaxLines,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        },
         leadingContent = leading,
         trailingContent = trailing,
     )
@@ -143,35 +135,32 @@ private fun StateDot(color: Color) {
 }
 
 @Composable
-private fun groupColor(state: String): Color =
-    when (state) {
-        "ok" -> MaterialTheme.colorScheme.primary
-        "degraded" -> MaterialTheme.colorScheme.tertiary
-        "all_dead", "offline" -> MaterialTheme.colorScheme.error
-        else -> MaterialTheme.colorScheme.outline
-    }
+private fun groupColor(state: String): Color = when (state) {
+    "ok" -> MaterialTheme.colorScheme.primary
+    "degraded" -> MaterialTheme.colorScheme.tertiary
+    "all_dead", "offline" -> MaterialTheme.colorScheme.error
+    else -> MaterialTheme.colorScheme.outline
+}
 
 @Composable
-private fun memberColor(state: String): Color =
-    when (state) {
-        "healthy" -> MaterialTheme.colorScheme.primary
-        "suspect", "probation", "emergency" -> MaterialTheme.colorScheme.tertiary
-        "quarantined" -> MaterialTheme.colorScheme.error
-        else -> MaterialTheme.colorScheme.outline
-    }
+private fun memberColor(state: String): Color = when (state) {
+    "healthy" -> MaterialTheme.colorScheme.primary
+    "suspect", "probation", "emergency" -> MaterialTheme.colorScheme.tertiary
+    "quarantined" -> MaterialTheme.colorScheme.error
+    else -> MaterialTheme.colorScheme.outline
+}
 
 @Composable
 private fun LeadingIcon(icon: ImageVector) {
     Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
 }
 
-private fun networkIcon(type: String): ImageVector =
-    when (type) {
-        "wifi" -> Icons.Outlined.Wifi
-        "cellular" -> Icons.Outlined.SignalCellularAlt
-        "ethernet" -> Icons.Outlined.SettingsEthernet
-        else -> Icons.Outlined.Public
-    }
+private fun networkIcon(type: String): ImageVector = when (type) {
+    "wifi" -> Icons.Outlined.Wifi
+    "cellular" -> Icons.Outlined.SignalCellularAlt
+    "ethernet" -> Icons.Outlined.SettingsEthernet
+    else -> Icons.Outlined.Public
+}
 
 @Composable
 private fun appLocale(): Locale = ConfigurationCompat.getLocales(LocalConfiguration.current)[0] ?: Locale.getDefault()
@@ -180,19 +169,13 @@ private fun appLocale(): Locale = ConfigurationCompat.getLocales(LocalConfigurat
 private fun smartTimeText(seconds: Long?): String? = formatSmartTime(LocalContext.current, seconds, appLocale())
 
 @Composable
-private fun numberText(
-    value: Double?,
-    resource: Int,
-): String? = formatSmartNumber(value, stringResource(resource), appLocale())
+private fun numberText(value: Double?, resource: Int): String? = formatSmartNumber(value, stringResource(resource), appLocale())
 
 @Composable
 private fun megabytesText(value: Double?): String? = formatSmartMegabytes(value, stringResource(R.string.smart_mb_value), stringResource(R.string.smart_mb_whole_value), appLocale())
 
 @Composable
-private fun integerText(
-    value: Double?,
-    resource: Int,
-): String? {
+private fun integerText(value: Double?, resource: Int): String? {
     val pattern = stringResource(resource)
     val locale = appLocale()
     return value?.takeIf(Double::isFinite)?.let { String.format(locale, pattern, it.toLong()) }
@@ -242,20 +225,18 @@ internal fun SmartInsightsServersCard(status: SmartStatus) {
             val isExpanded = expanded[member.tag] == true
             val clickLabel = stringResource(if (isExpanded) R.string.smart_hide_details else R.string.smart_show_details)
             val expansionLabel = stringResource(if (isExpanded) R.string.smart_expanded else R.string.smart_collapsed)
-            val role =
-                when (member.tag) {
-                    status.selected.tcp -> stringResource(R.string.smart_current)
-                    status.selected.standby -> stringResource(R.string.smart_standby)
-                    else -> null
-                }
+            val role = when (member.tag) {
+                status.selected.tcp -> stringResource(R.string.smart_current)
+                status.selected.standby -> stringResource(R.string.smart_standby)
+                else -> null
+            }
             InsightsRow(
                 headline = displayTag(member.tag).first,
                 supporting = joinParts(addresses[member.tag], role, stringResource(smartMemberLabel(member.state)), integerText(member.rttMs, R.string.smart_rtt_value), numberText(member.download.displayValue(), R.string.smart_speed_value)),
-                modifier =
-                    Modifier
-                        .rowCorners(index == 0, index == members.lastIndex && !isExpanded)
-                        .clickable(onClickLabel = clickLabel) { expanded = HashMap(expanded).apply { put(member.tag, !isExpanded) } }
-                        .semantics { stateDescription = expansionLabel },
+                modifier = Modifier
+                    .rowCorners(index == 0, index == members.lastIndex && !isExpanded)
+                    .clickable(onClickLabel = clickLabel) { expanded = HashMap(expanded).apply { put(member.tag, !isExpanded) } }
+                    .semantics { stateDescription = expansionLabel },
                 leading = { StateDot(memberColor(member.state)) },
                 trailing = { Icon(if (isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                 headlineMaxLines = 1,
@@ -276,81 +257,68 @@ internal fun SmartInsightsServersCard(status: SmartStatus) {
 }
 
 @Composable
-private fun MemberValues(
-    member: SmartMember,
-    status: SmartStatus,
-) {
+private fun MemberValues(member: SmartMember, status: SmartStatus) {
     val locale = appLocale()
     val stabilityPattern = stringResource(R.string.smart_stability_value)
-    val stability =
-        member.stability?.takeIf(Double::isFinite)?.let {
-            member.stabilityClass?.takeIf(String::isNotBlank)?.let { label -> String.format(locale, stabilityPattern, (it * 100).toLong(), label) }
-                ?: integerText(it * 100, R.string.smart_percent_value)
-        }
+    val stability = member.stability?.takeIf(Double::isFinite)?.let {
+        member.stabilityClass?.takeIf(String::isNotBlank)?.let { label -> String.format(locale, stabilityPattern, (it * 100).toLong(), label) }
+            ?: integerText(it * 100, R.string.smart_percent_value)
+    }
     val speedTime = smartTimeText(member.throughputAt)
     val speedSource = member.throughputSource?.let { stringResource(smartThroughputSourceLabel(it)) }
-    val speedClass =
-        if (speedSource != null && speedTime != null) {
-            stringResource(R.string.smart_speed_class_value, member.throughputClass, speedSource, speedTime)
-        } else {
-            joinParts(String.format(locale, "%d", member.throughputClass), speedSource, speedTime)
-        }
-    val download =
-        member.download.displayValue()?.let { value ->
-            member.download.displayP10()?.let { p10 ->
-                stringResource(R.string.smart_download_p10_value, value, p10)
-            } ?: numberText(value, R.string.smart_speed_value)
-        }
-    val upload =
-        if (member.isUploadUnverified(status.uploadVerified)) {
-            stringResource(R.string.smart_upload_unverified)
-        } else {
-            numberText(member.uploadValue(status.uploadVerified), R.string.smart_speed_value)
-        }
+    val speedClass = if (speedSource != null && speedTime != null) {
+        stringResource(R.string.smart_speed_class_value, member.throughputClass, speedSource, speedTime)
+    } else {
+        joinParts(String.format(locale, "%d", member.throughputClass), speedSource, speedTime)
+    }
+    val download = member.download.displayValue()?.let { value ->
+        member.download.displayP10()?.let { p10 ->
+            stringResource(R.string.smart_download_p10_value, value, p10)
+        } ?: numberText(value, R.string.smart_speed_value)
+    }
+    val upload = if (member.isUploadUnverified(status.uploadVerified)) {
+        stringResource(R.string.smart_upload_unverified)
+    } else {
+        numberText(member.uploadValue(status.uploadVerified), R.string.smart_speed_value)
+    }
     val legacy = status.preference?.engine == "legacy"
-    val floor =
-        member.effectiveFloorState()?.takeUnless { legacy }?.let {
-            val time = smartTimeText(it.at)
-            val target =
-                NumberFormat
-                    .getNumberInstance(locale)
-                    .apply {
-                        isGroupingUsed = false
-                        maximumFractionDigits = 340
-                    }.format(it.target)
-            time?.let { timeText ->
-                stringResource(if (it.kind == "revoked") R.string.smart_slowdown_revoked else R.string.smart_slowdown_proven, target, timeText)
-            }
+    val floor = member.effectiveFloorState()?.takeUnless { legacy }?.let {
+        val time = smartTimeText(it.at)
+        val target = NumberFormat.getNumberInstance(locale).apply {
+            isGroupingUsed = false
+            maximumFractionDigits = 340
+        }.format(it.target)
+        time?.let { timeText ->
+            stringResource(if (it.kind == "revoked") R.string.smart_slowdown_revoked else R.string.smart_slowdown_proven, target, timeText)
         }
-    val underLoad =
-        member.legacyEpisodeObservation(status.preference?.engine)?.let {
-            smartTimeText(it.at)?.let { time -> stringResource(R.string.smart_under_load_value, requireNotNull(it.value), time) }
-        }
-    val values =
-        listOf(
-            R.string.smart_tcp to stringResource(smartEvidenceLabel(member.tcp)),
-            R.string.smart_udp to stringResource(smartEvidenceLabel(member.udp)),
-            R.string.smart_quic to stringResource(smartEvidenceLabel(member.udp443)),
-            R.string.smart_round_trip to integerText(member.udpRttMs.knownMeasurement(), R.string.smart_rtt_value),
-            R.string.smart_jitter to integerText(member.jitterMs.knownMeasurement(), R.string.smart_rtt_value),
-            R.string.smart_latency to integerText(member.rttMs, R.string.smart_rtt_value),
-            R.string.smart_latency_p90 to integerText(member.rttP90Ms, R.string.smart_rtt_value),
-            R.string.smart_stability to stability,
-            R.string.smart_download to download,
-            R.string.smart_upload to upload,
-            R.string.smart_observed_during_use to numberText(member.observedDownloadValue(), R.string.smart_speed_value),
-            R.string.smart_slowdown_check to floor,
-            R.string.smart_under_load to underLoad,
-            R.string.smart_speed_class to speedClass,
-            R.string.smart_tier to String.format(locale, "%d", member.tier),
-            R.string.smart_country to member.country?.takeIf(String::isNotBlank),
-            R.string.smart_weight to numberText(member.weight, R.string.smart_weight_value),
-            R.string.smart_probation_label to stringResource(R.string.smart_probation_value, member.probation),
-            // The core keeps the last quarantine end after it passes; only a future one means "set aside".
-            R.string.smart_set_aside_until to smartTimeText(member.quarantineUntil?.takeIf { it > System.currentTimeMillis() / 1000 }),
-            R.string.smart_last_success to smartTimeText(member.lastOk),
-            R.string.smart_last_failure to smartTimeText(member.lastFail),
-        ).filter { !it.second.isNullOrBlank() }
+    }
+    val underLoad = member.legacyEpisodeObservation(status.preference?.engine)?.let {
+        smartTimeText(it.at)?.let { time -> stringResource(R.string.smart_under_load_value, requireNotNull(it.value), time) }
+    }
+    val values = listOf(
+        R.string.smart_tcp to stringResource(smartEvidenceLabel(member.tcp)),
+        R.string.smart_udp to stringResource(smartEvidenceLabel(member.udp)),
+        R.string.smart_quic to stringResource(smartEvidenceLabel(member.udp443)),
+        R.string.smart_round_trip to integerText(member.udpRttMs.knownMeasurement(), R.string.smart_rtt_value),
+        R.string.smart_jitter to integerText(member.jitterMs.knownMeasurement(), R.string.smart_rtt_value),
+        R.string.smart_latency to integerText(member.rttMs, R.string.smart_rtt_value),
+        R.string.smart_latency_p90 to integerText(member.rttP90Ms, R.string.smart_rtt_value),
+        R.string.smart_stability to stability,
+        R.string.smart_download to download,
+        R.string.smart_upload to upload,
+        R.string.smart_observed_during_use to numberText(member.observedDownloadValue(), R.string.smart_speed_value),
+        R.string.smart_slowdown_check to floor,
+        R.string.smart_under_load to underLoad,
+        R.string.smart_speed_class to speedClass,
+        R.string.smart_tier to String.format(locale, "%d", member.tier),
+        R.string.smart_country to member.country?.takeIf(String::isNotBlank),
+        R.string.smart_weight to numberText(member.weight, R.string.smart_weight_value),
+        R.string.smart_probation_label to stringResource(R.string.smart_probation_value, member.probation),
+        // The core keeps the last quarantine end after it passes; only a future one means "set aside".
+        R.string.smart_set_aside_until to smartTimeText(member.quarantineUntil?.takeIf { it > System.currentTimeMillis() / 1000 }),
+        R.string.smart_last_success to smartTimeText(member.lastOk),
+        R.string.smart_last_failure to smartTimeText(member.lastFail),
+    ).filter { !it.second.isNullOrBlank() }
     val columns = if (LocalDensity.current.fontScale <= 1.3f) 2 else 1
     values.chunked(columns).forEach { pair ->
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -367,12 +335,11 @@ private fun MemberValues(
 
 @Composable
 private fun MemberCharts(buckets: List<List<Double?>>) {
-    val series =
-        listOf(
-            Triple(buckets.map { it.getOrNull(0)?.times(100) }, R.string.smart_success_chart, 100.0),
-            Triple(buckets.map { it.getOrNull(1) }, R.string.smart_rtt_chart, null),
-            Triple(buckets.map { it.getOrNull(2) }, R.string.smart_speed_chart, null),
-        ).filter { hasSamples(it.first) }
+    val series = listOf(
+        Triple(buckets.map { it.getOrNull(0)?.times(100) }, R.string.smart_success_chart, 100.0),
+        Triple(buckets.map { it.getOrNull(1) }, R.string.smart_rtt_chart, null),
+        Triple(buckets.map { it.getOrNull(2) }, R.string.smart_speed_chart, null),
+    ).filter { hasSamples(it.first) }
     if (series.isNotEmpty()) {
         Text(stringResource(R.string.smart_charts_caption), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         series.forEach { (values, label, maximum) -> TimelineChart(values, stringResource(label), maximum) }
@@ -389,33 +356,30 @@ internal fun SmartInsightsDetailsCard(status: SmartStatus) {
             leading = { LeadingIcon(Icons.Outlined.Hub) },
         )
         val quic = status.selected.udp443
-        val quicLabel =
-            if (quic.mode == "member") {
-                stringResource(smartQuicLabel(quic.mode), quic.member?.let { displayTag(it).first } ?: stringResource(R.string.smart_none))
-            } else {
-                stringResource(smartQuicLabel(quic.mode))
-            }
+        val quicLabel = if (quic.mode == "member") {
+            stringResource(smartQuicLabel(quic.mode), quic.member?.let { displayTag(it).first } ?: stringResource(R.string.smart_none))
+        } else {
+            stringResource(smartQuicLabel(quic.mode))
+        }
         val rejectReason = if (quic.mode == "reject") smartReasonLabel(quic.reason)?.takeUnless { it == R.string.smart_unknown }?.let { stringResource(it) } else null
         InsightsRow(
             headline = stringResource(R.string.smart_udp_quic),
-            supporting =
-                joinParts(
-                    stringResource(R.string.smart_udp_route, status.selected.udp?.let { displayTag(it).first } ?: stringResource(R.string.smart_none)),
-                    stringResource(R.string.smart_quic_route, quicLabel),
-                    rejectReason,
-                ),
+            supporting = joinParts(
+                stringResource(R.string.smart_udp_route, status.selected.udp?.let { displayTag(it).first } ?: stringResource(R.string.smart_none)),
+                stringResource(R.string.smart_quic_route, quicLabel),
+                rejectReason,
+            ),
             leading = { LeadingIcon(Icons.Outlined.SwapVert) },
         )
         val budget = status.budget
         val used = megabytesText(budget.usedMb)
         val limit = megabytesText(budget.limitMb)
         val reserved = megabytesText(budget.reservedMb.takeIf { it != 0.0 })
-        val budgetValues =
-            if (used != null && limit != null) {
-                stringResource(smartBudgetValuesResource(budget.reservedMb), used, limit, stringResource(smartNetworkTypeLabel(budget.networkType)), reserved.orEmpty())
-            } else {
-                joinParts(used, limit, stringResource(smartNetworkTypeLabel(budget.networkType)), reserved)
-            }
+        val budgetValues = if (used != null && limit != null) {
+            stringResource(smartBudgetValuesResource(budget.reservedMb), used, limit, stringResource(smartNetworkTypeLabel(budget.networkType)), reserved.orEmpty())
+        } else {
+            joinParts(used, limit, stringResource(smartNetworkTypeLabel(budget.networkType)), reserved)
+        }
         InsightsRow(
             headline = stringResource(R.string.smart_budget),
             supporting = budgetValues + "\n" + stringResource(if (budget.activeTests) R.string.smart_budget_note else R.string.smart_active_tests_off),
@@ -427,13 +391,12 @@ internal fun SmartInsightsDetailsCard(status: SmartStatus) {
         val direct = status.direct
         InsightsRow(
             headline = stringResource(R.string.smart_direct_title),
-            supporting =
-                joinParts(
-                    stringResource(smartDirectLabel(direct.state)),
-                    if (direct.state == "ok") integerText(direct.rttMs, R.string.smart_rtt_value) else null,
-                    if (direct.state == "ok") numberText(direct.downloadMbps, R.string.smart_speed_value) else null,
-                    smartTimeText(direct.checkedAt)?.let { stringResource(R.string.smart_checked, it) },
-                ),
+            supporting = joinParts(
+                stringResource(smartDirectLabel(direct.state)),
+                if (direct.state == "ok") integerText(direct.rttMs, R.string.smart_rtt_value) else null,
+                if (direct.state == "ok") numberText(direct.downloadMbps, R.string.smart_speed_value) else null,
+                smartTimeText(direct.checkedAt)?.let { stringResource(R.string.smart_checked, it) },
+            ),
             modifier = Modifier.rowCorners(first = false, last = true),
             leading = { LeadingIcon(Icons.Outlined.Public) },
         )
@@ -459,13 +422,12 @@ internal fun SmartInsightsNetworksCard(networks: List<SmartNetworkHistory>) {
             val typeLabel = stringResource(smartNetworkTypeLabel(network.type))
             InsightsRow(
                 headline = network.label,
-                supporting =
-                    joinParts(
-                        typeLabel,
-                        if (network.count > 1) pluralStringResource(smartNetworkCountPlural(network.type), network.count, network.count) else null,
-                        pluralStringResource(R.plurals.smart_server_count, network.servers, network.servers),
-                        smartTimeText(network.lastUsed)?.let { stringResource(R.string.smart_last_seen, it) },
-                    ),
+                supporting = joinParts(
+                    typeLabel,
+                    if (network.count > 1) pluralStringResource(smartNetworkCountPlural(network.type), network.count, network.count) else null,
+                    pluralStringResource(R.plurals.smart_server_count, network.servers, network.servers),
+                    smartTimeText(network.lastUsed)?.let { stringResource(R.string.smart_last_seen, it) },
+                ),
                 modifier = Modifier.rowCorners(index == 0, index == groups.lastIndex),
                 leading = { LeadingIcon(networkIcon(network.type)) },
             )
@@ -474,12 +436,7 @@ internal fun SmartInsightsNetworksCard(networks: List<SmartNetworkHistory>) {
 }
 
 @Composable
-internal fun SmartInsightsEventsCard(
-    events: List<SmartEvent>,
-    networks: List<SmartNetworkHistory>,
-    currentNetwork: SmartNetwork,
-    members: List<SmartMember>,
-) {
+internal fun SmartInsightsEventsCard(events: List<SmartEvent>, networks: List<SmartNetworkHistory>, currentNetwork: SmartNetwork, members: List<SmartMember>) {
     var showAll by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     val addresses = duplicateServerAddresses(members.map { it.tag })
@@ -492,13 +449,12 @@ internal fun SmartInsightsEventsCard(
             val kindLabel = stringResource(smartEventLabel(event.kind))
             InsightsRow(
                 headline = if (group.count > 1) stringResource(R.string.smart_event_repeated, kindLabel, group.count) else kindLabel,
-                supporting =
-                    joinParts(
-                        smartEventServers(event.from, event.to, addresses),
-                        smartReasonLabel(event.reason)?.let { stringResource(it) },
-                        networkLabelForKey(event.network, networks, currentNetwork) { context.getString(smartNetworkFallbackLabel(it)) },
-                        if (group.count > 1) smartTimeText(group.oldestTime)?.let { stringResource(R.string.smart_event_since, it) } else null,
-                    ),
+                supporting = joinParts(
+                    smartEventServers(event.from, event.to, addresses),
+                    smartReasonLabel(event.reason)?.let { stringResource(it) },
+                    networkLabelForKey(event.network, networks, currentNetwork) { context.getString(smartNetworkFallbackLabel(it)) },
+                    if (group.count > 1) smartTimeText(group.oldestTime)?.let { stringResource(R.string.smart_event_since, it) } else null,
+                ),
                 modifier = Modifier.rowCorners(index == 0, index == shown.lastIndex && !showMore),
                 trailing = {
                     smartTimeText(event.time)?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }

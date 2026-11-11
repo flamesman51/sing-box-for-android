@@ -153,38 +153,33 @@ fun TaildropInboxScreen(
 
     var pendingSaveName by remember { mutableStateOf<String?>(null) }
 
-    val saveLauncher =
-        rememberLauncherForActivityResult(
-            ActivityResultContracts.CreateDocument("*/*"),
-        ) { destination ->
-            val name = pendingSaveName
-            pendingSaveName = null
-            if (destination == null || name == null) return@rememberLauncherForActivityResult
-            scope.launch {
-                try {
-                    withContext(Dispatchers.IO) {
-                        val source = TaildropFiles.materialize(endpointTag, name)
-                        context.contentResolver.openOutputStream(destination)?.use { sink ->
-                            source.inputStream().use { input -> input.copyTo(sink) }
-                        } ?: error("failed to open ${destination.path}")
-                    }
-                } catch (e: Exception) {
-                    GlobalEventBus.emit(UiEvent.ErrorMessage(e.message ?: e.toString()))
-                }
-            }
-        }
-
-    fun openFile(
-        name: String,
-        share: Boolean,
-    ) {
+    val saveLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("*/*"),
+    ) { destination ->
+        val name = pendingSaveName
+        pendingSaveName = null
+        if (destination == null || name == null) return@rememberLauncherForActivityResult
         scope.launch {
             try {
-                val uri =
-                    withContext(Dispatchers.IO) {
-                        val file = TaildropFiles.materialize(endpointTag, name)
-                        FileProvider.getUriForFile(context, "${context.packageName}.cache", file)
-                    }
+                withContext(Dispatchers.IO) {
+                    val source = TaildropFiles.materialize(endpointTag, name)
+                    context.contentResolver.openOutputStream(destination)?.use { sink ->
+                        source.inputStream().use { input -> input.copyTo(sink) }
+                    } ?: error("failed to open ${destination.path}")
+                }
+            } catch (e: Exception) {
+                GlobalEventBus.emit(UiEvent.ErrorMessage(e.message ?: e.toString()))
+            }
+        }
+    }
+
+    fun openFile(name: String, share: Boolean) {
+        scope.launch {
+            try {
+                val uri = withContext(Dispatchers.IO) {
+                    val file = TaildropFiles.materialize(endpointTag, name)
+                    FileProvider.getUriForFile(context, "${context.packageName}.cache", file)
+                }
                 val mimeType = TaildropFiles.mimeType(name)
                 if (share) {
                     context.startActivity(
@@ -211,10 +206,9 @@ fun TaildropInboxScreen(
 
     if (!state.hasUpdate) {
         Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surface),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center,
         ) {
             CircularProgressIndicator()
@@ -230,10 +224,9 @@ fun TaildropInboxScreen(
     }
     if (isEmpty) {
         Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surface),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface),
         )
         return
     }
@@ -241,13 +234,12 @@ fun TaildropInboxScreen(
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .verticalScroll(rememberScrollState())
-                .padding(scaffoldPadding)
-                .padding(vertical = 8.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .verticalScroll(rememberScrollState())
+            .padding(scaffoldPadding)
+            .padding(vertical = 8.dp),
     ) {
         if (sending.isNotEmpty()) {
             SectionHeader(stringResource(R.string.taildrop_send))
@@ -256,14 +248,12 @@ fun TaildropInboxScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
                 Card(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    ),
                 ) {
                     Column {
                         session.files.forEachIndexed { index, file ->
@@ -298,14 +288,12 @@ fun TaildropInboxScreen(
         if (state.receiving.isNotEmpty()) {
             SectionHeader(stringResource(R.string.taildrop_receive))
             Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
             ) {
                 Column {
                     state.receiving.forEachIndexed { index, file ->
@@ -317,12 +305,11 @@ fun TaildropInboxScreen(
                         }
                         TaildropTransferItem(
                             name = file.name,
-                            peerLabel =
-                                if (file.senderName.isEmpty()) {
-                                    ""
-                                } else {
-                                    stringResource(R.string.taildrop_from, file.senderName)
-                                },
+                            peerLabel = if (file.senderName.isEmpty()) {
+                                ""
+                            } else {
+                                stringResource(R.string.taildrop_from, file.senderName)
+                            },
                             transferredBytes = file.receivedBytes,
                             totalBytes = file.size,
                             onCancel = { viewModel.cancelReceiving(endpointTag, file.senderID, file.name) },
@@ -337,14 +324,12 @@ fun TaildropInboxScreen(
         if (state.files.isNotEmpty()) {
             SectionHeader(stringResource(R.string.taildrop_files))
             Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
             ) {
                 Column {
                     state.files.forEachIndexed { index, file ->
@@ -363,21 +348,13 @@ fun TaildropInboxScreen(
                             onOpen = { openFile(file.name, share = false) },
                             onShare = { openFile(file.name, share = true) },
                             onDelete = { viewModel.delete(endpointTag, file.name) },
-                            modifier =
-                                when {
-                                    state.files.size == 1 -> {
-                                        Modifier.clip(RoundedCornerShape(12.dp))
-                                    }
-                                    index == 0 -> {
-                                        Modifier.clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                                    }
-                                    index == state.files.lastIndex -> {
-                                        Modifier.clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                                    }
-                                    else -> {
-                                        Modifier
-                                    }
-                                },
+                            modifier = when {
+                                state.files.size == 1 -> Modifier.clip(RoundedCornerShape(12.dp))
+                                index == 0 -> Modifier.clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                                index == state.files.lastIndex ->
+                                    Modifier.clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                                else -> Modifier
+                            },
                         )
                     }
                 }
@@ -409,11 +386,10 @@ private fun FileItem(
 ) {
     var showMenu by remember { mutableStateOf(false) }
     Row(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .clickable(onClick = onOpen)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -497,13 +473,12 @@ private fun fileSubtitle(file: TaildropFileData): String {
     }
     if (file.modifiedAt > 0) {
         parts.add(
-            DateUtils
-                .getRelativeTimeSpanString(
-                    file.modifiedAt * 1000,
-                    System.currentTimeMillis(),
-                    DateUtils.MINUTE_IN_MILLIS,
-                    0,
-                ).toString(),
+            DateUtils.getRelativeTimeSpanString(
+                file.modifiedAt * 1000,
+                System.currentTimeMillis(),
+                DateUtils.MINUTE_IN_MILLIS,
+                0,
+            ).toString(),
         )
     }
     return parts.joinToString(" · ")

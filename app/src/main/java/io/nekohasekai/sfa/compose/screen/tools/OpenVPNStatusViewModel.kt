@@ -118,19 +118,18 @@ class OpenVPNStatusViewModel : BaseViewModel<OpenVPNStatusState, Nothing>() {
         username: String,
         password: String,
         secret: String,
-    ): String? =
-        withContext(Dispatchers.IO) {
-            try {
-                val response = OpenVPNChallengeResponse()
-                response.username = username
-                response.password = password
-                response.secret = secret
-                CommandTarget.standaloneClient().submitOpenVPNChallengeResponse(endpointTag, challengeID, response)
-                null
-            } catch (e: Exception) {
-                e.message ?: "submit challenge response failed"
-            }
+    ): String? = withContext(Dispatchers.IO) {
+        try {
+            val response = OpenVPNChallengeResponse()
+            response.username = username
+            response.password = password
+            response.secret = secret
+            CommandTarget.standaloneClient().submitOpenVPNChallengeResponse(endpointTag, challengeID, response)
+            null
+        } catch (e: Exception) {
+            e.message ?: "submit challenge response failed"
         }
+    }
 
     override fun onCleared() {
         cancel()
@@ -163,32 +162,30 @@ class OpenVPNStatusViewModel : BaseViewModel<OpenVPNStatusState, Nothing>() {
 
     private fun convertChallenge(
         challenge: io.nekohasekai.libbox.OpenVPNChallenge,
-    ): OpenVPNChallengeData =
-        OpenVPNChallengeData(
-            id = challenge.id,
-            kind = challenge.kind,
-            username = challenge.username,
-            message = challenge.message,
-            url = challenge.url,
-            secretMessage = challenge.secretMessage,
-            echo = challenge.echo,
-            previousError = challenge.previousError,
-            deadline = challenge.deadline,
-        )
+    ): OpenVPNChallengeData = OpenVPNChallengeData(
+        id = challenge.id,
+        kind = challenge.kind,
+        username = challenge.username,
+        message = challenge.message,
+        url = challenge.url,
+        secretMessage = challenge.secretMessage,
+        echo = challenge.echo,
+        previousError = challenge.previousError,
+        deadline = challenge.deadline,
+    )
 
     private fun convertTunnelInfo(
         info: io.nekohasekai.libbox.OpenVPNTunnelInfo,
-    ): OpenVPNTunnelInfoData =
-        OpenVPNTunnelInfoData(
-            server = info.server,
-            network = info.network,
-            cipher = info.cipher,
-            ipv4 = info.iPv4().toList(),
-            ipv6 = info.iPv6().toList(),
-            dns = info.dns().toList(),
-            mtu = info.mtu,
-            connectedSince = info.connectedSince,
-        )
+    ): OpenVPNTunnelInfoData = OpenVPNTunnelInfoData(
+        server = info.server,
+        network = info.network,
+        cipher = info.cipher,
+        ipv4 = info.iPv4().toList(),
+        ipv6 = info.iPv6().toList(),
+        dns = info.dns().toList(),
+        mtu = info.mtu,
+        connectedSince = info.connectedSince,
+    )
 
     private fun io.nekohasekai.libbox.StringIterator.toList(): List<String> {
         val values = mutableListOf<String>()

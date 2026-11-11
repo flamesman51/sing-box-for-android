@@ -17,29 +17,25 @@ object DiagnosticsScrubber {
     private val goFunction = Regex("$GO_IDENTIFIER\\.(?:\\(\\*?$GO_IDENTIFIER\\)\\.)?$GO_IDENTIFIER(?:\\.$GO_IDENTIFIER)*")
     private val goLocation = Regex("$GO_IDENTIFIER\\.go:[0-9]{1,10}")
 
-    fun text(
-        value: String,
-        maxBytes: Int = 512,
-    ): String {
+    fun text(value: String, maxBytes: Int = 512): String {
         var result = url.replace(value.take(64 * 1024), "<url>")
-        result =
-            ipv6.replace(result) { match ->
-                val candidate = match.value
-                val trimmed = candidate.trimEnd('.', ',', ':', ';', ')', ']', '"', '\'')
-                var end = trimmed.length
-                while (true) {
-                    if (validIpv6(candidate.substring(0, end))) return@replace "<ip>" + candidate.substring(end)
-                    // A terminal :: belongs to the address, not its punctuation suffix.
-                    if (end == candidate.length || candidate[end] != ':') break
-                    end++
-                }
-                val port = trimmed.lastIndexOf(':')
-                if (port > 0 && trimmed.substring(port + 1).all(Char::isDigit) && validIpv6(trimmed.substring(0, port))) {
-                    "<ip>" + candidate.substring(port)
-                } else {
-                    candidate
-                }
+        result = ipv6.replace(result) { match ->
+            val candidate = match.value
+            val trimmed = candidate.trimEnd('.', ',', ':', ';', ')', ']', '"', '\'')
+            var end = trimmed.length
+            while (true) {
+                if (validIpv6(candidate.substring(0, end))) return@replace "<ip>" + candidate.substring(end)
+                // A terminal :: belongs to the address, not its punctuation suffix.
+                if (end == candidate.length || candidate[end] != ':') break
+                end++
             }
+            val port = trimmed.lastIndexOf(':')
+            if (port > 0 && trimmed.substring(port + 1).all(Char::isDigit) && validIpv6(trimmed.substring(0, port))) {
+                "<ip>" + candidate.substring(port)
+            } else {
+                candidate
+            }
+        }
         result = ipv4.replace(result, "<ip>")
         result = host.replace(result, "<host>")
         result = namedHost.replace(result) { "${it.groupValues[1]}<host>" }
@@ -47,19 +43,15 @@ object DiagnosticsScrubber {
         return utf8(result, maxBytes)
     }
 
-    private fun validIpv6(value: String): Boolean =
-        try {
-            // URI parses bracketed numeric literals without DNS or network access.
-            URI("http://[${value.substringBefore('%')}]/")
-            true
-        } catch (_: URISyntaxException) {
-            false
-        }
+    private fun validIpv6(value: String): Boolean = try {
+        // URI parses bracketed numeric literals without DNS or network access.
+        URI("http://[${value.substringBefore('%')}]/")
+        true
+    } catch (_: URISyntaxException) {
+        false
+    }
 
-    fun utf8(
-        value: String,
-        maxBytes: Int,
-    ): String {
+    fun utf8(value: String, maxBytes: Int): String {
         require(maxBytes >= 0)
         val bytes = value.toByteArray(Charsets.UTF_8)
         if (bytes.size <= maxBytes) return value
@@ -68,15 +60,9 @@ object DiagnosticsScrubber {
         return String(bytes, 0, end, Charsets.UTF_8)
     }
 
-    fun stack(
-        value: String,
-        maxBytes: Int = 16 * 1024,
-    ): String = stack(value.reader(), maxBytes)
+    fun stack(value: String, maxBytes: Int = 16 * 1024): String = stack(value.reader(), maxBytes)
 
-    fun stack(
-        reader: Reader,
-        maxBytes: Int = 16 * 1024,
-    ): String {
+    fun stack(reader: Reader, maxBytes: Int = 16 * 1024): String {
         val frames = StringBuilder()
         var pending: String? = null
         var readChars = 0
@@ -85,12 +71,11 @@ object DiagnosticsScrubber {
         var overflow = false
         fun accept(raw: String) {
             val trimmed = raw.trim()
-            val frame =
-                when {
-                    jvm.matches(trimmed) -> trimmed
-                    pending != null && goLocation.matches(trimmed) -> "$pending\n$trimmed"
-                    else -> null
-                }
+            val frame = when {
+                jvm.matches(trimmed) -> trimmed
+                pending != null && goLocation.matches(trimmed) -> "$pending\n$trimmed"
+                else -> null
+            }
             pending = if (goFunction.matches(trimmed)) trimmed else null
             if (frame != null) {
                 val bytes = frame.toByteArray(Charsets.UTF_8).size + if (frames.isEmpty()) 0 else 1

@@ -44,51 +44,46 @@ class QRSBitmapGenerator(
             return
         }
 
-        generationJob =
-            scope.launch {
-                val firstBitmap =
-                    withContext(Dispatchers.Default) {
-                        QRCodeGenerator.generate(
-                            content = frames[0].content,
-                            foregroundColor = foregroundColor,
-                            backgroundColor = backgroundColor,
-                        )
-                    }
-                bitmapBuffer[0] = firstBitmap
-                generatedUpTo = 0
-                _state.value =
-                    _state.value.copy(
-                        currentBitmap = firstBitmap,
-                        generatedCount = 1,
-                        isGenerating = frames.size > 1,
-                    )
-
-                for (i in 1 until frames.size) {
-                    yield()
-                    val bitmap =
-                        withContext(Dispatchers.Default) {
-                            QRCodeGenerator.generate(
-                                content = frames[i].content,
-                                foregroundColor = foregroundColor,
-                                backgroundColor = backgroundColor,
-                            )
-                        }
-
-                    val bufferIndex = i % actualBufferSize
-                    val currentDisplayBufferIndex = currentFrameIndex % actualBufferSize
-                    if (bufferIndex != currentDisplayBufferIndex) {
-                        bitmapBuffer[bufferIndex]?.recycle()
-                    }
-                    bitmapBuffer[bufferIndex] = bitmap
-                    generatedUpTo = i
-
-                    _state.value =
-                        _state.value.copy(
-                            generatedCount = i + 1,
-                            isGenerating = i < frames.size - 1,
-                        )
-                }
+        generationJob = scope.launch {
+            val firstBitmap = withContext(Dispatchers.Default) {
+                QRCodeGenerator.generate(
+                    content = frames[0].content,
+                    foregroundColor = foregroundColor,
+                    backgroundColor = backgroundColor,
+                )
             }
+            bitmapBuffer[0] = firstBitmap
+            generatedUpTo = 0
+            _state.value = _state.value.copy(
+                currentBitmap = firstBitmap,
+                generatedCount = 1,
+                isGenerating = frames.size > 1,
+            )
+
+            for (i in 1 until frames.size) {
+                yield()
+                val bitmap = withContext(Dispatchers.Default) {
+                    QRCodeGenerator.generate(
+                        content = frames[i].content,
+                        foregroundColor = foregroundColor,
+                        backgroundColor = backgroundColor,
+                    )
+                }
+
+                val bufferIndex = i % actualBufferSize
+                val currentDisplayBufferIndex = currentFrameIndex % actualBufferSize
+                if (bufferIndex != currentDisplayBufferIndex) {
+                    bitmapBuffer[bufferIndex]?.recycle()
+                }
+                bitmapBuffer[bufferIndex] = bitmap
+                generatedUpTo = i
+
+                _state.value = _state.value.copy(
+                    generatedCount = i + 1,
+                    isGenerating = i < frames.size - 1,
+                )
+            }
+        }
     }
 
     fun advanceFrame() {
@@ -101,11 +96,10 @@ class QRSBitmapGenerator(
 
         val bufferIndex = currentFrameIndex % actualBufferSize
         val bitmap = bitmapBuffer[bufferIndex]
-        _state.value =
-            _state.value.copy(
-                currentBitmap = bitmap,
-                currentFrameIndex = currentFrameIndex,
-            )
+        _state.value = _state.value.copy(
+            currentBitmap = bitmap,
+            currentFrameIndex = currentFrameIndex,
+        )
     }
 
     fun cancel() {

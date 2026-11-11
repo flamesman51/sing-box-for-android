@@ -413,9 +413,9 @@ fun ConnectionsScreen(
             }
         LazyColumnCompat(
             modifier =
-                modifier
-                    .fillMaxSize()
-                    .then(sheetSwipeToDismissModifier),
+            modifier
+                .fillMaxSize()
+                .then(sheetSwipeToDismissModifier),
             state = lazyListState,
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -443,10 +443,10 @@ fun ConnectionsScreen(
                         value = uiState.searchText,
                         onValueChange = { viewModel.setSearchText(it) },
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 8.dp)
-                                .focusRequester(focusRequester),
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                            .focusRequester(focusRequester),
                         placeholder = { Text(stringResource(R.string.search_connections)) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         trailingIcon = {
@@ -465,10 +465,9 @@ fun ConnectionsScreen(
                 uiState.isLoading -> {
                     item(key = "connections_loading") {
                         Box(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 48.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 48.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             CircularProgressIndicator()
@@ -479,10 +478,9 @@ fun ConnectionsScreen(
                 uiState.connections.isEmpty() -> {
                     item(key = "connections_empty") {
                         Box(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 48.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 48.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
@@ -524,11 +522,11 @@ fun ConnectionsScreen(
                     value = uiState.searchText,
                     onValueChange = { viewModel.setSearchText(it) },
                     modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .padding(bottom = 8.dp)
-                            .focusRequester(focusRequester),
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 8.dp)
+                        .focusRequester(focusRequester),
                     placeholder = { Text(stringResource(R.string.search_connections)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
@@ -569,9 +567,9 @@ fun ConnectionsScreen(
                     val bounceBlockingConnection = rememberBounceBlockingNestedScrollConnection(lazyListState)
                     LazyColumnCompat(
                         modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .nestedScroll(bounceBlockingConnection),
+                        Modifier
+                            .fillMaxSize()
+                            .nestedScroll(bounceBlockingConnection),
                         state = lazyListState,
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = scaffoldPadding.calculateBottomPadding() + 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -595,18 +593,10 @@ fun ConnectionsScreen(
 }
 
 @Composable
-private fun rememberBounceBlockingNestedScrollConnection(lazyListState: LazyListState): NestedScrollConnection =
-    remember(lazyListState) {
-        object : NestedScrollConnection {
-            override fun onPostScroll(
-                consumed: Offset,
-                available: Offset,
-                source: NestedScrollSource,
-            ): Offset = if (available.y < 0) available else Offset.Zero
+private fun rememberBounceBlockingNestedScrollConnection(lazyListState: LazyListState): NestedScrollConnection = remember(lazyListState) {
+    object : NestedScrollConnection {
+        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset = if (available.y < 0) available else Offset.Zero
 
-            override suspend fun onPostFling(
-                consumed: Velocity,
-                available: Velocity,
-            ): Velocity = if (available.y < 0) available else Velocity.Zero
-        }
+        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity = if (available.y < 0) available else Velocity.Zero
     }
+}

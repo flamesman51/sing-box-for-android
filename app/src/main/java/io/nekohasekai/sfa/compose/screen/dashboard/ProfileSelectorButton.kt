@@ -30,31 +30,25 @@ import io.nekohasekai.sfa.compose.util.ProfileIcons
 import io.nekohasekai.sfa.database.Profile
 
 @Composable
-fun ProfileSelectorButton(
-    selectedProfile: Profile?,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun ProfileSelectorButton(selectedProfile: Profile?, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         onClick = onClick,
         modifier = modifier.fillMaxWidth().height(48.dp),
         shape = RoundedCornerShape(12.dp),
-        color =
-            if (isSystemInDarkTheme()) {
-                lerp(
-                    MaterialTheme.colorScheme.surfaceContainerHighest,
-                    MaterialTheme.colorScheme.surfaceContainerHigh,
-                    0.5f,
-                )
-            } else {
-                MaterialTheme.colorScheme.surfaceDim
-            },
+        color = if (isSystemInDarkTheme()) {
+            lerp(
+                MaterialTheme.colorScheme.surfaceContainerHighest,
+                MaterialTheme.colorScheme.surfaceContainerHigh,
+                0.5f,
+            )
+        } else {
+            MaterialTheme.colorScheme.surfaceDim
+        },
     ) {
         Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (selectedProfile != null) {

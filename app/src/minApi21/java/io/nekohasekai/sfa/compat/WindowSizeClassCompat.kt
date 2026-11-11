@@ -8,15 +8,10 @@ object WindowSizeClassCompat {
     const val WIDTH_DP_EXPANDED_LOWER_BOUND = 840
 }
 
-fun WindowSizeClass.isWidthAtLeastBreakpointCompat(breakpointDp: Int): Boolean =
-    when {
-        breakpointDp <= WindowSizeClassCompat.WIDTH_DP_MEDIUM_LOWER_BOUND -> {
-            windowWidthSizeClass != WindowWidthSizeClass.COMPACT
-        }
-        breakpointDp <= WindowSizeClassCompat.WIDTH_DP_EXPANDED_LOWER_BOUND -> {
-            windowWidthSizeClass == WindowWidthSizeClass.EXPANDED
-        }
-        else -> {
-            windowWidthSizeClass == WindowWidthSizeClass.EXPANDED
-        }
-    }
+fun WindowSizeClass.isWidthAtLeastBreakpointCompat(breakpointDp: Int): Boolean = when {
+    breakpointDp <= WindowSizeClassCompat.WIDTH_DP_MEDIUM_LOWER_BOUND ->
+        windowWidthSizeClass != WindowWidthSizeClass.COMPACT
+    breakpointDp <= WindowSizeClassCompat.WIDTH_DP_EXPANDED_LOWER_BOUND ->
+        windowWidthSizeClass == WindowWidthSizeClass.EXPANDED
+    else -> windowWidthSizeClass == WindowWidthSizeClass.EXPANDED
+}

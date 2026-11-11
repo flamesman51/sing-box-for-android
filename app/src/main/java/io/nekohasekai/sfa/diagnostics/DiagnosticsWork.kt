@@ -54,8 +54,7 @@ object DiagnosticsWork {
                         manager.enqueueUniquePeriodicWork(
                             PERIODIC,
                             ExistingPeriodicWorkPolicy.UPDATE,
-                            PeriodicWorkRequest
-                                .Builder(Upload::class.java, 6, TimeUnit.HOURS)
+                            PeriodicWorkRequest.Builder(Upload::class.java, 6, TimeUnit.HOURS)
                                 .setConstraints(connected)
                                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 5, TimeUnit.MINUTES)
                                 .build(),
@@ -73,14 +72,12 @@ object DiagnosticsWork {
                 Settings.dataStore.initialize()
                 synchronized(scheduleLock) {
                     if (!Settings.sendDiagnostics) return@synchronized
-                    val request =
-                        OneTimeWorkRequest
-                            .Builder(Upload::class.java)
-                            .setConstraints(connected)
-                            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 5, TimeUnit.MINUTES)
-                            // Startup triggers run before the command server; wait so the report carries smart status.
-                            .setInitialDelay(1, TimeUnit.MINUTES)
-                            .build()
+                    val request = OneTimeWorkRequest.Builder(Upload::class.java)
+                        .setConstraints(connected)
+                        .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 5, TimeUnit.MINUTES)
+                        // Startup triggers run before the command server; wait so the report carries smart status.
+                        .setInitialDelay(1, TimeUnit.MINUTES)
+                        .build()
                     WorkManager.getInstance(context).enqueueUniqueWork(IMMEDIATE, ExistingWorkPolicy.KEEP, request)
                 }
             } catch (_: Exception) {
@@ -88,95 +85,82 @@ object DiagnosticsWork {
         }
     }
 
-    class Upload(
-        context: Context,
-        parameters: WorkerParameters,
-    ) : CoroutineWorker(context, parameters) {
+    class Upload(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
         companion object {
             private val uploadLock = Mutex()
         }
 
-        override suspend fun doWork(): Result =
-            uploadLock.withLock {
-                withContext(Dispatchers.IO) {
-                    try {
-                        val coreReady =
-                            try {
-                                Application.application.coreReady.await()
-                                true
-                            } catch (error: CancellationException) {
-                                throw error
-                            } catch (_: Exception) {
-                                false
-                            }
-                        DiagnosticsJournal.flush()
-                        if (!Settings.sendDiagnostics) return@withContext Result.success()
-                        val destination =
-                            DiagnosticsJournal.selectedDestination() ?: run {
-                                Log.i("DiagnosticsReport", "No report capability for selected profile")
-                                return@withContext Result.success()
-                            }
-                        val store = DiagnosticsJournal.store
-                        val unsent = DiagnosticsReportDiscovery.shared.unsent(store, destination.owner)
-                        var batch = store.pending(destination.owner)
-                        if (batch == null) {
-                            val app =
-                                DiagnosticsProjection.app(
-                                    buildJsonObject {
-                                        put("version_name", BuildConfig.VERSION_NAME)
-                                        put("version_code", BuildConfig.VERSION_CODE)
-                                        put("core_version", if (coreReady) Libbox.version() else "unknown")
-                                        put("android_sdk", Build.VERSION.SDK_INT)
-                                        put("device_model", Build.MODEL)
-                                    },
-                                )
-                            val smart =
-                                if (coreReady && BoxService.activeDiagnosticsProfileId == destination.profileId &&
-                                    BoxService.activeDiagnosticsProfileSource == destination.source
-                                ) {
-                                    DiagnosticsSnapshot.smart().takeIf {
-                                        BoxService.activeDiagnosticsProfileId == destination.profileId &&
-                                            BoxService.activeDiagnosticsProfileSource == destination.source
-                                    }
-                                } else {
-                                    null
-                                }
-                            val crashes = DiagnosticsSnapshot.crashes(unsent)
-                            batch = store.prepare(destination.owner, app, smart, crashes, association = destination.association)
-                        }
-                        repeat(8) {
-                            val pending = batch ?: return@withContext Result.success()
-                            currentCoroutineContext().ensureActive()
-                            if (!Settings.sendDiagnostics || DiagnosticsJournal.selectedDestination() != destination) return@withContext Result.success()
-                            val body = pending.body.toByteArray(Charsets.UTF_8)
-                            val status = post(destination.url, body)
-                            Log.i("DiagnosticsReport", "report_id=${pending.id} bytes=${body.size} status=$status")
-                            currentCoroutineContext().ensureActive()
-                            when (store.respond(destination.owner, pending.id, status)) {
-                                DiagnosticsStore.Outcome.RETRY -> {
-                                    return@withContext Result.retry()
-                                }
-                                DiagnosticsStore.Outcome.ACKNOWLEDGED, DiagnosticsStore.Outcome.DISCARDED, DiagnosticsStore.Outcome.SPLIT -> {
-                                    batch = store.pending(destination.owner)
-                                }
-                            }
-                        }
-                        if (batch == null) Result.success() else Result.retry()
+        override suspend fun doWork(): Result = uploadLock.withLock {
+            withContext(Dispatchers.IO) {
+                try {
+                    val coreReady = try {
+                        Application.application.coreReady.await()
+                        true
                     } catch (error: CancellationException) {
                         throw error
-                    } catch (error: Exception) {
-                        Log.w("DiagnosticsReport", "Upload failed: ${error.javaClass.simpleName}")
-                        // Neither transport exception text nor the request URL may enter logs or the journal.
-                        Result.retry()
+                    } catch (_: Exception) {
+                        false
                     }
+                    DiagnosticsJournal.flush()
+                    if (!Settings.sendDiagnostics) return@withContext Result.success()
+                    val destination = DiagnosticsJournal.selectedDestination() ?: run {
+                        Log.i("DiagnosticsReport", "No report capability for selected profile")
+                        return@withContext Result.success()
+                    }
+                    val store = DiagnosticsJournal.store
+                    val unsent = DiagnosticsReportDiscovery.shared.unsent(store, destination.owner)
+                    var batch = store.pending(destination.owner)
+                    if (batch == null) {
+                        val app = DiagnosticsProjection.app(
+                            buildJsonObject {
+                                put("version_name", BuildConfig.VERSION_NAME)
+                                put("version_code", BuildConfig.VERSION_CODE)
+                                put("core_version", if (coreReady) Libbox.version() else "unknown")
+                                put("android_sdk", Build.VERSION.SDK_INT)
+                                put("device_model", Build.MODEL)
+                            },
+                        )
+                        val smart = if (coreReady && BoxService.activeDiagnosticsProfileId == destination.profileId &&
+                            BoxService.activeDiagnosticsProfileSource == destination.source
+                        ) {
+                            DiagnosticsSnapshot.smart().takeIf {
+                                BoxService.activeDiagnosticsProfileId == destination.profileId &&
+                                    BoxService.activeDiagnosticsProfileSource == destination.source
+                            }
+                        } else {
+                            null
+                        }
+                        val crashes = DiagnosticsSnapshot.crashes(unsent)
+                        batch = store.prepare(destination.owner, app, smart, crashes, association = destination.association)
+                    }
+                    repeat(8) {
+                        val pending = batch ?: return@withContext Result.success()
+                        currentCoroutineContext().ensureActive()
+                        if (!Settings.sendDiagnostics || DiagnosticsJournal.selectedDestination() != destination) return@withContext Result.success()
+                        val body = pending.body.toByteArray(Charsets.UTF_8)
+                        val status = post(destination.url, body)
+                        Log.i("DiagnosticsReport", "report_id=${pending.id} bytes=${body.size} status=$status")
+                        currentCoroutineContext().ensureActive()
+                        when (store.respond(destination.owner, pending.id, status)) {
+                            DiagnosticsStore.Outcome.RETRY -> return@withContext Result.retry()
+                            DiagnosticsStore.Outcome.ACKNOWLEDGED, DiagnosticsStore.Outcome.DISCARDED, DiagnosticsStore.Outcome.SPLIT -> {
+                                batch = store.pending(destination.owner)
+                            }
+                        }
+                    }
+                    if (batch == null) Result.success() else Result.retry()
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    Log.w("DiagnosticsReport", "Upload failed: ${error.javaClass.simpleName}")
+                    // Neither transport exception text nor the request URL may enter logs or the journal.
+                    Result.retry()
                 }
             }
+        }
     }
 
-    private fun post(
-        destination: String,
-        body: ByteArray,
-    ): Int {
+    private fun post(destination: String, body: ByteArray): Int {
         require(body.size <= DiagnosticsStore.MAX_BODY_BYTES)
         val url = URL(destination)
         require(url.protocol.equals("https", true) && url.userInfo == null && url.ref == null)

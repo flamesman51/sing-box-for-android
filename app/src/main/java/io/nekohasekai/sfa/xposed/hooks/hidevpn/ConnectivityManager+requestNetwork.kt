@@ -9,9 +9,7 @@ import io.nekohasekai.sfa.xposed.VpnHideContext
 import io.nekohasekai.sfa.xposed.VpnSanitizer
 import io.nekohasekai.sfa.xposed.hooks.SafeMethodHook
 
-class HookConnectivityManagerRequestNetwork(
-    private val helper: ConnectivityServiceHookHelper,
-) {
+class HookConnectivityManagerRequestNetwork(private val helper: ConnectivityServiceHookHelper) {
     private companion object {
         private const val SOURCE = "HookRequestNetwork"
     }
@@ -59,13 +57,12 @@ class HookConnectivityManagerRequestNetwork(
     }
 
     private fun hookRequestNetwork() {
-        val methods =
-            listOf(
-                "V16" to { hookRequestNetworkV16() },
-                "V12" to { hookRequestNetworkV12() },
-                "V11" to { hookRequestNetworkV11() },
-                "V8" to { hookRequestNetworkV8() },
-            )
+        val methods = listOf(
+            "V16" to { hookRequestNetworkV16() },
+            "V12" to { hookRequestNetworkV12() },
+            "V11" to { hookRequestNetworkV11() },
+            "V8" to { hookRequestNetworkV8() },
+        )
         for ((version, hook) in methods) {
             try {
                 hook()
@@ -78,13 +75,12 @@ class HookConnectivityManagerRequestNetwork(
     }
 
     private fun hookListenForNetwork() {
-        val methods =
-            listOf(
-                "V16" to { hookListenForNetworkV16() },
-                "V12" to { hookListenForNetworkV12() },
-                "V11" to { hookListenForNetworkV11() },
-                "V8" to { hookListenForNetworkV8() },
-            )
+        val methods = listOf(
+            "V16" to { hookListenForNetworkV16() },
+            "V12" to { hookListenForNetworkV12() },
+            "V11" to { hookListenForNetworkV11() },
+            "V8" to { hookListenForNetworkV8() },
+        )
         for ((version, hook) in methods) {
             try {
                 hook()
@@ -97,12 +93,11 @@ class HookConnectivityManagerRequestNetwork(
     }
 
     private fun hookPendingRequestForNetwork() {
-        val methods =
-            listOf(
-                "V12" to { hookPendingRequestForNetworkV12() },
-                "V11" to { hookPendingRequestForNetworkV11() },
-                "V8" to { hookPendingRequestForNetworkV8() },
-            )
+        val methods = listOf(
+            "V12" to { hookPendingRequestForNetworkV12() },
+            "V11" to { hookPendingRequestForNetworkV11() },
+            "V8" to { hookPendingRequestForNetworkV8() },
+        )
         for ((version, hook) in methods) {
             try {
                 hook()
@@ -115,12 +110,11 @@ class HookConnectivityManagerRequestNetwork(
     }
 
     private fun hookPendingListenForNetwork() {
-        val methods =
-            listOf(
-                "V12" to { hookPendingListenForNetworkV12() },
-                "V11" to { hookPendingListenForNetworkV11() },
-                "V8" to { hookPendingListenForNetworkV8() },
-            )
+        val methods = listOf(
+            "V12" to { hookPendingListenForNetworkV12() },
+            "V11" to { hookPendingListenForNetworkV11() },
+            "V8" to { hookPendingListenForNetworkV8() },
+        )
         for ((version, hook) in methods) {
             try {
                 hook()

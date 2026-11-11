@@ -6,10 +6,9 @@ enum class UpdateTrack {
     ;
 
     companion object {
-        fun fromString(value: String): UpdateTrack =
-            when (value.lowercase()) {
-                "beta" -> BETA
-                else -> STABLE
-            }
+        fun fromString(value: String): UpdateTrack = when (value.lowercase()) {
+            "beta" -> BETA
+            else -> STABLE
+        }
     }
 }

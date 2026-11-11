@@ -55,10 +55,7 @@ internal fun smartStoredPolicy(): String = LocalSmartPolicyRuntime.current.store
 internal fun smartPolicyIsRemote(): Boolean = RemoteControlManager.remoteServer.collectAsState().value != null
 
 @Composable
-fun SmartLocalProfileRoute(
-    navController: NavController,
-    content: @Composable () -> Unit,
-) {
+fun SmartLocalProfileRoute(navController: NavController, content: @Composable () -> Unit) {
     if (smartPolicyIsRemote()) {
         LaunchedEffect(Unit) { navController.popBackStack("settings/smart", false) }
     } else {
@@ -85,10 +82,7 @@ internal suspend fun runSmartPolicySession(
 
 /** Keeps reconciliation alive across screens until a complete status snapshot is available. */
 @Composable
-fun SmartPolicyStatusProvider(
-    serviceStatus: Status,
-    content: @Composable () -> Unit,
-) {
+fun SmartPolicyStatusProvider(serviceStatus: Status, content: @Composable () -> Unit) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val scope = rememberCoroutineScope()
     val remoteServer by RemoteControlManager.remoteServer.collectAsState()
@@ -100,23 +94,19 @@ fun SmartPolicyStatusProvider(
     var instance by remember(serviceStatus, remoteServer) { mutableStateOf<Long?>(null) }
     val savedPolicies = remember(serviceStatus, remoteServer) { mutableSetOf<String>() }
     DisposableEffect(serviceStatus, remoteServer) {
-        val listener =
-            object : OnPreferenceDataStoreChangeListener {
-                override fun onPreferenceDataStoreChanged(
-                    store: PreferenceDataStore,
-                    key: String,
-                ) {
-                    if (key != Settings.SMART_POLICY_KEY) return
-                    val next = Settings.smartPolicy
-                    scope.launch {
-                        if (next != stored) {
-                            // Saves already invoke the upstream notifier; reconciliation is only for startup.
-                            if (remoteServer == null && serviceStatus == Status.Started) savedPolicies.add(next)
-                            stored = next
-                        }
+        val listener = object : OnPreferenceDataStoreChangeListener {
+            override fun onPreferenceDataStoreChanged(store: PreferenceDataStore, key: String) {
+                if (key != Settings.SMART_POLICY_KEY) return
+                val next = Settings.smartPolicy
+                scope.launch {
+                    if (next != stored) {
+                        // Saves already invoke the upstream notifier; reconciliation is only for startup.
+                        if (remoteServer == null && serviceStatus == Status.Started) savedPolicies.add(next)
+                        stored = next
                     }
                 }
             }
+        }
         Settings.dataStore.registerChangeListener(listener)
         onDispose { Settings.dataStore.unregisterChangeListener(listener) }
     }
@@ -129,33 +119,31 @@ fun SmartPolicyStatusProvider(
                 var tags: List<String>? = null
                 var connected = true
                 var active = true
-                val handler =
-                    object : CommandClientHandler by SmartCommandHandler {
-                        override fun writeGroups(groups: OutboundGroupIterator?) {
-                            val next =
-                                groups?.let { iterator ->
-                                    buildList {
-                                        while (iterator.hasNext()) {
-                                            val group = iterator.next()
-                                            if (group.type == "smart") add(group.tag)
-                                        }
-                                    }
+                val handler = object : CommandClientHandler by SmartCommandHandler {
+                    override fun writeGroups(groups: OutboundGroupIterator?) {
+                        val next = groups?.let { iterator ->
+                            buildList {
+                                while (iterator.hasNext()) {
+                                    val group = iterator.next()
+                                    if (group.type == "smart") add(group.tag)
                                 }
-                            sessionScope.launch {
-                                if (!active) return@launch
-                                if (tags != next) snapshot = SmartPolicySnapshot(loading = true)
-                                tags = next
                             }
                         }
-                        override fun disconnected(message: String?) {
-                            sessionScope.launch {
-                                if (!active) return@launch
-                                connected = false
-                                tags = null
-                                snapshot = SmartPolicySnapshot()
-                            }
+                        sessionScope.launch {
+                            if (!active) return@launch
+                            if (tags != next) snapshot = SmartPolicySnapshot(loading = true)
+                            tags = next
                         }
                     }
+                    override fun disconnected(message: String?) {
+                        sessionScope.launch {
+                            if (!active) return@launch
+                            connected = false
+                            tags = null
+                            snapshot = SmartPolicySnapshot()
+                        }
+                    }
+                }
                 var connection: CommandClient? = null
                 runSmartPolicySession(
                     onUnavailable = { snapshot = SmartPolicySnapshot() },
@@ -167,24 +155,22 @@ fun SmartPolicyStatusProvider(
                     // Subscribe after identifying the instance, so reloads cannot reuse an old group list.
                     val sessionInstance = withContext(Dispatchers.IO) { CommandTarget.standaloneClient().startedAt }
                     val options = CommandClientOptions().apply { addCommand(Libbox.CommandGroup) }
-                    val channel =
-                        remoteServer?.let {
-                            Libbox.newRemoteCommandClient(handler, options, CommandTarget.libboxOptions(it))
-                        } ?: CommandClient(handler, options)
+                    val channel = remoteServer?.let {
+                        Libbox.newRemoteCommandClient(handler, options, CommandTarget.libboxOptions(it))
+                    } ?: CommandClient(handler, options)
                     connection = channel
                     withContext(Dispatchers.IO) { channel.connect() }
                     while (isActive && connected) {
                         val currentTags = tags
                         if (currentTags != null) {
                             try {
-                                val result =
-                                    withContext(Dispatchers.IO) {
-                                        val before = channel.startedAt
-                                        check(before == sessionInstance) { "Service changed before status snapshot" }
-                                        val statuses = currentTags.map { SmartJson.status(channel.getSmartStatus(it)) }
-                                        check(before == channel.startedAt) { "Service changed during status snapshot" }
-                                        before to statuses
-                                    }
+                                val result = withContext(Dispatchers.IO) {
+                                    val before = channel.startedAt
+                                    check(before == sessionInstance) { "Service changed before status snapshot" }
+                                    val statuses = currentTags.map { SmartJson.status(channel.getSmartStatus(it)) }
+                                    check(before == channel.startedAt) { "Service changed during status snapshot" }
+                                    before to statuses
+                                }
                                 if (currentTags == tags) {
                                     instance = result.first
                                     snapshot = SmartPolicySnapshot(result.second)

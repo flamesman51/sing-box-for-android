@@ -27,20 +27,12 @@ object ServerUpdateNotifier {
     private const val CONFIRM_TAG = "app-update-confirmation"
     private const val INSTALL_ACTIVITY = "io.nekohasekai.sfa.update.ServerUpdateInstallActivity"
 
-    internal fun permissionNeeded(
-        sdkInt: Int,
-        source: UpdateSource,
-        autoUpdateEnabled: Boolean,
-        permissionGranted: Boolean,
-    ): Boolean =
-        sdkInt >= Build.VERSION_CODES.TIRAMISU &&
-            source == UpdateSource.SERVER && autoUpdateEnabled && !permissionGranted
+    internal fun permissionNeeded(sdkInt: Int, source: UpdateSource, autoUpdateEnabled: Boolean, permissionGranted: Boolean): Boolean = sdkInt >= Build.VERSION_CODES.TIRAMISU &&
+        source == UpdateSource.SERVER && autoUpdateEnabled && !permissionGranted
 
-    fun installIntent(context: Context): Intent =
-        activityIntent(context, ACTION_INSTALL).apply {
-            ServerUpdates.state.value.ready
-                ?.let { putReadyIdentity(it) }
-        }
+    fun installIntent(context: Context): Intent = activityIntent(context, ACTION_INSTALL).apply {
+        ServerUpdates.state.value.ready?.let { putReadyIdentity(it) }
+    }
 
     fun refresh(context: Context) {
         if (!Vendor.hasCustomUpdate) {
@@ -58,19 +50,17 @@ object ServerUpdateNotifier {
             manager.cancel(READY_TAG, 0)
             return
         }
-        val install =
-            PendingIntent.getActivity(
-                context,
-                0,
-                installIntent(context).apply { putReadyIdentity(ready) },
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
+        val install = PendingIntent.getActivity(
+            context,
+            0,
+            installIntent(context).apply { putReadyIdentity(ready) },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
         post(
             context,
             READY_TAG,
             0,
-            NotificationCompat
-                .Builder(context, CHANNEL_ID)
+            NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_menu)
                 .setContentTitle(context.getString(R.string.server_update_ready_title, pending.versionName))
                 .setContentText(context.getString(R.string.server_update_ready_notice))
@@ -83,33 +73,25 @@ object ServerUpdateNotifier {
         )
     }
 
-    fun postConfirmation(
-        context: Context,
-        sessionId: Int,
-        confirmation: Intent,
-        ready: ReadyServerUpdate?,
-    ) {
+    fun postConfirmation(context: Context, sessionId: Int, confirmation: Intent, ready: ReadyServerUpdate?) {
         createChannel(context)
-        val intent =
-            activityIntent(context, ACTION_CONFIRM).apply {
-                data = android.net.Uri.parse("sfa-update://confirm/$sessionId")
-                putExtra(android.content.pm.PackageInstaller.EXTRA_SESSION_ID, sessionId)
-                putExtra(Intent.EXTRA_INTENT, confirmation)
-                ready?.let { putReadyIdentity(it) }
-            }
-        val action =
-            PendingIntent.getActivity(
-                context,
-                sessionId,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
+        val intent = activityIntent(context, ACTION_CONFIRM).apply {
+            data = android.net.Uri.parse("sfa-update://confirm/$sessionId")
+            putExtra(android.content.pm.PackageInstaller.EXTRA_SESSION_ID, sessionId)
+            putExtra(Intent.EXTRA_INTENT, confirmation)
+            ready?.let { putReadyIdentity(it) }
+        }
+        val action = PendingIntent.getActivity(
+            context,
+            sessionId,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
         post(
             context,
             CONFIRM_TAG,
             sessionId,
-            NotificationCompat
-                .Builder(context, CHANNEL_ID)
+            NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_menu)
                 .setContentTitle(context.getString(R.string.server_update_confirm_title))
                 .setContentText(context.getString(R.string.server_update_confirm_notice))
@@ -121,10 +103,7 @@ object ServerUpdateNotifier {
         )
     }
 
-    fun cancelConfirmation(
-        context: Context,
-        sessionId: Int,
-    ) {
+    fun cancelConfirmation(context: Context, sessionId: Int) {
         NotificationManagerCompat.from(context).cancel(CONFIRM_TAG, sessionId)
     }
 
@@ -133,27 +112,20 @@ object ServerUpdateNotifier {
         if (!canNotify(context)) return true
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
             (
-                context
-                    .getSystemService(NotificationManager::class.java)
-                    .getNotificationChannel(CHANNEL_ID)
-                    ?.importance ?: NotificationManager.IMPORTANCE_NONE
-            ) < NotificationManager.IMPORTANCE_HIGH
+                context.getSystemService(NotificationManager::class.java)
+                    .getNotificationChannel(CHANNEL_ID)?.importance ?: NotificationManager.IMPORTANCE_NONE
+                ) < NotificationManager.IMPORTANCE_HIGH
     }
 
-    fun notificationSettingsIntent(context: Context): Intent =
-        when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
-                Intent(
-                    if (canNotify(context)) Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS else Settings.ACTION_APP_NOTIFICATION_SETTINGS,
-                ).apply {
-                    putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                    putExtra(Settings.EXTRA_CHANNEL_ID, CHANNEL_ID)
-                }
-            }
-            else -> {
-                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:${context.packageName}"))
-            }
+    fun notificationSettingsIntent(context: Context): Intent = when {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> Intent(
+            if (canNotify(context)) Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS else Settings.ACTION_APP_NOTIFICATION_SETTINGS,
+        ).apply {
+            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+            putExtra(Settings.EXTRA_CHANNEL_ID, CHANNEL_ID)
         }
+        else -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:${context.packageName}"))
+    }
 
     fun Intent.putReadyIdentity(ready: ReadyServerUpdate) {
         putExtra(EXTRA_VERSION, ready.versionCode)
@@ -171,13 +143,9 @@ object ServerUpdateNotifier {
         return ReadyServerUpdate(version, sha256, path).takeIf { version > 0 }
     }
 
-    private fun activityIntent(
-        context: Context,
-        action: String,
-    ): Intent =
-        Intent(action)
-            .setClassName(context, INSTALL_ACTIVITY)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+    private fun activityIntent(context: Context, action: String): Intent = Intent(action)
+        .setClassName(context, INSTALL_ACTIVITY)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
 
     private fun createChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -187,19 +155,13 @@ object ServerUpdateNotifier {
         }
     }
 
-    private fun canNotify(context: Context): Boolean =
-        NotificationManagerCompat.from(context).areNotificationsEnabled() &&
-            (
-                Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+    private fun canNotify(context: Context): Boolean = NotificationManagerCompat.from(context).areNotificationsEnabled() &&
+        (
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
             )
 
-    private fun post(
-        context: Context,
-        tag: String,
-        id: Int,
-        builder: NotificationCompat.Builder,
-    ) {
+    private fun post(context: Context, tag: String, id: Int, builder: NotificationCompat.Builder) {
         if (!canNotify(context)) return
         try {
             NotificationManagerCompat.from(context).notify(tag, id, builder.build())

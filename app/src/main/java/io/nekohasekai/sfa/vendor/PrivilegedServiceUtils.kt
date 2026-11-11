@@ -18,6 +18,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 object PrivilegedServiceUtils {
+
     private val iPackageManagerStubClass by lazy { Class.forName("android.content.pm.IPackageManager\$Stub") }
     private val asInterfaceMethod by lazy { iPackageManagerStubClass.getMethod("asInterface", IBinder::class.java) }
     private val iPackageManagerClass by lazy { Class.forName("android.content.pm.IPackageManager") }
@@ -67,54 +68,43 @@ object PrivilegedServiceUtils {
     }
 
     private fun getPackageManager(): Any {
-        val binder =
-            SystemServiceHelperCompat.getSystemService("package")
-                ?: throw IllegalStateException("package service not available")
+        val binder = SystemServiceHelperCompat.getSystemService("package")
+            ?: throw IllegalStateException("package service not available")
         return asInterfaceMethod.invoke(null, binder)
             ?: throw IllegalStateException("IPackageManager is null")
     }
 
-    fun getInstalledPackages(
-        flags: Int,
-        userId: Int,
-    ): List<PackageInfo> {
+    fun getInstalledPackages(flags: Int, userId: Int): List<PackageInfo> {
         val iPackageManager = getPackageManager()
-        val result =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                getInstalledPackagesMethodLong.invoke(iPackageManager, flags.toLong(), userId)
-            } else {
-                getInstalledPackagesMethodInt.invoke(iPackageManager, flags, userId)
-            }
+        val result = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getInstalledPackagesMethodLong.invoke(iPackageManager, flags.toLong(), userId)
+        } else {
+            getInstalledPackagesMethodInt.invoke(iPackageManager, flags, userId)
+        }
         return extractPackageList(result)
     }
 
-    fun installPackage(
-        apkFd: ParcelFileDescriptor,
-        size: Long,
-        userId: Int,
-    ) {
+    fun installPackage(apkFd: ParcelFileDescriptor, size: Long, userId: Int) {
         val iPackageInstaller = getPackageInstaller()
         val isRoot = Os.getuid() == 0
         val installerPackageName = if (isRoot) BuildConfig.APPLICATION_ID else "com.android.shell"
         val targetUserId = if (isRoot) userId else 0
 
-        val packageInstaller =
-            createPackageInstaller(
-                iPackageInstaller,
-                installerPackageName,
-                null,
-                targetUserId,
-            )
+        val packageInstaller = createPackageInstaller(
+            iPackageInstaller,
+            installerPackageName,
+            null,
+            targetUserId,
+        )
 
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
         params.setAppPackageName(BuildConfig.APPLICATION_ID)
         installFlagsField.setInt(params, installFlagsField.getInt(params) or 2)
         val sessionId = packageInstaller.createSession(params)
 
-        val iSession =
-            IPackageInstallerSession.Stub.asInterface(
-                iPackageInstaller.openSession(sessionId).asBinder(),
-            )
+        val iSession = IPackageInstallerSession.Stub.asInterface(
+            iPackageInstaller.openSession(sessionId).asBinder(),
+        )
         val session = createSession(iSession)
 
         try {
@@ -128,11 +118,10 @@ object PrivilegedServiceUtils {
             val resultIntent = arrayOfNulls<Intent>(1)
             val latch = CountDownLatch(1)
 
-            val intentSender =
-                createIntentSender { intent ->
-                    resultIntent[0] = intent
-                    latch.countDown()
-                }
+            val intentSender = createIntentSender { intent ->
+                resultIntent[0] = intent
+                latch.countDown()
+            }
 
             session.commit(intentSender)
             latch.await(60, TimeUnit.SECONDS)
@@ -160,30 +149,28 @@ object PrivilegedServiceUtils {
         installerPackageName: String,
         installerAttributionTag: String?,
         userId: Int,
-    ): PackageInstaller =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            packageInstallerCtorS.newInstance(installer, installerPackageName, installerAttributionTag, userId)
-        } else {
-            packageInstallerCtorPre.newInstance(installer, installerPackageName, userId)
-        }
+    ): PackageInstaller = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        packageInstallerCtorS.newInstance(installer, installerPackageName, installerAttributionTag, userId)
+    } else {
+        packageInstallerCtorPre.newInstance(installer, installerPackageName, userId)
+    }
 
     private fun createSession(session: IPackageInstallerSession): PackageInstaller.Session = sessionCtor.newInstance(session)
 
     private fun createIntentSender(onResult: (Intent) -> Unit): IntentSender {
-        val sender =
-            object : IIntentSender.Stub() {
-                override fun send(
-                    code: Int,
-                    intent: Intent,
-                    resolvedType: String?,
-                    whitelistToken: android.os.IBinder?,
-                    finishedReceiver: android.content.IIntentReceiver?,
-                    requiredPermission: String?,
-                    options: Bundle?,
-                ) {
-                    onResult(intent)
-                }
+        val sender = object : IIntentSender.Stub() {
+            override fun send(
+                code: Int,
+                intent: Intent,
+                resolvedType: String?,
+                whitelistToken: android.os.IBinder?,
+                finishedReceiver: android.content.IIntentReceiver?,
+                requiredPermission: String?,
+                options: Bundle?,
+            ) {
+                onResult(intent)
             }
+        }
         return intentSenderCtor.newInstance(sender)
     }
 

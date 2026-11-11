@@ -18,13 +18,13 @@ data class DetectionResult(
 )
 
 object VpnDetectionTest {
+
     fun runDetection(context: Context): DetectionResult {
         val frameworkDetected = LinkedHashSet<String>()
         val frameworkInterfaces = LinkedHashSet<String>()
 
-        val cm =
-            context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-                ?: return DetectionResult(emptyList(), false, emptyList(), emptyList(), null)
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            ?: return DetectionResult(emptyList(), false, emptyList(), emptyList(), null)
 
         // Check activeNetworkInfo
         val activeInfo = cm.activeNetworkInfo
@@ -39,15 +39,13 @@ object VpnDetectionTest {
         }
 
         // Check networkForType(VPN)
-        val vpnNetwork =
-            runCatching {
-                val method =
-                    cm.javaClass.getMethod(
-                        "getNetworkForType",
-                        Int::class.javaPrimitiveType,
-                    )
-                method.invoke(cm, ConnectivityManager.TYPE_VPN) as? Network
-            }.getOrNull()
+        val vpnNetwork = runCatching {
+            val method = cm.javaClass.getMethod(
+                "getNetworkForType",
+                Int::class.javaPrimitiveType,
+            )
+            method.invoke(cm, ConnectivityManager.TYPE_VPN) as? Network
+        }.getOrNull()
         if (vpnNetwork != null) {
             frameworkDetected += "NetworkForType"
         }
@@ -91,12 +89,11 @@ object VpnDetectionTest {
     }
 
     private fun checkNetworkInterfaces(): List<String> {
-        val list =
-            try {
-                Collections.list(NetworkInterface.getNetworkInterfaces())
-            } catch (_: Throwable) {
-                return emptyList()
-            }
+        val list = try {
+            Collections.list(NetworkInterface.getNetworkInterfaces())
+        } catch (_: Throwable) {
+            return emptyList()
+        }
         val matches = ArrayList<String>()
         for (iface in list) {
             val name = iface.name ?: continue
@@ -116,23 +113,21 @@ object VpnDetectionTest {
     }
 
     private fun readHttpProxy(cm: ConnectivityManager): String? {
-        val defaultProxy =
-            try {
-                val method = cm.javaClass.getMethod("getDefaultProxy")
-                method.invoke(cm) as? android.net.ProxyInfo
-            } catch (_: Throwable) {
-                null
-            }
+        val defaultProxy = try {
+            val method = cm.javaClass.getMethod("getDefaultProxy")
+            method.invoke(cm) as? android.net.ProxyInfo
+        } catch (_: Throwable) {
+            null
+        }
         val activeLinkProperties = readActiveLinkProperties(cm)
         val networks = cm.allNetworks ?: emptyArray()
-        val proxies =
-            buildList {
-                add(formatProxyInfo(defaultProxy))
-                add(formatProxyInfo(readProxyFromLinkProperties(activeLinkProperties)))
-                for (network in networks) {
-                    add(formatProxyInfo(readProxyFromLinkProperties(cm.getLinkProperties(network))))
-                }
+        val proxies = buildList {
+            add(formatProxyInfo(defaultProxy))
+            add(formatProxyInfo(readProxyFromLinkProperties(activeLinkProperties)))
+            for (network in networks) {
+                add(formatProxyInfo(readProxyFromLinkProperties(cm.getLinkProperties(network))))
             }
+        }
         return proxies.firstOrNull { !it.isNullOrEmpty() }
     }
 

@@ -11,11 +11,7 @@ import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.ui.graphics.vector.ImageVector
 import io.nekohasekai.sfa.R
 
-sealed class Screen(
-    val route: String,
-    @StringRes val titleRes: Int,
-    val icon: ImageVector,
-) {
+sealed class Screen(val route: String, @StringRes val titleRes: Int, val icon: ImageVector) {
     object Dashboard : Screen(
         route = "dashboard",
         titleRes = R.string.title_dashboard,

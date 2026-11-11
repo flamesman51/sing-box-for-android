@@ -23,69 +23,64 @@ class DiagnosticsStoreTest {
 
     private val app = DiagnosticsProjection.app(buildJsonObject { put("version_name", "1.0") })
 
-    private fun event(
-        count: Int = 0,
-        kind: String = "vpn_start",
-    ) = DiagnosticsProjection.event(kind, mapOf("count" to count, "reason" to "User"))
+    private fun event(count: Int = 0, kind: String = "vpn_start") = DiagnosticsProjection.event(kind, mapOf("count" to count, "reason" to "User"))
 
-    private fun crash(id: String): DiagnosticsCrash =
-        DiagnosticsCrash(
-            DiagnosticsStore.crashKey("crash_report", id),
-            DiagnosticsProjection.crash(
-                "crash_report",
-                DiagnosticsProjection.utc(),
-                buildJsonObject { put("exceptionName", "java.lang.IllegalStateException") },
-                "\tat io.nekohasekai.sfa.bg.BoxService.start(BoxService.kt:123)",
+    private fun crash(id: String): DiagnosticsCrash = DiagnosticsCrash(
+        DiagnosticsStore.crashKey("crash_report", id),
+        DiagnosticsProjection.crash(
+            "crash_report",
+            DiagnosticsProjection.utc(),
+            buildJsonObject { put("exceptionName", "java.lang.IllegalStateException") },
+            "\tat io.nekohasekai.sfa.bg.BoxService.start(BoxService.kt:123)",
+        ),
+    )
+
+    private fun smart(groups: Int = DiagnosticsProjection.MAX_SMART_GROUPS): JsonObject = buildJsonObject {
+        put(
+            "groups",
+            JsonArray(
+                (0 until groups).map { index ->
+                    DiagnosticsProjection.smartGroup(
+                        buildJsonObject {
+                            put("group", "smart$index")
+                            put("selected", buildJsonObject { put("tcp", "member0") })
+                            put(
+                                "members",
+                                JsonArray(
+                                    (0..3).map {
+                                        buildJsonObject {
+                                            put("tag", "member$it")
+                                            put("tier", it)
+                                            put("state", "healthy")
+                                            put("rtt_ms", 10 + it)
+                                        }
+                                    },
+                                ),
+                            )
+                            put(
+                                "panics",
+                                buildJsonObject {
+                                    put("total", 1)
+                                    put(
+                                        "recent",
+                                        JsonArray(
+                                            listOf(
+                                                buildJsonObject {
+                                                    put("at", DiagnosticsProjection.utc())
+                                                    put("site", "probe")
+                                                    put("stack", "github.com/sagernet/sing-box/outbound.(*Smart).probe()\n\toutbound/smart.go:123 +0x12")
+                                                },
+                                            ),
+                                        ),
+                                    )
+                                },
+                            )
+                        },
+                    )
+                },
             ),
         )
-
-    private fun smart(groups: Int = DiagnosticsProjection.MAX_SMART_GROUPS): JsonObject =
-        buildJsonObject {
-            put(
-                "groups",
-                JsonArray(
-                    (0 until groups).map { index ->
-                        DiagnosticsProjection.smartGroup(
-                            buildJsonObject {
-                                put("group", "smart$index")
-                                put("selected", buildJsonObject { put("tcp", "member0") })
-                                put(
-                                    "members",
-                                    JsonArray(
-                                        (0..3).map {
-                                            buildJsonObject {
-                                                put("tag", "member$it")
-                                                put("tier", it)
-                                                put("state", "healthy")
-                                                put("rtt_ms", 10 + it)
-                                            }
-                                        },
-                                    ),
-                                )
-                                put(
-                                    "panics",
-                                    buildJsonObject {
-                                        put("total", 1)
-                                        put(
-                                            "recent",
-                                            JsonArray(
-                                                listOf(
-                                                    buildJsonObject {
-                                                        put("at", DiagnosticsProjection.utc())
-                                                        put("site", "probe")
-                                                        put("stack", "github.com/sagernet/sing-box/outbound.(*Smart).probe()\n\toutbound/smart.go:123 +0x12")
-                                                    },
-                                                ),
-                                            ),
-                                        )
-                                    },
-                                )
-                            },
-                        )
-                    },
-                ),
-            )
-        }
+    }
 
     @Test
     fun persistsIdenticalReportAcrossRestartAndRetryStatuses() {
@@ -271,12 +266,11 @@ class DiagnosticsStoreTest {
             }.toString() + "\n",
         )
         val legacy = Json.parseToJsonElement(File(directory, "pending.json").readText()).jsonObject
-        val unowned =
-            buildJsonObject {
-                put("key", DiagnosticsStore.crashKey("crash_report", "unowned"))
-                put("owner", JsonNull)
-                put("sent", false)
-            }
+        val unowned = buildJsonObject {
+            put("key", DiagnosticsStore.crashKey("crash_report", "unowned"))
+            put("owner", JsonNull)
+            put("sent", false)
+        }
         File(directory, "pending.json").writeText(JsonObject(legacy + ("discoveries" to JsonArray((legacy["discoveries"] as JsonArray) + unowned))).toString())
         assertFalse(store.discover("A", "crash_report", "unowned"))
         val batch = store.prepare("B", app, null, listOf(crash("deferred"), crash("unowned")))!!
@@ -292,11 +286,10 @@ class DiagnosticsStoreTest {
         val directory = temporary.newFolder()
         var store = DiagnosticsStore(directory)
         repeat(8) { store.record("owner", event(it)) }
-        val crashes =
-            (0..2).map { index ->
-                store.discover("owner", "crash_report", "crash$index")
-                crash("crash$index")
-            }
+        val crashes = (0..2).map { index ->
+            store.discover("owner", "crash_report", "crash$index")
+            crash("crash$index")
+        }
         val snapshot = smart()
         val original = store.prepare("owner", app, snapshot, crashes)!!
         assertEquals(snapshot, original.envelope["smart"])
@@ -346,100 +339,97 @@ class DiagnosticsStoreTest {
     fun maximalProjectedSnapshotEventsAndCrashesFitEncodedBodyBound() {
         val directory = temporary.newFolder()
         val store = DiagnosticsStore(directory)
-        val detail =
-            buildMap<String, Any> {
-                for (key in listOf("from", "to", "count", "status", "version_code", "start_id")) put(key, Long.MAX_VALUE)
-                put("reason", "User")
-                put("type", "E".repeat(128))
-                put("category", "other")
-            }
+        val detail = buildMap<String, Any> {
+            for (key in listOf("from", "to", "count", "status", "version_code", "start_id")) put(key, Long.MAX_VALUE)
+            put("reason", "User")
+            put("type", "E".repeat(128))
+            put("category", "other")
+        }
         val maximalEvent = DiagnosticsProjection.event("vpn_start_failed", detail)
         repeat(1100) { store.record("owner", maximalEvent) }
         assertTrue(store.eventsFile.length() <= 512 * 1024)
         assertTrue(store.eventCount() <= 1000)
         val frame = "\tat io.nekohasekai.sfa.bg.${"Service".repeat(15)}.${"start".repeat(20)}(BoxService.kt:123)\n"
-        val crashes =
-            (0..8).map { index ->
-                store.discover("owner", "crash_report", "max$index")
-                DiagnosticsCrash(
-                    DiagnosticsStore.crashKey("crash_report", "max$index"),
-                    DiagnosticsProjection.crash(
-                        "crash_report",
-                        DiagnosticsProjection.utc(),
-                        buildJsonObject {
-                            put("exceptionName", "java.lang.IllegalStateException")
-                            put("appMarketingVersion", "v".repeat(128))
-                            put("coreVersion", "v".repeat(128))
-                        },
-                        frame.repeat(256),
-                    ),
+        val crashes = (0..8).map { index ->
+            store.discover("owner", "crash_report", "max$index")
+            DiagnosticsCrash(
+                DiagnosticsStore.crashKey("crash_report", "max$index"),
+                DiagnosticsProjection.crash(
+                    "crash_report",
+                    DiagnosticsProjection.utc(),
+                    buildJsonObject {
+                        put("exceptionName", "java.lang.IllegalStateException")
+                        put("appMarketingVersion", "v".repeat(128))
+                        put("coreVersion", "v".repeat(128))
+                    },
+                    frame.repeat(256),
+                ),
+            )
+        }
+        val group = DiagnosticsProjection.smartGroup(
+            buildJsonObject {
+                put("group", "g".repeat(128))
+                put(
+                    "selected",
+                    buildJsonObject {
+                        put("tcp", "t".repeat(128))
+                        put("standby", "s".repeat(128))
+                    },
                 )
-            }
-        val group =
-            DiagnosticsProjection.smartGroup(
-                buildJsonObject {
-                    put("group", "g".repeat(128))
-                    put(
-                        "selected",
-                        buildJsonObject {
-                            put("tcp", "t".repeat(128))
-                            put("standby", "s".repeat(128))
-                        },
-                    )
-                    put("degraded", true)
-                    put("network", buildJsonObject { put("type", "wifi") })
-                    put(
-                        "budgets",
-                        buildJsonObject {
-                            for (type in listOf("wifi", "cellular", "other")) {
-                                put(
-                                    type,
-                                    buildJsonObject {
-                                        put("day", "2026-11-10")
-                                        put("day_ends_at", "2026-11-11T00:00:00Z")
-                                        for (key in listOf("used_mb", "reserved_mb", "limit_mb")) put(key, Double.MAX_VALUE)
-                                    },
-                                )
+                put("degraded", true)
+                put("network", buildJsonObject { put("type", "wifi") })
+                put(
+                    "budgets",
+                    buildJsonObject {
+                        for (type in listOf("wifi", "cellular", "other")) {
+                            put(
+                                type,
+                                buildJsonObject {
+                                    put("day", "2026-11-10")
+                                    put("day_ends_at", "2026-11-11T00:00:00Z")
+                                    for (key in listOf("used_mb", "reserved_mb", "limit_mb")) put(key, Double.MAX_VALUE)
+                                },
+                            )
+                        }
+                    },
+                )
+                put(
+                    "members",
+                    JsonArray(
+                        (0 until 256).map {
+                            buildJsonObject {
+                                put("tag", "m".repeat(128))
+                                put("state", "healthy")
+                                put("tier", Long.MAX_VALUE)
+                                put("rtt_ms", Double.MAX_VALUE)
+                                put("download_mbps", Double.MAX_VALUE)
+                                put("throughput_source", "probe")
+                                put("throughput_at", Long.MAX_VALUE)
+                                put("quarantine_until", Long.MAX_VALUE)
                             }
                         },
-                    )
-                    put(
-                        "members",
-                        JsonArray(
-                            (0 until 256).map {
-                                buildJsonObject {
-                                    put("tag", "m".repeat(128))
-                                    put("state", "healthy")
-                                    put("tier", Long.MAX_VALUE)
-                                    put("rtt_ms", Double.MAX_VALUE)
-                                    put("download_mbps", Double.MAX_VALUE)
-                                    put("throughput_source", "probe")
-                                    put("throughput_at", Long.MAX_VALUE)
-                                    put("quarantine_until", Long.MAX_VALUE)
-                                }
-                            },
-                        ),
-                    )
-                    put(
-                        "panics",
-                        buildJsonObject {
-                            put("total", Long.MAX_VALUE)
-                            put(
-                                "recent",
-                                JsonArray(
-                                    (0 until 128).map {
-                                        buildJsonObject {
-                                            put("at", DiagnosticsProjection.utc())
-                                            put("site", "probe")
-                                            put("stack", frame.repeat(256))
-                                        }
-                                    },
-                                ),
-                            )
-                        },
-                    )
-                },
-            )
+                    ),
+                )
+                put(
+                    "panics",
+                    buildJsonObject {
+                        put("total", Long.MAX_VALUE)
+                        put(
+                            "recent",
+                            JsonArray(
+                                (0 until 128).map {
+                                    buildJsonObject {
+                                        put("at", DiagnosticsProjection.utc())
+                                        put("site", "probe")
+                                        put("stack", frame.repeat(256))
+                                    }
+                                },
+                            ),
+                        )
+                    },
+                )
+            },
+        )
         val snapshot = buildJsonObject { put("groups", JsonArray(List(DiagnosticsProjection.MAX_SMART_GROUPS) { group })) }
         assertTrue(group.toString().toByteArray(Charsets.UTF_8).size < 64 * 1024)
         assertTrue(snapshot.toString().toByteArray(Charsets.UTF_8).size < 256 * 1024)
@@ -447,17 +437,9 @@ class DiagnosticsStoreTest {
         assertEquals(snapshot, batch.envelope["smart"])
         assertEquals(5, (batch.envelope["crashes"] as JsonArray).size)
         assertTrue(batch.body.toByteArray(Charsets.UTF_8).size < DiagnosticsStore.MAX_BODY_BYTES)
+        assertTrue(batch.envelope["events"].toString().toByteArray(Charsets.UTF_8).size <= DiagnosticsStore.MAX_EVENT_BYTES)
         assertTrue(
-            batch.envelope["events"]
-                .toString()
-                .toByteArray(Charsets.UTF_8)
-                .size <= DiagnosticsStore.MAX_EVENT_BYTES,
-        )
-        assertTrue(
-            batch.envelope["events"]
-                .toString()
-                .toByteArray(Charsets.UTF_8)
-                .size >
+            batch.envelope["events"].toString().toByteArray(Charsets.UTF_8).size >
                 DiagnosticsStore.MAX_EVENT_BYTES - maximalEvent.toString().toByteArray(Charsets.UTF_8).size - 1,
         )
     }
@@ -478,22 +460,18 @@ class DiagnosticsStoreTest {
         val group = (snapshot["groups"] as JsonArray)[0].jsonObject
         val panics = group["panics"]!!.jsonObject
         val dirtyPanic = withMessage((panics["recent"] as JsonArray)[0].jsonObject)
-        val dirtySmart =
-            buildJsonObject {
-                put("groups", JsonArray(listOf(JsonObject(group + ("panics" to JsonObject(panics + ("recent" to JsonArray(listOf(dirtyPanic)))))))))
-            }
-        val dirty =
-            original.copy(
-                envelope =
-                    JsonObject(
-                        original.envelope +
-                            mapOf(
-                                "events" to JsonArray(listOf(dirtyEvent)),
-                                "crashes" to JsonArray(listOf(withMessage(crash.report))),
-                                "smart" to dirtySmart,
-                            ),
-                    ),
-            )
+        val dirtySmart = buildJsonObject {
+            put("groups", JsonArray(listOf(JsonObject(group + ("panics" to JsonObject(panics + ("recent" to JsonArray(listOf(dirtyPanic)))))))))
+        }
+        val dirty = original.copy(
+            envelope = JsonObject(
+                original.envelope + mapOf(
+                    "events" to JsonArray(listOf(dirtyEvent)),
+                    "crashes" to JsonArray(listOf(withMessage(crash.report))),
+                    "smart" to dirtySmart,
+                ),
+            ),
+        )
         writeQueue(directory, "owner", listOf(dirty))
         val entry = Json.parseToJsonElement(store.eventsFile.readText().trim()).jsonObject
         store.eventsFile.writeText(JsonObject(entry + ("event" to dirtyEvent)).toString() + "\n")
@@ -524,21 +502,13 @@ class DiagnosticsStoreTest {
         assertFalse(remaining.contains("vpn_start"))
     }
 
-    private fun counts(batch: DiagnosticsBatch): List<Int> =
-        (batch.envelope["events"] as JsonArray).map {
-            ((it.jsonObject["detail"]!!.jsonObject["count"] as JsonPrimitive).content.toInt())
-        }
+    private fun counts(batch: DiagnosticsBatch): List<Int> = (batch.envelope["events"] as JsonArray).map {
+        ((it.jsonObject["detail"]!!.jsonObject["count"] as JsonPrimitive).content.toInt())
+    }
 
-    private fun ownerQueue(
-        directory: File,
-        owner: String,
-    ) = File(directory, "pending-${DiagnosticsStore.digest(owner)}.json")
+    private fun ownerQueue(directory: File, owner: String) = File(directory, "pending-${DiagnosticsStore.digest(owner)}.json")
 
-    private fun writeQueue(
-        directory: File,
-        owner: String,
-        batches: List<DiagnosticsBatch>,
-    ) {
+    private fun writeQueue(directory: File, owner: String, batches: List<DiagnosticsBatch>) {
         ownerQueue(directory, owner).writeText(
             buildJsonObject {
                 put("owner", owner)

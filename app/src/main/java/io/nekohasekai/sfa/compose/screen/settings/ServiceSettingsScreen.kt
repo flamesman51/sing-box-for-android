@@ -119,25 +119,25 @@ fun ServiceSettingsScreen(
 
     Column(
         modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    top = scaffoldPadding.calculateTopPadding() + 8.dp,
-                    bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
-                ),
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .verticalScroll(rememberScrollState())
+            .padding(
+                top = scaffoldPadding.calculateTopPadding() + 8.dp,
+                bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
+            ),
     ) {
         if (!isBatteryOptimizationIgnored && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             Card(
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
-                    ),
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                ),
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -210,13 +210,13 @@ fun ServiceSettingsScreen(
 
         Card(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             val descriptionText = stringResource(R.string.allow_bypass_description)
             val linkText = stringResource(R.string.android_documentation)
@@ -232,37 +232,34 @@ fun ServiceSettingsScreen(
                     )
                 },
                 supportingContent = {
-                    val annotatedString =
-                        buildAnnotatedString {
-                            withStyle(SpanStyle(color = textColor)) {
-                                append(descriptionText)
-                            }
-                            append("\n\n")
-                            pushStringAnnotation(tag = "URL", annotation = ALLOW_BYPASS_DOC_URL)
-                            withStyle(
-                                SpanStyle(
-                                    color = linkColor,
-                                    textDecoration = TextDecoration.Underline,
-                                ),
-                            ) {
-                                append(linkText)
-                            }
-                            pop()
+                    val annotatedString = buildAnnotatedString {
+                        withStyle(SpanStyle(color = textColor)) {
+                            append(descriptionText)
                         }
+                        append("\n\n")
+                        pushStringAnnotation(tag = "URL", annotation = ALLOW_BYPASS_DOC_URL)
+                        withStyle(
+                            SpanStyle(
+                                color = linkColor,
+                                textDecoration = TextDecoration.Underline,
+                            ),
+                        ) {
+                            append(linkText)
+                        }
+                        pop()
+                    }
                     ClickableText(
                         text = annotatedString,
                         style = textStyle,
                         modifier = Modifier.padding(top = 4.dp),
                         onClick = { offset ->
-                            annotatedString
-                                .getStringAnnotations(
-                                    tag = "URL",
-                                    start = offset,
-                                    end = offset,
-                                ).firstOrNull()
-                                ?.let {
-                                    context.launchCustomTab(it.item)
-                                }
+                            annotatedString.getStringAnnotations(
+                                tag = "URL",
+                                start = offset,
+                                end = offset,
+                            ).firstOrNull()?.let {
+                                context.launchCustomTab(it.item)
+                            }
                         },
                     )
                 },
@@ -282,9 +279,9 @@ fun ServiceSettingsScreen(
                 },
                 modifier = Modifier.clip(RoundedCornerShape(12.dp)),
                 colors =
-                    ListItemDefaults.colors(
-                        containerColor = Color.Transparent,
-                    ),
+                ListItemDefaults.colors(
+                    containerColor = Color.Transparent,
+                ),
             )
         }
 

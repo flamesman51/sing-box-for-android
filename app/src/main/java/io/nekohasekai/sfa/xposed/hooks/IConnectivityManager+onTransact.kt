@@ -13,10 +13,7 @@ import io.nekohasekai.sfa.xposed.HookStatusKeys
 import io.nekohasekai.sfa.xposed.HookStatusStore
 import io.nekohasekai.sfa.xposed.PrivilegeSettingsStore
 
-class HookIConnectivityManagerOnTransact(
-    private val classLoader: ClassLoader,
-    private val context: Context?,
-) : XHook {
+class HookIConnectivityManagerOnTransact(private val classLoader: ClassLoader, private val context: Context?) : XHook {
     private companion object {
         private const val SOURCE = "HookIConnectivityManagerOnTransact"
     }
@@ -130,10 +127,7 @@ class HookIConnectivityManagerOnTransact(
         }
     }
 
-    private fun getInstalledPackages(
-        flags: Long,
-        userId: Int,
-    ): List<PackageInfo> {
+    private fun getInstalledPackages(flags: Long, userId: Int): List<PackageInfo> {
         return binderLocalScope {
             val pm = getPackageManager() ?: return@binderLocalScope emptyList()
             getInstalledPackagesCompat(pm, flags, userId)
@@ -149,44 +143,36 @@ class HookIConnectivityManagerOnTransact(
         }
     }
 
-    private fun getPackageManager(): Any? =
-        try {
-            val appGlobals = Class.forName("android.app.AppGlobals")
-            val method = appGlobals.getMethod("getPackageManager")
-            method.invoke(null)
-        } catch (e: Throwable) {
-            HookErrorStore.e(SOURCE, "getPackageManager failed", e)
-            null
-        }
+    private fun getPackageManager(): Any? = try {
+        val appGlobals = Class.forName("android.app.AppGlobals")
+        val method = appGlobals.getMethod("getPackageManager")
+        method.invoke(null)
+    } catch (e: Throwable) {
+        HookErrorStore.e(SOURCE, "getPackageManager failed", e)
+        null
+    }
 
-    private fun getInstalledPackagesCompat(
-        pm: Any,
-        flags: Long,
-        userId: Int,
-    ): List<PackageInfo> {
-        val result =
+    private fun getInstalledPackagesCompat(pm: Any, flags: Long, userId: Int): List<PackageInfo> {
+        val result = try {
+            val method = pm.javaClass.getMethod(
+                "getInstalledPackages",
+                Long::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+            )
+            method.invoke(pm, flags, userId)
+        } catch (_: Throwable) {
             try {
-                val method =
-                    pm.javaClass.getMethod(
-                        "getInstalledPackages",
-                        Long::class.javaPrimitiveType,
-                        Int::class.javaPrimitiveType,
-                    )
-                method.invoke(pm, flags, userId)
-            } catch (_: Throwable) {
-                try {
-                    val method =
-                        pm.javaClass.getMethod(
-                            "getInstalledPackages",
-                            Int::class.javaPrimitiveType,
-                            Int::class.javaPrimitiveType,
-                        )
-                    method.invoke(pm, flags.toInt(), userId)
-                } catch (e: Throwable) {
-                    HookErrorStore.e(SOURCE, "getInstalledPackages failed", e)
-                    return emptyList()
-                }
+                val method = pm.javaClass.getMethod(
+                    "getInstalledPackages",
+                    Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType,
+                )
+                method.invoke(pm, flags.toInt(), userId)
+            } catch (e: Throwable) {
+                HookErrorStore.e(SOURCE, "getInstalledPackages failed", e)
+                return emptyList()
             }
+        }
         return unwrapParceledListSlice(result)
     }
 

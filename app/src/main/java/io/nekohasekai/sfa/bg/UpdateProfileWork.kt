@@ -33,44 +33,34 @@ class UpdateProfileWork {
 
         private suspend fun reconfigureUpdater0() {
             val remoteProfiles =
-                ProfileManager
-                    .list()
+                ProfileManager.list()
                     .filter { it.typed.type == TypedProfile.Type.Remote && it.typed.autoUpdate }
             if (remoteProfiles.isEmpty()) {
                 WorkManager.getInstance(Application.application).cancelUniqueWork(WORK_NAME)
                 return
             }
 
-            val minDelay =
-                remoteProfiles.minOf {
-                    it.typed.autoUpdateInterval
-                        .coerceAtLeast(15)
-                        .toLong()
-                }
+            val minDelay = remoteProfiles.minOf { it.typed.autoUpdateInterval.coerceAtLeast(15).toLong() }
             val nowMillis = System.currentTimeMillis()
             val minInitDelay = remoteProfiles.minOf { it.typed.nextUpdateDelayMillis(nowMillis) }
             WorkManager.getInstance(Application.application).enqueueUniquePeriodicWork(
                 WORK_NAME,
                 ExistingPeriodicWorkPolicy.UPDATE,
-                PeriodicWorkRequest
-                    .Builder(UpdateTask::class.java, minDelay, TimeUnit.MINUTES)
+                PeriodicWorkRequest.Builder(UpdateTask::class.java, minDelay, TimeUnit.MINUTES)
                     .apply {
                         if (minInitDelay > 0) setInitialDelay(minInitDelay, TimeUnit.MILLISECONDS)
                         setBackoffCriteria(BackoffPolicy.LINEAR, 15, TimeUnit.MINUTES)
-                    }.build(),
+                    }
+                    .build(),
             )
         }
     }
 
-    class UpdateTask(
-        appContext: Context,
-        params: WorkerParameters,
-    ) : CoroutineWorker(appContext, params) {
+    class UpdateTask(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
         override suspend fun doWork(): Result {
             var selectedProfileUpdated = false
             val remoteProfiles =
-                ProfileManager
-                    .list()
+                ProfileManager.list()
                     .filter { it.typed.type == TypedProfile.Type.Remote && it.typed.autoUpdate }
             if (remoteProfiles.isEmpty()) return Result.success()
             var success = true

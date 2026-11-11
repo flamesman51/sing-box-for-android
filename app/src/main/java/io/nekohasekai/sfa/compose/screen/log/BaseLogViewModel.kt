@@ -116,12 +116,9 @@ abstract class BaseLogViewModel :
         return state.selectedLogIndices
             .sorted()
             .mapNotNull { index ->
-                state.logs
-                    .getOrNull(index)
-                    ?.entry
-                    ?.message
-                    ?.let { AnsiColorUtils.stripAnsi(it) }
-            }.joinToString("\n")
+                state.logs.getOrNull(index)?.entry?.message?.let { AnsiColorUtils.stripAnsi(it) }
+            }
+            .joinToString("\n")
     }
 
     override fun getAllLogsText(): String = _uiState.value.logs.joinToString("\n") { AnsiColorUtils.stripAnsi(it.entry.message) }
@@ -137,12 +134,12 @@ abstract class BaseLogViewModel :
         val searchQuery = currentState.searchQuery
 
         val logsToDisplay =
-            allLogs
-                .asSequence()
+            allLogs.asSequence()
                 .filter { log -> log.entry.level.priority <= levelPriority }
                 .filter { log ->
                     searchQuery.isEmpty() || log.entry.message.contains(searchQuery, ignoreCase = true)
-                }.toList()
+                }
+                .toList()
 
         val selectionCleared =
             if (_uiState.value.isSelectionMode && _uiState.value.logs != logsToDisplay) {

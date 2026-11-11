@@ -229,12 +229,11 @@ fun NavHost(
 
         composable(
             route = ProfileRoutes.EditProfile,
-            arguments =
-                listOf(
-                    navArgument("profileId") {
-                        type = NavType.LongType
-                    },
-                ),
+            arguments = listOf(
+                navArgument("profileId") {
+                    type = NavType.LongType
+                },
+            ),
         ) { backStackEntry ->
             val profileId = backStackEntry.arguments?.getLong("profileId") ?: -1L
             EditProfileRoute(
@@ -277,13 +276,12 @@ fun NavHost(
 
         composable(
             route = SMART_INSIGHTS_ROUTE,
-            arguments =
-                listOf(
-                    navArgument("group") {
-                        type = NavType.StringType
-                        defaultValue = ""
-                    },
-                ),
+            arguments = listOf(
+                navArgument("group") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+            ),
             enterTransition = slideInFromRight,
             exitTransition = slideOutToLeft,
             popEnterTransition = slideInFromLeft,
@@ -328,11 +326,10 @@ fun NavHost(
 
         composable(
             route = "tools/usbip/{serverTag}/device/{deviceKey}",
-            arguments =
-                listOf(
-                    navArgument("serverTag") { type = NavType.StringType },
-                    navArgument("deviceKey") { type = NavType.StringType },
-                ),
+            arguments = listOf(
+                navArgument("serverTag") { type = NavType.StringType },
+                navArgument("deviceKey") { type = NavType.StringType },
+            ),
             enterTransition = slideInFromRight,
             exitTransition = slideOutToLeft,
             popEnterTransition = slideInFromLeft,
@@ -428,11 +425,10 @@ fun NavHost(
 
         composable(
             route = "tools/tailscale/{endpointTag}/peer/{peerId}",
-            arguments =
-                listOf(
-                    navArgument("endpointTag") { type = NavType.StringType },
-                    navArgument("peerId") { type = NavType.StringType },
-                ),
+            arguments = listOf(
+                navArgument("endpointTag") { type = NavType.StringType },
+                navArgument("peerId") { type = NavType.StringType },
+            ),
             enterTransition = slideInFromRight,
             exitTransition = slideOutToLeft,
             popEnterTransition = slideInFromLeft,
@@ -446,11 +442,10 @@ fun NavHost(
 
         composable(
             route = "tools/tailscale/{endpointTag}/peer/{peerId}/ssh",
-            arguments =
-                listOf(
-                    navArgument("endpointTag") { type = NavType.StringType },
-                    navArgument("peerId") { type = NavType.StringType },
-                ),
+            arguments = listOf(
+                navArgument("endpointTag") { type = NavType.StringType },
+                navArgument("peerId") { type = NavType.StringType },
+            ),
             enterTransition = slideInFromRight,
             exitTransition = slideOutToLeft,
             popEnterTransition = slideInFromLeft,
@@ -471,11 +466,10 @@ fun NavHost(
 
         composable(
             route = "tools/tailscale/{endpointTag}/peer/{peerId}/terminal",
-            arguments =
-                listOf(
-                    navArgument("endpointTag") { type = NavType.StringType },
-                    navArgument("peerId") { type = NavType.StringType },
-                ),
+            arguments = listOf(
+                navArgument("endpointTag") { type = NavType.StringType },
+                navArgument("peerId") { type = NavType.StringType },
+            ),
             enterTransition = slideInFromRight,
             exitTransition = slideOutToLeft,
             popEnterTransition = slideInFromLeft,
@@ -526,11 +520,10 @@ fun NavHost(
 
         composable(
             route = "tools/crash_report/{reportId}/file/{fileKind}",
-            arguments =
-                listOf(
-                    navArgument("reportId") { type = NavType.StringType },
-                    navArgument("fileKind") { type = NavType.StringType },
-                ),
+            arguments = listOf(
+                navArgument("reportId") { type = NavType.StringType },
+                navArgument("fileKind") { type = NavType.StringType },
+            ),
             enterTransition = slideInFromRight,
             exitTransition = slideOutToLeft,
             popEnterTransition = slideInFromLeft,
@@ -577,11 +570,10 @@ fun NavHost(
 
         composable(
             route = "tools/oom_report/{reportId}/file/{fileKind}",
-            arguments =
-                listOf(
-                    navArgument("reportId") { type = NavType.StringType },
-                    navArgument("fileKind") { type = NavType.StringType },
-                ),
+            arguments = listOf(
+                navArgument("reportId") { type = NavType.StringType },
+                navArgument("fileKind") { type = NavType.StringType },
+            ),
             enterTransition = slideInFromRight,
             exitTransition = slideOutToLeft,
             popEnterTransition = slideInFromLeft,
@@ -628,11 +620,10 @@ fun NavHost(
 
         composable(
             route = "tools/power_report/{reportId}/file/{fileKind}",
-            arguments =
-                listOf(
-                    navArgument("reportId") { type = NavType.StringType },
-                    navArgument("fileKind") { type = NavType.StringType },
-                ),
+            arguments = listOf(
+                navArgument("reportId") { type = NavType.StringType },
+                navArgument("fileKind") { type = NavType.StringType },
+            ),
             enterTransition = slideInFromRight,
             exitTransition = slideOutToLeft,
             popEnterTransition = slideInFromLeft,

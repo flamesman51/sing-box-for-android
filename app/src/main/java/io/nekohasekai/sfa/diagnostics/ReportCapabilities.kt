@@ -13,62 +13,31 @@ object ReportCapabilities {
         Store(File(Application.application.noBackupFilesDir, "report_capabilities"))
     }
 
-    fun destination(
-        profileId: Long,
-        remoteURL: String,
-    ): String? = store.destination(profileId, remoteURL)
+    fun destination(profileId: Long, remoteURL: String): String? = store.destination(profileId, remoteURL)
 
-    internal fun accepted(
-        profileId: Long,
-        remoteURL: String,
-        finalURL: String,
-        header: String?,
-    ) = store.accepted(profileId, remoteURL, finalURL, header)
+    internal fun accepted(profileId: Long, remoteURL: String, finalURL: String, header: String?) = store.accepted(profileId, remoteURL, finalURL, header)
 
-    internal fun withdrawIfUnsupported(
-        profileId: Long,
-        remoteURL: String,
-        finalURL: String,
-        header: String?,
-    ) = store.withdrawIfUnsupported(profileId, remoteURL, finalURL, header)
+    internal fun withdrawIfUnsupported(profileId: Long, remoteURL: String, finalURL: String, header: String?) = store.withdrawIfUnsupported(profileId, remoteURL, finalURL, header)
 
-    internal fun profileChanged(
-        profileId: Long,
-        remoteURL: String?,
-    ) = store.profileChanged(profileId, remoteURL)
+    internal fun profileChanged(profileId: Long, remoteURL: String?) = store.profileChanged(profileId, remoteURL)
 
     internal fun clear(profileId: Long) = store.clear(profileId)
 
-    internal class Store(
-        private val directory: File,
-    ) {
+    internal class Store(private val directory: File) {
         @Synchronized
-        fun destination(
-            profileId: Long,
-            remoteURL: String,
-        ): String? {
+        fun destination(profileId: Long, remoteURL: String): String? {
             if (profileId <= 0) return null
             val saved = read(profileId) ?: return null
             return saved.second.takeIf { saved.first == remoteURL && isHttps(it) }
         }
 
         @Synchronized
-        fun withdrawIfUnsupported(
-            profileId: Long,
-            remoteURL: String,
-            finalURL: String,
-            header: String?,
-        ) {
+        fun withdrawIfUnsupported(profileId: Long, remoteURL: String, finalURL: String, header: String?) {
             if ((header != "1" || !isHttps(finalURL)) && read(profileId)?.first == remoteURL) clear(profileId)
         }
 
         @Synchronized
-        fun accepted(
-            profileId: Long,
-            remoteURL: String,
-            finalURL: String,
-            header: String?,
-        ) {
+        fun accepted(profileId: Long, remoteURL: String, finalURL: String, header: String?) {
             require(profileId > 0)
             if (header != "1" || !isHttps(finalURL)) {
                 clear(profileId)
@@ -94,10 +63,7 @@ object ReportCapabilities {
         }
 
         @Synchronized
-        fun profileChanged(
-            profileId: Long,
-            remoteURL: String?,
-        ) {
+        fun profileChanged(profileId: Long, remoteURL: String?) {
             if (remoteURL == null || read(profileId)?.first != remoteURL) clear(profileId)
         }
 
@@ -107,22 +73,20 @@ object ReportCapabilities {
             if (file.exists() && !file.delete()) throw IOException("Cannot clear report capability")
         }
 
-        private fun read(profileId: Long): Pair<String, String>? =
-            try {
-                DataInputStream(File(directory, profileId.toString()).inputStream()).use {
-                    it.readUTF() to it.readUTF()
-                }
-            } catch (_: Exception) {
-                null
+        private fun read(profileId: Long): Pair<String, String>? = try {
+            DataInputStream(File(directory, profileId.toString()).inputStream()).use {
+                it.readUTF() to it.readUTF()
             }
+        } catch (_: Exception) {
+            null
+        }
 
-        private fun isHttps(url: String): Boolean =
-            try {
-                val uri = URI(url)
-                uri.scheme.equals("https", ignoreCase = true) &&
-                    !uri.host.isNullOrEmpty() && uri.rawUserInfo == null && uri.rawFragment == null
-            } catch (_: Exception) {
-                false
-            }
+        private fun isHttps(url: String): Boolean = try {
+            val uri = URI(url)
+            uri.scheme.equals("https", ignoreCase = true) &&
+                !uri.host.isNullOrEmpty() && uri.rawUserInfo == null && uri.rawFragment == null
+        } catch (_: Exception) {
+            false
+        }
     }
 }

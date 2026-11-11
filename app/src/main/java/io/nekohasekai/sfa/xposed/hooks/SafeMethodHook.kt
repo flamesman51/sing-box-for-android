@@ -3,9 +3,7 @@ package io.nekohasekai.sfa.xposed.hooks
 import de.robv.android.xposed.XC_MethodHook
 import io.nekohasekai.sfa.xposed.HookErrorStore
 
-abstract class SafeMethodHook(
-    private val source: String,
-) : XC_MethodHook() {
+abstract class SafeMethodHook(private val source: String) : XC_MethodHook() {
     @Volatile
     private var disabled = false
 

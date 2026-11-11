@@ -19,12 +19,7 @@ class SmartMeasurementTest {
         val fields = setOf("download", "upload", "upload_status", "udp_rtt_ms", "jitter_ms", "observed_peak_down", "floor_state", "legacy_episode_obs")
         for (replacement in listOf<Map<String, JsonElement>>(emptyMap(), fields.associateWith { JsonNull })) {
             val base = document()
-            val original =
-                base
-                    .getValue("members")
-                    .let { it as JsonArray }
-                    .first()
-                    .jsonObject
+            val original = base.getValue("members").let { it as JsonArray }.first().jsonObject
             val member = JsonObject(original.filterKeys { it !in fields } + replacement)
             val status = SmartJson.status(JsonObject(base.filterKeys { it != "upload_verified" } + ("members" to JsonArray(listOf(member)))).toString())
             val parsed = status.members.single()
@@ -49,16 +44,15 @@ class SmartMeasurementTest {
 
     @Test
     fun parsesEveryNestedDirectionFieldAndCoreFlags() {
-        val member =
-            member(
-                """{
+        val member = member(
+            """{
             "download":{"value":48.1,"p10":40.2,"mean":45.3,"streams":4,"window":5.5,"source":"active","at":1,"valid":true,"fresh":true},
             "upload":{"value":12.5,"post_min":10.2,"streams":2,"window":6,"source":"active","at":2,"valid":true,"fresh":true},
             "upload_status":"verified","udp_rtt_ms":14,"jitter_ms":3,"observed_peak_down":52.4,
             "floor_state":{"kind":"proven","target":30,"value":32,"at":3,"effective":true},
             "legacy_episode_obs":{"value":28.5,"at":4}
         }""",
-            )
+        )
         val download = requireNotNull(member.download)
         assertEquals(48.1, download.displayValue()!!, 0.0)
         assertEquals(40.2, download.displayP10()!!, 0.0)
@@ -169,22 +163,11 @@ class SmartMeasurementTest {
             assertEquals(state, base.copy(floorState = state).effectiveFloorState())
         }
         for (state in listOf(
-            SmartFloorState(),
-            proven.copy(effective = false),
-            proven.copy(effective = null),
-            proven.copy(kind = "unknown"),
-            proven.copy(kind = null),
-            proven.copy(target = null),
-            proven.copy(target = -1.0),
-            proven.copy(target = Double.NaN),
-            proven.copy(target = Double.POSITIVE_INFINITY),
-            proven.copy(value = null),
-            proven.copy(value = -1.0),
-            proven.copy(value = Double.NaN),
-            proven.copy(value = Double.POSITIVE_INFINITY),
-            proven.copy(at = null),
-            proven.copy(at = 0L),
-            proven.copy(at = -1L),
+            SmartFloorState(), proven.copy(effective = false), proven.copy(effective = null),
+            proven.copy(kind = "unknown"), proven.copy(kind = null), proven.copy(target = null),
+            proven.copy(target = -1.0), proven.copy(target = Double.NaN), proven.copy(target = Double.POSITIVE_INFINITY),
+            proven.copy(value = null), proven.copy(value = -1.0), proven.copy(value = Double.NaN), proven.copy(value = Double.POSITIVE_INFINITY),
+            proven.copy(at = null), proven.copy(at = 0L), proven.copy(at = -1L),
         )) {
             assertNull(base.copy(floorState = state).effectiveFloorState())
         }
@@ -238,13 +221,7 @@ class SmartMeasurementTest {
         for (name in listOf("status-measurement-floor-inactive.json", "status-measurement-floor-superseded.json")) {
             val inactive = fixtureStatus(name)
             assertTrue(inactive.members.all { it.effectiveFloorState() == null })
-            assertEquals(
-                false,
-                inactive.members
-                    .first()
-                    .floorState
-                    ?.effective,
-            )
+            assertEquals(false, inactive.members.first().floorState?.effective)
         }
     }
 
@@ -287,16 +264,13 @@ class SmartMeasurementTest {
         assertNull(old.uploadValue(true))
     }
 
-    private fun fixtureStatus(name: String): SmartStatus =
-        SmartJson.status(
-            requireNotNull(javaClass.getResourceAsStream("/smart/$name")).bufferedReader().use { it.readText() },
-        )
+    private fun fixtureStatus(name: String): SmartStatus = SmartJson.status(
+        requireNotNull(javaClass.getResourceAsStream("/smart/$name")).bufferedReader().use { it.readText() },
+    )
 
-    private fun document(): JsonObject =
-        Json
-            .parseToJsonElement(
-                requireNotNull(javaClass.getResourceAsStream("/smart/status.json")).bufferedReader().use { it.readText() },
-            ).jsonObject
+    private fun document(): JsonObject = Json.parseToJsonElement(
+        requireNotNull(javaClass.getResourceAsStream("/smart/status.json")).bufferedReader().use { it.readText() },
+    ).jsonObject
 
     private fun member(fields: String): SmartMember {
         val document = document()

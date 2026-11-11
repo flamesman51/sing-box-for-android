@@ -64,12 +64,11 @@ fun ReportShareDialog(
                 }
                 if (hasConfig || hasLog) {
                     Text(
-                        text =
-                            if (hasLog) {
-                                stringResource(R.string.report_share_privacy_warning)
-                            } else {
-                                stringResource(R.string.report_share_privacy_warning_config)
-                            },
+                        text = if (hasLog) {
+                            stringResource(R.string.report_share_privacy_warning)
+                        } else {
+                            stringResource(R.string.report_share_privacy_warning_config)
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 16.dp),
@@ -87,10 +86,9 @@ fun ReportShareDialog(
                 }
                 MarkdownText(
                     markdown = stringResource(R.string.report_age_encryption_description),
-                    style =
-                        MaterialTheme.typography.bodySmall.copy(
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
                 )
             }
         },

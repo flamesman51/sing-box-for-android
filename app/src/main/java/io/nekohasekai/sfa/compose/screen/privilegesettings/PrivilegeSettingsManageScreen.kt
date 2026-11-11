@@ -72,10 +72,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
-private data class LoadResult(
-    val packages: List<PackageCache>,
-    val selectedUids: Set<Int>,
-)
+private data class LoadResult(val packages: List<PackageCache>, val selectedUids: Set<Int>)
 
 private const val VPN_SERVICE_PERMISSION = "android.permission.BIND_VPN_SERVICE"
 
@@ -137,7 +134,7 @@ fun PrivilegeSettingsManageScreen(
                 (
                     permissions.any { it == VPN_SERVICE_PERMISSION } ||
                         packageCache.info.services?.any { it.permission == VPN_SERVICE_PERMISSION } == true
-                )
+                    )
         return when {
             hasManagement && hasVpnService -> RiskCategory.BOTH
             hasManagement -> RiskCategory.MANAGEMENT_APP
@@ -146,11 +143,9 @@ fun PrivilegeSettingsManageScreen(
         }
     }
 
-    fun buildPackageList(newUids: Set<Int>): Set<String> =
-        newUids
-            .mapNotNull { uid ->
-                packages.find { it.uid == uid }?.packageName
-            }.toSet()
+    fun buildPackageList(newUids: Set<Int>): Set<String> = newUids.mapNotNull { uid ->
+        packages.find { it.uid == uid }?.packageName
+    }.toSet()
 
     fun updateCurrentPackages(filterQuery: String) {
         currentPackages =
@@ -250,10 +245,7 @@ fun PrivilegeSettingsManageScreen(
         riskyWarningMessage = messages.joinToString("\n")
     }
 
-    fun postSaveSelectedApplications(
-        newUids: Set<Int>,
-        warnRisky: Boolean = true,
-    ) {
+    fun postSaveSelectedApplications(newUids: Set<Int>, warnRisky: Boolean = true) {
         if (warnRisky) {
             warnIfRiskySelected(newUids)
         }
@@ -261,10 +253,7 @@ fun PrivilegeSettingsManageScreen(
         saveSelectedApplications(newUids)
     }
 
-    fun toggleSelection(
-        packageCache: PackageCache,
-        selected: Boolean,
-    ) {
+    fun toggleSelection(packageCache: PackageCache, selected: Boolean) {
         val newSelected =
             if (selected) {
                 selectedUids + packageCache.uid
@@ -296,26 +285,24 @@ fun PrivilegeSettingsManageScreen(
                         }
                     val selectedPackageNames = Settings.privilegeSettingsList.toMutableSet()
                     val selectedUidSet =
-                        packageCaches
-                            .mapNotNull { packageCache ->
-                                if (selectedPackageNames.contains(packageCache.packageName)) {
-                                    packageCache.uid
-                                } else {
-                                    null
-                                }
-                            }.toSet()
+                        packageCaches.mapNotNull { packageCache ->
+                            if (selectedPackageNames.contains(packageCache.packageName)) {
+                                packageCache.uid
+                            } else {
+                                null
+                            }
+                        }.toSet()
                     LoadResult(packageCaches, selectedUidSet)
                 } catch (_: PrivilegedAccessRequiredException) {
                     null
                 }
             }
         if (loadResult == null) {
-            Toast
-                .makeText(
-                    context,
-                    R.string.privileged_access_required,
-                    Toast.LENGTH_LONG,
-                ).show()
+            Toast.makeText(
+                context,
+                R.string.privileged_access_required,
+                Toast.LENGTH_LONG,
+            ).show()
             onBack()
             return@LaunchedEffect
         }
@@ -417,34 +404,29 @@ fun PrivilegeSettingsManageScreen(
                     },
                     onImport = {
                         val packageNames =
-                            clipboardText
-                                ?.split("\n")
-                                ?.distinct()
+                            clipboardText?.split("\n")?.distinct()
                                 ?.takeIf { it.isNotEmpty() && it[0].isNotEmpty() }
                         if (packageNames.isNullOrEmpty()) {
-                            Toast
-                                .makeText(
-                                    context,
-                                    R.string.toast_clipboard_empty,
-                                    Toast.LENGTH_SHORT,
-                                ).show()
+                            Toast.makeText(
+                                context,
+                                R.string.toast_clipboard_empty,
+                                Toast.LENGTH_SHORT,
+                            ).show()
                         } else {
                             val newSelected =
-                                packages
-                                    .mapNotNull { packageCache ->
-                                        if (packageNames.contains(packageCache.packageName)) {
-                                            packageCache.uid
-                                        } else {
-                                            null
-                                        }
-                                    }.toSet()
+                                packages.mapNotNull { packageCache ->
+                                    if (packageNames.contains(packageCache.packageName)) {
+                                        packageCache.uid
+                                    } else {
+                                        null
+                                    }
+                                }.toSet()
                             postSaveSelectedApplications(newSelected)
-                            Toast
-                                .makeText(
-                                    context,
-                                    R.string.toast_imported_from_clipboard,
-                                    Toast.LENGTH_SHORT,
-                                ).show()
+                            Toast.makeText(
+                                context,
+                                R.string.toast_imported_from_clipboard,
+                                Toast.LENGTH_SHORT,
+                            ).show()
                         }
                     },
                     onExport = {
@@ -457,30 +439,28 @@ fun PrivilegeSettingsManageScreen(
                                 }
                             }
                         clipboardText = packageList.joinToString("\n")
-                        Toast
-                            .makeText(
-                                context,
-                                R.string.toast_copied_to_clipboard,
-                                Toast.LENGTH_SHORT,
-                            ).show()
+                        Toast.makeText(
+                            context,
+                            R.string.toast_copied_to_clipboard,
+                            Toast.LENGTH_SHORT,
+                        ).show()
                     },
                 )
             },
             colors =
-                TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
+            TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+            ),
         )
     }
 
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(scaffoldPadding),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(scaffoldPadding),
     ) {
         AnimatedVisibility(
             visible = isLoading,
@@ -521,10 +501,10 @@ fun PrivilegeSettingsManageScreen(
                     updateCurrentPackages(it)
                 },
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .focusRequester(focusRequester),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .focusRequester(focusRequester),
                 placeholder = { Text(stringResource(R.string.search)) },
                 leadingIcon = {
                     Icon(
@@ -553,12 +533,12 @@ fun PrivilegeSettingsManageScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding =
-                androidx.compose.foundation.layout.PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 12.dp,
-                    bottom = scaffoldPadding.calculateBottomPadding() + 12.dp,
-                ),
+            androidx.compose.foundation.layout.PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = 12.dp,
+                bottom = scaffoldPadding.calculateBottomPadding() + 12.dp,
+            ),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(currentPackages, key = { it.packageName }) { packageCache ->

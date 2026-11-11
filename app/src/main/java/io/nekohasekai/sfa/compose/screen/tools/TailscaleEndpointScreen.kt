@@ -115,32 +115,28 @@ fun TailscaleEndpointScreen(
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .verticalScroll(rememberScrollState())
-                .padding(scaffoldPadding)
-                .padding(vertical = 8.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .verticalScroll(rememberScrollState())
+            .padding(scaffoldPadding)
+            .padding(vertical = 8.dp),
     ) {
         val hasThisDevice = endpoint.backendState == "Running" && endpoint.selfPeer != null
         val hasExitNode = endpoint.backendState == "Running" && endpoint.hasExitNodeCandidates
-        val hasTaildrop =
-            endpoint.backendState == "Running" &&
-                (endpoint.taildropFileCount > 0 || endpointSends.isNotEmpty())
+        val hasTaildrop = endpoint.backendState == "Running" &&
+            (endpoint.taildropFileCount > 0 || endpointSends.isNotEmpty())
         val hasAuth = endpoint.authURL.isNotEmpty()
 
         // Status section
         SectionHeader(stringResource(R.string.tailscale_status))
         Card(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             Column {
                 val stateIsLast = !hasThisDevice && !hasExitNode && !hasTaildrop && !hasAuth
@@ -164,11 +160,10 @@ fun TailscaleEndpointScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Box(
-                                modifier =
-                                    Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(stateColor(endpoint.backendState)),
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(stateColor(endpoint.backendState)),
                             )
                             Text(
                                 endpoint.stateText,
@@ -177,14 +172,13 @@ fun TailscaleEndpointScreen(
                             )
                         }
                     },
-                    modifier =
-                        Modifier.clip(
-                            if (stateIsLast) {
-                                RoundedCornerShape(12.dp)
-                            } else {
-                                RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                            },
-                        ),
+                    modifier = Modifier.clip(
+                        if (stateIsLast) {
+                            RoundedCornerShape(12.dp)
+                        } else {
+                            RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                        },
+                    ),
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 )
                 if (endpoint.backendState == "Running" && endpoint.selfPeer != null) {
@@ -219,19 +213,19 @@ fun TailscaleEndpointScreen(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         },
-                        modifier =
-                            Modifier
-                                .clip(
-                                    if (thisDeviceIsLast) {
-                                        RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
-                                    } else {
-                                        RoundedCornerShape(0.dp)
-                                    },
-                                ).clickable {
-                                    navController.navigate(
-                                        "tools/tailscale/${Uri.encode(endpointTag)}/peer/${Uri.encode(endpoint.selfPeer.id)}",
-                                    )
+                        modifier = Modifier
+                            .clip(
+                                if (thisDeviceIsLast) {
+                                    RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+                                } else {
+                                    RoundedCornerShape(0.dp)
                                 },
+                            )
+                            .clickable {
+                                navController.navigate(
+                                    "tools/tailscale/${Uri.encode(endpointTag)}/peer/${Uri.encode(endpoint.selfPeer.id)}",
+                                )
+                            },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
                 }
@@ -267,53 +261,43 @@ fun TailscaleEndpointScreen(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         },
-                        modifier =
-                            Modifier
-                                .clip(
-                                    if (exitNodeIsLast) {
-                                        RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
-                                    } else {
-                                        RoundedCornerShape(0.dp)
-                                    },
-                                ).clickable {
-                                    navController.navigate(
-                                        "tools/tailscale/${Uri.encode(endpointTag)}/exit_node",
-                                    )
+                        modifier = Modifier
+                            .clip(
+                                if (exitNodeIsLast) {
+                                    RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+                                } else {
+                                    RoundedCornerShape(0.dp)
                                 },
+                            )
+                            .clickable {
+                                navController.navigate(
+                                    "tools/tailscale/${Uri.encode(endpointTag)}/exit_node",
+                                )
+                            },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
                 }
                 if (hasTaildrop) {
-                    val taildropSubtitle =
-                        when {
-                            endpoint.waitingFileCount > 0 -> {
-                                pluralStringResource(
-                                    R.plurals.taildrop_file_count,
-                                    endpoint.waitingFileCount,
-                                    endpoint.waitingFileCount,
-                                )
-                            }
+                    val taildropSubtitle = when {
+                        endpoint.waitingFileCount > 0 -> pluralStringResource(
+                            R.plurals.taildrop_file_count,
+                            endpoint.waitingFileCount,
+                            endpoint.waitingFileCount,
+                        )
 
-                            endpoint.receivingFileCount > 0 -> {
-                                stringResource(R.string.taildrop_receive)
-                            }
+                        endpoint.receivingFileCount > 0 ->
+                            stringResource(R.string.taildrop_receive)
 
-                            hasActiveSend -> {
-                                stringResource(R.string.taildrop_send)
-                            }
+                        hasActiveSend -> stringResource(R.string.taildrop_send)
 
-                            endpoint.taildropFileCount > 0 -> {
-                                pluralStringResource(
-                                    R.plurals.taildrop_file_count,
-                                    endpoint.taildropFileCount,
-                                    endpoint.taildropFileCount,
-                                )
-                            }
+                        endpoint.taildropFileCount > 0 -> pluralStringResource(
+                            R.plurals.taildrop_file_count,
+                            endpoint.taildropFileCount,
+                            endpoint.taildropFileCount,
+                        )
 
-                            else -> {
-                                null
-                            }
-                        }
+                        else -> null
+                    }
                     ListItem(
                         headlineContent = {
                             Text(
@@ -328,18 +312,17 @@ fun TailscaleEndpointScreen(
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         },
-                        supportingContent =
-                            if (taildropSubtitle != null) {
-                                {
-                                    Text(
-                                        taildropSubtitle,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            } else {
-                                null
-                            },
+                        supportingContent = if (taildropSubtitle != null) {
+                            {
+                                Text(
+                                    taildropSubtitle,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        } else {
+                            null
+                        },
                         trailingContent = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -358,19 +341,19 @@ fun TailscaleEndpointScreen(
                                 )
                             }
                         },
-                        modifier =
-                            Modifier
-                                .clip(
-                                    if (!hasAuth) {
-                                        RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
-                                    } else {
-                                        RoundedCornerShape(0.dp)
-                                    },
-                                ).clickable {
-                                    navController.navigate(
-                                        "tools/tailscale/${Uri.encode(endpointTag)}/taildrop",
-                                    )
+                        modifier = Modifier
+                            .clip(
+                                if (!hasAuth) {
+                                    RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+                                } else {
+                                    RoundedCornerShape(0.dp)
                                 },
+                            )
+                            .clickable {
+                                navController.navigate(
+                                    "tools/tailscale/${Uri.encode(endpointTag)}/taildrop",
+                                )
+                            },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
                 }
@@ -389,10 +372,9 @@ fun TailscaleEndpointScreen(
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         },
-                        modifier =
-                            Modifier.clickable {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(endpoint.authURL)))
-                            },
+                        modifier = Modifier.clickable {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(endpoint.authURL)))
+                        },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
                     ListItem(
@@ -409,10 +391,9 @@ fun TailscaleEndpointScreen(
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         },
-                        modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                                .clickable { showAuthQRCode = true },
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                            .clickable { showAuthQRCode = true },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
                 }
@@ -424,14 +405,12 @@ fun TailscaleEndpointScreen(
             Spacer(modifier = Modifier.height(16.dp))
             SectionHeader(group.displayName.ifEmpty { group.loginName })
             Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
             ) {
                 Column {
                     group.peers.forEachIndexed { index, peer ->
@@ -441,9 +420,8 @@ fun TailscaleEndpointScreen(
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                             )
                         }
-                        val canSSH =
-                            peer.online && peer.sshHostKeys.isNotEmpty() &&
-                                peer.tailscaleIPs.isNotEmpty() && peer.id != endpoint.selfPeer?.id
+                        val canSSH = peer.online && peer.sshHostKeys.isNotEmpty() &&
+                            peer.tailscaleIPs.isNotEmpty() && peer.id != endpoint.selfPeer?.id
                         var showSSHMenu by remember { mutableStateOf(false) }
                         Box {
                             PeerItem(
@@ -453,19 +431,17 @@ fun TailscaleEndpointScreen(
                                         "tools/tailscale/${Uri.encode(endpointTag)}/peer/${Uri.encode(peer.id)}",
                                     )
                                 },
-                                onLongClick =
-                                    if (canSSH) {
-                                        { showSSHMenu = true }
-                                    } else {
-                                        null
-                                    },
-                                modifier =
-                                    when {
-                                        group.peers.size == 1 -> Modifier.clip(RoundedCornerShape(12.dp))
-                                        index == 0 -> Modifier.clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                                        index == group.peers.lastIndex -> Modifier.clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                                        else -> Modifier
-                                    },
+                                onLongClick = if (canSSH) {
+                                    { showSSHMenu = true }
+                                } else {
+                                    null
+                                },
+                                modifier = when {
+                                    group.peers.size == 1 -> Modifier.clip(RoundedCornerShape(12.dp))
+                                    index == 0 -> Modifier.clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                                    index == group.peers.lastIndex -> Modifier.clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                                    else -> Modifier
+                                },
                             )
                             DropdownMenu(
                                 expanded = showSSHMenu,
@@ -526,13 +502,13 @@ private fun PeerItem(
     val badges = peerBadges(peer)
     val firstIP = peer.tailscaleIPs.firstOrNull()
     Row(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = onLongClick,
-                ).padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -541,11 +517,10 @@ private fun PeerItem(
             contentAlignment = Alignment.Center,
         ) {
             Box(
-                modifier =
-                    Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(if (peer.online) Color(0xFF4CAF50) else Color.Gray),
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(if (peer.online) Color(0xFF4CAF50) else Color.Gray),
             )
         }
         Column(
@@ -588,10 +563,7 @@ private fun PeerItem(
     }
 }
 
-private data class PeerBadge(
-    val text: String,
-    val color: Color,
-)
+private data class PeerBadge(val text: String, val color: Color)
 
 @Composable
 private fun peerBadges(peer: TailscalePeerData): List<PeerBadge> {
@@ -612,14 +584,12 @@ private fun peerBadges(peer: TailscalePeerData): List<PeerBadge> {
             val now = System.currentTimeMillis()
             val oneMonthMs = 30L * 24 * 60 * 60 * 1000
             if (expiryMs - now <= oneMonthMs) {
-                val rel =
-                    DateUtils
-                        .getRelativeTimeSpanString(
-                            expiryMs,
-                            now,
-                            DateUtils.MINUTE_IN_MILLIS,
-                            DateUtils.FORMAT_ABBREV_RELATIVE,
-                        ).toString()
+                val rel = DateUtils.getRelativeTimeSpanString(
+                    expiryMs,
+                    now,
+                    DateUtils.MINUTE_IN_MILLIS,
+                    DateUtils.FORMAT_ABBREV_RELATIVE,
+                ).toString()
                 badges += PeerBadge(stringResource(R.string.tailscale_expires_relative, rel), Color.Gray)
             }
         }
@@ -640,18 +610,16 @@ private fun PeerBadgeView(badge: PeerBadge) {
         style = MaterialTheme.typography.labelSmall,
         color = Color.White,
         maxLines = 1,
-        modifier =
-            Modifier
-                .clip(RoundedCornerShape(50))
-                .background(badge.color)
-                .padding(horizontal = 6.dp, vertical = 2.dp),
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(badge.color)
+            .padding(horizontal = 6.dp, vertical = 2.dp),
     )
 }
 
-private fun stateColor(state: String): Color =
-    when (state) {
-        "Running" -> Color(0xFF4CAF50)
-        "NeedsLogin", "NeedsMachineAuth" -> Color(0xFFFF9800)
-        "Starting" -> Color(0xFFFFEB3B)
-        else -> Color.Gray
-    }
+private fun stateColor(state: String): Color = when (state) {
+    "Running" -> Color(0xFF4CAF50)
+    "NeedsLogin", "NeedsMachineAuth" -> Color(0xFFFF9800)
+    "Starting" -> Color(0xFFFFEB3B)
+    else -> Color.Gray
+}

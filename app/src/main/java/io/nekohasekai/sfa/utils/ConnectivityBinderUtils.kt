@@ -10,9 +10,8 @@ object ConnectivityBinderUtils {
     private const val TAG = "ConnectivityBinderUtils"
 
     fun getBinder(context: Context): IBinder? {
-        val cm =
-            context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-                ?: return null
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            ?: return null
         try {
             val field = cm.javaClass.getDeclaredField("mService")
             field.isAccessible = true

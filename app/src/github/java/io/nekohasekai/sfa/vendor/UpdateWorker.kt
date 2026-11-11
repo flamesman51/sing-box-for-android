@@ -5,10 +5,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import io.nekohasekai.sfa.update.ServerUpdateWork
 
-class UpdateWorker(
-    context: Context,
-    params: WorkerParameters,
-) : CoroutineWorker(context, params) {
+class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     companion object {
         fun schedule(context: Context) = ServerUpdateWork.schedule(context)
     }

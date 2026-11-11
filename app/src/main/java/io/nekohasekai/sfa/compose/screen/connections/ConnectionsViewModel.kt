@@ -36,21 +36,18 @@ data class ConnectionsUiState(
 )
 
 sealed class ConnectionsEvent : ScreenEvent {
-    data class ConnectionClosed(
-        val id: String,
-    ) : ConnectionsEvent()
+    data class ConnectionClosed(val id: String) : ConnectionsEvent()
     data object AllConnectionsClosed : ConnectionsEvent()
 }
 
 class ConnectionsViewModel :
     BaseViewModel<ConnectionsUiState, ConnectionsEvent>(),
     CommandClient.Handler {
-    private val commandClient =
-        CommandClient(
-            viewModelScope,
-            CommandClient.ConnectionType.Connections,
-            this,
-        )
+    private val commandClient = CommandClient(
+        viewModelScope,
+        CommandClient.ConnectionType.Connections,
+        this,
+    )
 
     private val _serviceStatus = MutableStateFlow(Status.Stopped)
     val serviceStatus = _serviceStatus.asStateFlow()
@@ -196,15 +193,14 @@ class ConnectionsViewModel :
     override fun writeConnectionEvents(events: ConnectionEvents) {
         viewModelScope.launch(Dispatchers.Default) {
             val generation = connectionsGeneration.get()
-            val snapshot =
-                connectionsMutex.withLock {
-                    if (connectionsStore == null) {
-                        connectionsStore = Connections()
-                    }
-                    val store = connectionsStore ?: return@withLock null
-                    store.applyEvents(events)
-                    buildConnectionLists(store, uiState.value)
-                } ?: return@launch
+            val snapshot = connectionsMutex.withLock {
+                if (connectionsStore == null) {
+                    connectionsStore = Connections()
+                }
+                val store = connectionsStore ?: return@withLock null
+                store.applyEvents(events)
+                buildConnectionLists(store, uiState.value)
+            } ?: return@launch
             if (connectionsGeneration.get() != generation) {
                 return@launch
             }
@@ -226,11 +222,10 @@ class ConnectionsViewModel :
     private fun requestConnectionsRefresh() {
         viewModelScope.launch(Dispatchers.Default) {
             val generation = connectionsGeneration.get()
-            val snapshot =
-                connectionsMutex.withLock {
-                    val store = connectionsStore ?: return@withLock null
-                    buildConnectionLists(store, uiState.value)
-                } ?: return@launch
+            val snapshot = connectionsMutex.withLock {
+                val store = connectionsStore ?: return@withLock null
+                buildConnectionLists(store, uiState.value)
+            } ?: return@launch
             if (connectionsGeneration.get() != generation) {
                 return@launch
             }
@@ -253,12 +248,9 @@ class ConnectionsViewModel :
         connections: Connections,
         currentState: ConnectionsUiState,
     ): ConnectionLists {
-        val allConnectionList =
-            connections
-                .iterator()
-                .toList()
-                .filter { it.outboundType != "dns" }
-                .map { Connection.from(it) }
+        val allConnectionList = connections.iterator().toList()
+            .filter { it.outboundType != "dns" }
+            .map { Connection.from(it) }
 
         connections.filterState(currentState.stateFilter.libboxValue)
 
@@ -268,13 +260,10 @@ class ConnectionsViewModel :
             ConnectionSort.ByTrafficTotal -> connections.sortByTrafficTotal()
         }
 
-        val connectionList =
-            connections
-                .iterator()
-                .toList()
-                .filter { it.outboundType != "dns" }
-                .map { Connection.from(it) }
-                .filter { it.performSearch(currentState.searchText) }
+        val connectionList = connections.iterator().toList()
+            .filter { it.outboundType != "dns" }
+            .map { Connection.from(it) }
+            .filter { it.performSearch(currentState.searchText) }
 
         return ConnectionLists(
             connections = connectionList,

@@ -77,42 +77,18 @@ object AnsiColorUtils {
 
         colorCodes.forEach { codeStr ->
             when (codeStr) {
-                "0" -> {
-                    return null
-                } // Reset
-                "1" -> {
-                    fontWeight = FontWeight.Bold
-                }
-                "3" -> {
-                    fontStyle = FontStyle.Italic
-                }
-                "4" -> {
-                    textDecoration = TextDecoration.Underline
-                }
-                "30" -> {
-                    color = Color.Black
-                }
-                "31" -> {
-                    color = logRed
-                }
-                "32" -> {
-                    color = logGreen
-                }
-                "33" -> {
-                    color = logYellow
-                }
-                "34" -> {
-                    color = logBlue
-                }
-                "35" -> {
-                    color = logPurple
-                }
-                "36" -> {
-                    color = logBlueLight
-                }
-                "37" -> {
-                    color = logWhite
-                }
+                "0" -> return null // Reset
+                "1" -> fontWeight = FontWeight.Bold
+                "3" -> fontStyle = FontStyle.Italic
+                "4" -> textDecoration = TextDecoration.Underline
+                "30" -> color = Color.Black
+                "31" -> color = logRed
+                "32" -> color = logGreen
+                "33" -> color = logYellow
+                "34" -> color = logBlue
+                "35" -> color = logPurple
+                "36" -> color = logBlueLight
+                "37" -> color = logWhite
                 else -> {
                     val codeInt = codeStr.toIntOrNull()
                     if (codeInt != null && codeInt in 38..125) {

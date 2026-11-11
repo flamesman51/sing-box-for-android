@@ -11,8 +11,7 @@ import org.junit.Test
 import java.math.BigDecimal
 
 class SmartEditorPolicyTest {
-    private val fullPolicy =
-        """
+    private val fullPolicy = """
         {
           "preference": {
             "profile": "phone", "rank": ["outages", "download", "udp"],
@@ -27,7 +26,7 @@ class SmartEditorPolicyTest {
           "probe": {"heartbeat_interval": "1ns", "standby_interval": "2µs", "background_interval": "24h0m0.000000001s"},
           "interrupt_on_failover": false, "udp": {"quic_policy": "route_only"}
         }
-        """.trimIndent()
+    """.trimIndent()
 
     @Test
     fun untouchedPolicyKeepsExactSourceIncludingWhitespaceAndNumberTokens() {
@@ -133,11 +132,10 @@ class SmartEditorPolicyTest {
 
     @Test
     fun newMeasurementCriteriaRoundTripInTheirExplicitRankingOrder() {
-        val policy =
-            SmartEditorPolicy(fullPolicy).withValue(
-                "preference.rank",
-                Json.parseToJsonElement("""["upload","rtt","jitter","latency","rtt_spread"]"""),
-            )
+        val policy = SmartEditorPolicy(fullPolicy).withValue(
+            "preference.rank",
+            Json.parseToJsonElement("""["upload","rtt","jitter","latency","rtt_spread"]"""),
+        )
         assertEquals(listOf("upload", "rtt", "jitter", "latency", "rtt_spread"), SmartEditorPolicy(policy.source).ranking())
     }
 

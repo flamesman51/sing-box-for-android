@@ -21,11 +21,7 @@ object DebugInfoExporter {
     private const val TAG = "DebugInfoExporter"
     private const val BUFFER_SIZE = 128 * 1024
 
-    fun export(
-        context: Context,
-        outputPath: String,
-        packageName: String,
-    ): String {
+    fun export(context: Context, outputPath: String, packageName: String): String {
         Log.i(TAG, "export start: output=$outputPath, package=$packageName")
         val outFile = File(outputPath)
         if (!outFile.name.lowercase(Locale.US).endsWith(".zip")) {
@@ -90,10 +86,7 @@ object DebugInfoExporter {
         return outFile.absolutePath
     }
 
-    private fun buildExportInfo(
-        context: Context,
-        packageName: String,
-    ): String {
+    private fun buildExportInfo(context: Context, packageName: String): String {
         val sb = StringBuilder()
         sb.append("package=").append(packageName).append('\n')
         sb.append("timestamp=").append(System.currentTimeMillis()).append('\n')
@@ -101,10 +94,7 @@ object DebugInfoExporter {
         return sb.toString()
     }
 
-    private fun addFrameworkEntries(
-        zip: ZipOutputStream,
-        warnings: MutableList<String>,
-    ): Int {
+    private fun addFrameworkEntries(zip: ZipOutputStream, warnings: MutableList<String>): Int {
         var count = 0
         val root = File("/system/framework")
         if (!root.isDirectory) return 0
@@ -120,10 +110,7 @@ object DebugInfoExporter {
         return count
     }
 
-    private fun addApexEntries(
-        zip: ZipOutputStream,
-        warnings: MutableList<String>,
-    ): Int {
+    private fun addApexEntries(zip: ZipOutputStream, warnings: MutableList<String>): Int {
         val file = File("/apex/com.android.tethering/javalib/service-connectivity.jar")
         if (!file.isFile) {
             warnings.add("missing file: ${file.path}")
@@ -132,11 +119,7 @@ object DebugInfoExporter {
         return if (addFileEntry(zip, file, "framework/apex_com.android.tethering/service-connectivity.jar", warnings, noCompression = true)) 1 else 0
     }
 
-    private fun addLogEntries(
-        zip: ZipOutputStream,
-        warnings: MutableList<String>,
-        context: Context,
-    ): Int {
+    private fun addLogEntries(zip: ZipOutputStream, warnings: MutableList<String>, context: Context): Int {
         var count = 0
         if (streamCommandToZip(zip, "logs/logcat.txt", warnings, listOf("logcat", "-d", "-b", "all")) != null) count++
         if (streamCommandToZip(zip, "logs/dmesg.txt", warnings, listOf("dmesg")) != null) count++
@@ -164,14 +147,13 @@ object DebugInfoExporter {
     private fun formatLogEntries(entries: List<LogEntry>): String {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         return entries.joinToString("\n---\n") { entry ->
-            val levelName =
-                when (entry.level) {
-                    LogEntry.LEVEL_DEBUG -> "DEBUG"
-                    LogEntry.LEVEL_INFO -> "INFO"
-                    LogEntry.LEVEL_WARN -> "WARN"
-                    LogEntry.LEVEL_ERROR -> "ERROR"
-                    else -> "UNKNOWN"
-                }
+            val levelName = when (entry.level) {
+                LogEntry.LEVEL_DEBUG -> "DEBUG"
+                LogEntry.LEVEL_INFO -> "INFO"
+                LogEntry.LEVEL_WARN -> "WARN"
+                LogEntry.LEVEL_ERROR -> "ERROR"
+                else -> "UNKNOWN"
+            }
             val timestamp = dateFormat.format(Date(entry.timestamp))
             buildString {
                 append(levelName).append("[").append(timestamp).append("] ")
@@ -184,11 +166,7 @@ object DebugInfoExporter {
         }
     }
 
-    private fun addSystemEntries(
-        zip: ZipOutputStream,
-        warnings: MutableList<String>,
-        packageName: String,
-    ): Int {
+    private fun addSystemEntries(zip: ZipOutputStream, warnings: MutableList<String>, packageName: String): Int {
         var count = 0
         if (streamCommandToZip(zip, "system/getprop.txt", warnings, listOf("getprop")) != null) count++
         if (streamCommandToZip(zip, "system/uname.txt", warnings, listOf("uname", "-a")) != null) count++
@@ -262,11 +240,7 @@ object DebugInfoExporter {
         }
     }
 
-    private fun addTextEntry(
-        zip: ZipOutputStream,
-        entryName: String,
-        content: String,
-    ) {
+    private fun addTextEntry(zip: ZipOutputStream, entryName: String, content: String) {
         val entry = ZipEntry(entryName)
         zip.putNextEntry(entry)
         val bytes = content.toByteArray()
@@ -274,49 +248,39 @@ object DebugInfoExporter {
         zip.closeEntry()
     }
 
-    private data class CommandResult(
-        val exitCode: Int,
-        val bytes: Long,
-    )
+    private data class CommandResult(val exitCode: Int, val bytes: Long)
 
     private fun streamCommandToZip(
         zip: ZipOutputStream,
         entryName: String,
         warnings: MutableList<String>,
         command: List<String>,
-    ): CommandResult? =
-        try {
-            val process = ProcessBuilder(command).redirectErrorStream(true).start()
-            zip.putNextEntry(ZipEntry(entryName))
-            var bytes = 0L
-            process.inputStream.use { input ->
-                val buffer = ByteArray(BUFFER_SIZE)
-                while (true) {
-                    val read = input.read(buffer)
-                    if (read <= 0) break
-                    zip.write(buffer, 0, read)
-                    bytes += read
-                }
+    ): CommandResult? = try {
+        val process = ProcessBuilder(command).redirectErrorStream(true).start()
+        zip.putNextEntry(ZipEntry(entryName))
+        var bytes = 0L
+        process.inputStream.use { input ->
+            val buffer = ByteArray(BUFFER_SIZE)
+            while (true) {
+                val read = input.read(buffer)
+                if (read <= 0) break
+                zip.write(buffer, 0, read)
+                bytes += read
             }
-            zip.closeEntry()
-            val code = process.waitFor()
-            if (code != 0) {
-                warnings.add("command failed (${command.joinToString(" ")}): exit=$code")
-            }
-            CommandResult(code, bytes)
-        } catch (e: Throwable) {
-            warnings.add("command failed (${command.joinToString(" ")}): ${e.message}")
-            runCatching { zip.closeEntry() }
-            null
         }
+        zip.closeEntry()
+        val code = process.waitFor()
+        if (code != 0) {
+            warnings.add("command failed (${command.joinToString(" ")}): exit=$code")
+        }
+        CommandResult(code, bytes)
+    } catch (e: Throwable) {
+        warnings.add("command failed (${command.joinToString(" ")}): ${e.message}")
+        runCatching { zip.closeEntry() }
+        null
+    }
 
-    private fun buildError(
-        stage: String,
-        detail: String,
-        throwable: Throwable?,
-        warnings: List<String>,
-        outputPath: String?,
-    ): String {
+    private fun buildError(stage: String, detail: String, throwable: Throwable?, warnings: List<String>, outputPath: String?): String {
         val sb = StringBuilder()
         sb.append("stage=").append(stage).append('\n')
         if (!outputPath.isNullOrBlank()) {
@@ -326,12 +290,8 @@ object DebugInfoExporter {
             sb.append("detail=").append(detail).append('\n')
         }
         if (throwable != null) {
-            sb
-                .append("exception=")
-                .append(throwable.javaClass.name)
-                .append(": ")
-                .append(throwable.message ?: "")
-                .append('\n')
+            sb.append("exception=").append(throwable.javaClass.name)
+                .append(": ").append(throwable.message ?: "").append('\n')
             val sw = StringWriter()
             throwable.printStackTrace(PrintWriter(sw))
             sb.append(sw.toString())

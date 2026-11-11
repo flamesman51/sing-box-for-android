@@ -21,14 +21,13 @@ class ReportManagerConcurrencyTest {
     private lateinit var baseDirectory: File
     private var previousHandler: Thread.UncaughtExceptionHandler? = null
 
-    private val timestamps =
-        mapOf(
-            "1970-01-01T00-00-00" to 0L,
-            "2000-01-01T00-00-00" to 946684800000L,
-            "2000-02-29T23-59-58" to 951868798000L,
-            "2024-01-01T00-00-00" to 1704067200000L,
-            "2024-01-02T03-04-05" to 1704164645000L,
-        )
+    private val timestamps = mapOf(
+        "1970-01-01T00-00-00" to 0L,
+        "2000-01-01T00-00-00" to 946684800000L,
+        "2000-02-29T23-59-58" to 951868798000L,
+        "2024-01-01T00-00-00" to 1704067200000L,
+        "2024-01-02T03-04-05" to 1704164645000L,
+    )
 
     @Before
     fun installReportManagers() {
@@ -107,11 +106,9 @@ class ReportManagerConcurrencyTest {
     }
 
     private fun createReports(directoryName: String): Map<String, Long> {
-        val expected =
-            timestamps
-                .flatMap { (name, millis) ->
-                    listOf(name to millis, "$name-1" to millis, "$name-42" to millis)
-                }.toMap()
+        val expected = timestamps.flatMap { (name, millis) ->
+            listOf(name to millis, "$name-1" to millis, "$name-42" to millis)
+        }.toMap()
         expected.keys.forEach { name ->
             assertTrue(File(workingDirectory, "$directoryName/$name").mkdirs())
         }
@@ -149,13 +146,12 @@ class ReportManagerConcurrencyTest {
         val workers = 8
         val executor = Executors.newFixedThreadPool(workers)
         val ready = CyclicBarrier(workers)
-        val futures =
-            (0 until workers).map { worker ->
-                executor.submit {
-                    ready.await(10, TimeUnit.SECONDS)
-                    action(worker)
-                }
+        val futures = (0 until workers).map { worker ->
+            executor.submit {
+                ready.await(10, TimeUnit.SECONDS)
+                action(worker)
             }
+        }
         try {
             futures.forEach { it.get(30, TimeUnit.SECONDS) }
         } finally {

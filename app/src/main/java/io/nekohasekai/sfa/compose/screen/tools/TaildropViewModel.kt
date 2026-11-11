@@ -58,42 +58,34 @@ object TaildropFiles {
         return if (file.isFile) file else null
     }
 
-    suspend fun materialize(
-        endpointTag: String,
-        name: String,
-    ): File =
-        withContext(Dispatchers.IO) {
-            daemonFile(name)?.let { return@withContext it }
-            val cacheDirectory = File(Application.application.cacheDir, CACHE_DIRECTORY).also { it.mkdirs() }
-            val destination = File(cacheDirectory, name)
-            val finish = CompletableDeferred<String>()
-            val session =
-                CommandTarget.standaloneClient().downloadTaildropFile(
-                    endpointTag,
-                    name,
-                    destination.path,
-                    object : TaildropDownloadHandler {
-                        override fun onProgress(
-                            downloaded: Long,
-                            total: Long,
-                        ) {
-                        }
-
-                        override fun onFinish(errorMessage: String) {
-                            finish.complete(errorMessage)
-                        }
-                    },
-                )
-            try {
-                val errorMessage = finish.await()
-                if (errorMessage.isNotEmpty()) {
-                    throw IOException(errorMessage)
+    suspend fun materialize(endpointTag: String, name: String): File = withContext(Dispatchers.IO) {
+        daemonFile(name)?.let { return@withContext it }
+        val cacheDirectory = File(Application.application.cacheDir, CACHE_DIRECTORY).also { it.mkdirs() }
+        val destination = File(cacheDirectory, name)
+        val finish = CompletableDeferred<String>()
+        val session = CommandTarget.standaloneClient().downloadTaildropFile(
+            endpointTag,
+            name,
+            destination.path,
+            object : TaildropDownloadHandler {
+                override fun onProgress(downloaded: Long, total: Long) {
                 }
-            } finally {
-                session.close()
+
+                override fun onFinish(errorMessage: String) {
+                    finish.complete(errorMessage)
+                }
+            },
+        )
+        try {
+            val errorMessage = finish.await()
+            if (errorMessage.isNotEmpty()) {
+                throw IOException(errorMessage)
             }
-            destination
+        } finally {
+            session.close()
         }
+        destination
+    }
 
     fun cleanCache() {
         val directory = File(Application.application.cacheDir, CACHE_DIRECTORY)
@@ -120,32 +112,30 @@ class TaildropViewModel : BaseViewModel<TaildropInboxState, Nothing>() {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val session =
-                    CommandTarget
-                        .standaloneClient()
-                        .subscribeTaildropInbox(
-                            endpointTag,
-                            object : TaildropInboxHandler {
-                                override fun onInboxUpdate(inbox: TaildropInbox) {
-                                    val files = convertFiles(inbox)
-                                    val receiving = convertReceiving(inbox)
-                                    viewModelScope.launch {
-                                        if (!currentState.isSubscribed) return@launch
-                                        updateState { copy(files = files, receiving = receiving, hasUpdate = true) }
-                                    }
+                val session = CommandTarget.standaloneClient()
+                    .subscribeTaildropInbox(
+                        endpointTag,
+                        object : TaildropInboxHandler {
+                            override fun onInboxUpdate(inbox: TaildropInbox) {
+                                val files = convertFiles(inbox)
+                                val receiving = convertReceiving(inbox)
+                                viewModelScope.launch {
+                                    if (!currentState.isSubscribed) return@launch
+                                    updateState { copy(files = files, receiving = receiving, hasUpdate = true) }
                                 }
+                            }
 
-                                override fun onError(message: String) {
-                                    subscription.discard(token)
-                                    viewModelScope.launch {
-                                        if (!currentState.isSubscribed) return@launch
-                                        subscribedTag = null
-                                        updateState { TaildropInboxState(hasUpdate = true) }
-                                        sendErrorMessage(message)
-                                    }
+                            override fun onError(message: String) {
+                                subscription.discard(token)
+                                viewModelScope.launch {
+                                    if (!currentState.isSubscribed) return@launch
+                                    subscribedTag = null
+                                    updateState { TaildropInboxState(hasUpdate = true) }
+                                    sendErrorMessage(message)
                                 }
-                            },
-                        )
+                            }
+                        },
+                    )
                 subscription.store(token, session)
             } catch (e: Exception) {
                 viewModelScope.launch {
@@ -173,11 +163,7 @@ class TaildropViewModel : BaseViewModel<TaildropInboxState, Nothing>() {
         }
     }
 
-    fun cancelReceiving(
-        endpointTag: String,
-        senderID: String,
-        name: String,
-    ) {
+    fun cancelReceiving(endpointTag: String, senderID: String, name: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 CommandTarget.standaloneClient().cancelTaildropReceiving(endpointTag, senderID, name)
@@ -187,10 +173,7 @@ class TaildropViewModel : BaseViewModel<TaildropInboxState, Nothing>() {
         }
     }
 
-    fun delete(
-        endpointTag: String,
-        name: String,
-    ) {
+    fun delete(endpointTag: String, name: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 CommandTarget.standaloneClient().deleteTaildropFile(endpointTag, name)
@@ -200,18 +183,14 @@ class TaildropViewModel : BaseViewModel<TaildropInboxState, Nothing>() {
         }
     }
 
-    fun deleteAll(
-        endpointTag: String,
-        names: List<String>,
-    ) {
+    fun deleteAll(endpointTag: String, names: List<String>) {
         viewModelScope.launch(Dispatchers.IO) {
-            val client =
-                try {
-                    CommandTarget.standaloneClient()
-                } catch (e: Exception) {
-                    sendErrorMessage(e.message ?: "delete failed")
-                    return@launch
-                }
+            val client = try {
+                CommandTarget.standaloneClient()
+            } catch (e: Exception) {
+                sendErrorMessage(e.message ?: "delete failed")
+                return@launch
+            }
             for (name in names) {
                 try {
                     client.deleteTaildropFile(endpointTag, name)

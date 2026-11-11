@@ -15,9 +15,7 @@ import io.nekohasekai.sfa.xposed.hooks.SafeMethodHook
 import io.nekohasekai.sfa.xposed.hooks.XHook
 import java.lang.reflect.Method
 
-class HookPackageManagerGetInstalledPackages(
-    private val classLoader: ClassLoader,
-) : XHook {
+class HookPackageManagerGetInstalledPackages(private val classLoader: ClassLoader) : XHook {
     private companion object {
         private const val SOURCE = "HookPMGetInstalledPackages"
         private const val PER_USER_RANGE = 100000
@@ -54,34 +52,32 @@ class HookPackageManagerGetInstalledPackages(
     }
 
     private fun hookAppsFilter33Plus(hooked: MutableList<String>) {
-        val cls =
-            XposedHelpers.findClassIfExists("com.android.server.pm.AppsFilterBase", classLoader)
-                ?: XposedHelpers.findClassIfExists("com.android.server.pm.AppsFilterImpl", classLoader)
+        val cls = XposedHelpers.findClassIfExists("com.android.server.pm.AppsFilterBase", classLoader)
+            ?: XposedHelpers.findClassIfExists("com.android.server.pm.AppsFilterImpl", classLoader)
         if (cls == null) {
             HookErrorStore.e(SOURCE, "Class com.android.server.pm.AppsFilterBase not found")
             return
         }
-        val unhooks =
-            try {
-                XposedBridge.hookAllMethods(
-                    cls,
-                    "shouldFilterApplication",
-                    object : SafeMethodHook(SOURCE) {
-                        override fun beforeHook(param: MethodHookParam) {
-                            val callingUid = param.args[1] as Int
-                            val callerPackages = getCallerPackages(callingUid) ?: return
-                            val target = param.args[3]!!
-                            val targetPackage = extractPackageName(target) ?: return
-                            if (shouldHidePackage(callingUid, callerPackages, targetPackage)) {
-                                param.result = true
-                            }
+        val unhooks = try {
+            XposedBridge.hookAllMethods(
+                cls,
+                "shouldFilterApplication",
+                object : SafeMethodHook(SOURCE) {
+                    override fun beforeHook(param: MethodHookParam) {
+                        val callingUid = param.args[1] as Int
+                        val callerPackages = getCallerPackages(callingUid) ?: return
+                        val target = param.args[3]!!
+                        val targetPackage = extractPackageName(target) ?: return
+                        if (shouldHidePackage(callingUid, callerPackages, targetPackage)) {
+                            param.result = true
                         }
-                    },
-                )
-            } catch (e: Throwable) {
-                HookErrorStore.w(SOURCE, "Skip ${cls.simpleName}.shouldFilterApplication: ${e.message}", e)
-                emptySet<XC_MethodHook.Unhook>()
-            }
+                    }
+                },
+            )
+        } catch (e: Throwable) {
+            HookErrorStore.w(SOURCE, "Skip ${cls.simpleName}.shouldFilterApplication: ${e.message}", e)
+            emptySet<XC_MethodHook.Unhook>()
+        }
         if (unhooks.isNotEmpty()) {
             hooked.add("${cls.simpleName}.shouldFilterApplication")
         }
@@ -93,27 +89,26 @@ class HookPackageManagerGetInstalledPackages(
             HookErrorStore.e(SOURCE, "Class com.android.server.pm.AppsFilter not found")
             return
         }
-        val unhooks =
-            try {
-                XposedBridge.hookAllMethods(
-                    cls,
-                    "shouldFilterApplication",
-                    object : SafeMethodHook(SOURCE) {
-                        override fun beforeHook(param: MethodHookParam) {
-                            val callingUid = param.args[0] as Int
-                            val callerPackages = getCallerPackages(callingUid) ?: return
-                            val target = param.args[2]!!
-                            val targetPackage = extractPackageName(target) ?: return
-                            if (shouldHidePackage(callingUid, callerPackages, targetPackage)) {
-                                param.result = true
-                            }
+        val unhooks = try {
+            XposedBridge.hookAllMethods(
+                cls,
+                "shouldFilterApplication",
+                object : SafeMethodHook(SOURCE) {
+                    override fun beforeHook(param: MethodHookParam) {
+                        val callingUid = param.args[0] as Int
+                        val callerPackages = getCallerPackages(callingUid) ?: return
+                        val target = param.args[2]!!
+                        val targetPackage = extractPackageName(target) ?: return
+                        if (shouldHidePackage(callingUid, callerPackages, targetPackage)) {
+                            param.result = true
                         }
-                    },
-                )
-            } catch (e: Throwable) {
-                HookErrorStore.w(SOURCE, "Skip AppsFilter.shouldFilterApplication: ${e.message}", e)
-                emptySet<XC_MethodHook.Unhook>()
-            }
+                    }
+                },
+            )
+        } catch (e: Throwable) {
+            HookErrorStore.w(SOURCE, "Skip AppsFilter.shouldFilterApplication: ${e.message}", e)
+            emptySet<XC_MethodHook.Unhook>()
+        }
         if (unhooks.isNotEmpty()) {
             hooked.add("AppsFilter.shouldFilterApplication")
         }
@@ -125,26 +120,25 @@ class HookPackageManagerGetInstalledPackages(
             HookErrorStore.e(SOURCE, "Class com.android.server.pm.PackageManagerService not found")
             return
         }
-        val unhooks =
-            try {
-                XposedBridge.hookAllMethods(
-                    cls,
-                    "getArchivedPackageInternal",
-                    object : SafeMethodHook(SOURCE) {
-                        override fun beforeHook(param: MethodHookParam) {
-                            val callingUid = Binder.getCallingUid()
-                            val callerPackages = getCallerPackages(callingUid) ?: return
-                            val targetPackage = param.args[0]!!.toString()
-                            if (shouldHidePackage(callingUid, callerPackages, targetPackage)) {
-                                param.result = null
-                            }
+        val unhooks = try {
+            XposedBridge.hookAllMethods(
+                cls,
+                "getArchivedPackageInternal",
+                object : SafeMethodHook(SOURCE) {
+                    override fun beforeHook(param: MethodHookParam) {
+                        val callingUid = Binder.getCallingUid()
+                        val callerPackages = getCallerPackages(callingUid) ?: return
+                        val targetPackage = param.args[0]!!.toString()
+                        if (shouldHidePackage(callingUid, callerPackages, targetPackage)) {
+                            param.result = null
                         }
-                    },
-                )
-            } catch (e: Throwable) {
-                HookErrorStore.w(SOURCE, "Skip PackageManagerService.getArchivedPackageInternal: ${e.message}", e)
-                emptySet<XC_MethodHook.Unhook>()
-            }
+                    }
+                },
+            )
+        } catch (e: Throwable) {
+            HookErrorStore.w(SOURCE, "Skip PackageManagerService.getArchivedPackageInternal: ${e.message}", e)
+            emptySet<XC_MethodHook.Unhook>()
+        }
         if (unhooks.isNotEmpty()) {
             hooked.add("PackageManagerService.getArchivedPackageInternal")
         }
@@ -156,86 +150,81 @@ class HookPackageManagerGetInstalledPackages(
             HookErrorStore.e(SOURCE, "Class com.android.server.pm.PackageManagerService not found")
             return
         }
-        val filterHooks =
-            try {
-                XposedBridge.hookAllMethods(
-                    cls,
-                    "filterAppAccessLPr",
-                    object : SafeMethodHook(SOURCE) {
-                        override fun beforeHook(param: MethodHookParam) {
-                            val callingUid = param.args[1] as Int
-                            val callerPackages = getCallerPackages(callingUid) ?: return
-                            val target = param.args[0]!!
-                            val targetPackage = extractPackageName(target) ?: return
-                            if (shouldHidePackage(callingUid, callerPackages, targetPackage)) {
-                                param.result = true
-                            }
+        val filterHooks = try {
+            XposedBridge.hookAllMethods(
+                cls,
+                "filterAppAccessLPr",
+                object : SafeMethodHook(SOURCE) {
+                    override fun beforeHook(param: MethodHookParam) {
+                        val callingUid = param.args[1] as Int
+                        val callerPackages = getCallerPackages(callingUid) ?: return
+                        val target = param.args[0]!!
+                        val targetPackage = extractPackageName(target) ?: return
+                        if (shouldHidePackage(callingUid, callerPackages, targetPackage)) {
+                            param.result = true
                         }
-                    },
-                )
-            } catch (e: Throwable) {
-                HookErrorStore.w(SOURCE, "Skip PackageManagerService.filterAppAccessLPr: ${e.message}", e)
-                emptySet<XC_MethodHook.Unhook>()
-            }
+                    }
+                },
+            )
+        } catch (e: Throwable) {
+            HookErrorStore.w(SOURCE, "Skip PackageManagerService.filterAppAccessLPr: ${e.message}", e)
+            emptySet<XC_MethodHook.Unhook>()
+        }
         if (filterHooks.isNotEmpty()) {
             hooked.add("PackageManagerService.filterAppAccessLPr")
         }
 
-        val resolutionHooks =
-            try {
-                XposedBridge.hookAllMethods(
-                    cls,
-                    "applyPostResolutionFilter",
-                    object : SafeMethodHook(SOURCE) {
-                        override fun afterHook(param: MethodHookParam) {
-                            val callingUid = param.args[3] as Int
-                            val callerPackages = getCallerPackages(callingUid) ?: return
-                            val rawResult = param.result ?: return
-                            when (rawResult) {
-                                is MutableCollection<*> -> {
-                                    @Suppress("UNCHECKED_CAST")
-                                    val result = rawResult as MutableCollection<ResolveInfo>
-                                    val iterator = result.iterator()
-                                    while (iterator.hasNext()) {
-                                        val info = iterator.next()
-                                        val targetPackage =
-                                            with(info) {
-                                                activityInfo?.packageName
-                                                    ?: serviceInfo?.packageName
-                                                    ?: providerInfo?.packageName
-                                                    ?: resolvePackageName
-                                            }
-                                        if (targetPackage != null &&
-                                            shouldHidePackage(callingUid, callerPackages, targetPackage)
-                                        ) {
-                                            iterator.remove()
-                                        }
+        val resolutionHooks = try {
+            XposedBridge.hookAllMethods(
+                cls,
+                "applyPostResolutionFilter",
+                object : SafeMethodHook(SOURCE) {
+                    override fun afterHook(param: MethodHookParam) {
+                        val callingUid = param.args[3] as Int
+                        val callerPackages = getCallerPackages(callingUid) ?: return
+                        val rawResult = param.result ?: return
+                        when (rawResult) {
+                            is MutableCollection<*> -> {
+                                @Suppress("UNCHECKED_CAST")
+                                val result = rawResult as MutableCollection<ResolveInfo>
+                                val iterator = result.iterator()
+                                while (iterator.hasNext()) {
+                                    val info = iterator.next()
+                                    val targetPackage = with(info) {
+                                        activityInfo?.packageName
+                                            ?: serviceInfo?.packageName
+                                            ?: providerInfo?.packageName
+                                            ?: resolvePackageName
+                                    }
+                                    if (targetPackage != null &&
+                                        shouldHidePackage(callingUid, callerPackages, targetPackage)
+                                    ) {
+                                        iterator.remove()
                                     }
                                 }
-                                is List<*> -> {
-                                    val filtered =
-                                        rawResult.filterNot { item ->
-                                            val info = item as? ResolveInfo ?: return@filterNot false
-                                            val targetPackage =
-                                                with(info) {
-                                                    activityInfo?.packageName
-                                                        ?: serviceInfo?.packageName
-                                                        ?: providerInfo?.packageName
-                                                        ?: resolvePackageName
-                                                }
-                                            targetPackage != null &&
-                                                shouldHidePackage(callingUid, callerPackages, targetPackage)
-                                        }
-                                    param.result = filtered
+                            }
+                            is List<*> -> {
+                                val filtered = rawResult.filterNot { item ->
+                                    val info = item as? ResolveInfo ?: return@filterNot false
+                                    val targetPackage = with(info) {
+                                        activityInfo?.packageName
+                                            ?: serviceInfo?.packageName
+                                            ?: providerInfo?.packageName
+                                            ?: resolvePackageName
+                                    }
+                                    targetPackage != null &&
+                                        shouldHidePackage(callingUid, callerPackages, targetPackage)
                                 }
+                                param.result = filtered
                             }
                         }
-                    },
-                )
-            } catch (e: Throwable) {
-                HookErrorStore.w(SOURCE, "Skip PackageManagerService.applyPostResolutionFilter: ${e.message}", e)
-                emptySet<XC_MethodHook.Unhook>()
-            }
+                    }
+                },
+            )
+        } catch (e: Throwable) {
+            HookErrorStore.w(SOURCE, "Skip PackageManagerService.applyPostResolutionFilter: ${e.message}", e)
+            emptySet<XC_MethodHook.Unhook>()
+        }
         if (resolutionHooks.isNotEmpty()) {
             hooked.add("PackageManagerService.applyPostResolutionFilter")
         }
@@ -277,15 +266,14 @@ class HookPackageManagerGetInstalledPackages(
         if (arg == null) return null
         try {
             val argClass = arg.javaClass
-            val method =
-                if (lastPackageNameClass == argClass && getPackageNameMethod != null) {
-                    getPackageNameMethod!!
-                } else {
-                    argClass.getMethod("getPackageName").also {
-                        lastPackageNameClass = argClass
-                        getPackageNameMethod = it
-                    }
+            val method = if (lastPackageNameClass == argClass && getPackageNameMethod != null) {
+                getPackageNameMethod!!
+            } else {
+                argClass.getMethod("getPackageName").also {
+                    lastPackageNameClass = argClass
+                    getPackageNameMethod = it
                 }
+            }
             val result = method.invoke(arg) as String?
             if (!result.isNullOrEmpty()) {
                 return result

@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
 class RootServer : RootService() {
+
     private val neighborCallbacks = RemoteCallbackList<INeighborTableCallback>()
     private var neighborSubscription: NeighborSubscription? = null
 
@@ -39,202 +40,180 @@ class RootServer : RootService() {
 
     private val bridgeSessions = mutableSetOf<BridgeSessionBinder>()
 
-    private val binder =
-        object : IRootService.Stub() {
-            override fun destroy() {
-                stopSelf()
-            }
+    private val binder = object : IRootService.Stub() {
+        override fun destroy() {
+            stopSelf()
+        }
 
-            override fun getInstalledPackages(
-                flags: Int,
-                userId: Int,
-            ): ParceledListSlice<PackageInfo> {
-                val allPackages = PrivilegedServiceUtils.getInstalledPackages(flags, userId)
-                return ParceledListSlice(allPackages)
-            }
+        override fun getInstalledPackages(flags: Int, userId: Int): ParceledListSlice<PackageInfo> {
+            val allPackages = PrivilegedServiceUtils.getInstalledPackages(flags, userId)
+            return ParceledListSlice(allPackages)
+        }
 
-            override fun installPackage(
-                apk: ParcelFileDescriptor?,
-                size: Long,
-                userId: Int,
-            ) {
-                if (apk == null) throw IOException("APK file descriptor is null")
-                PrivilegedServiceUtils.installPackage(apk, size, userId)
-            }
+        override fun installPackage(apk: ParcelFileDescriptor?, size: Long, userId: Int) {
+            if (apk == null) throw IOException("APK file descriptor is null")
+            PrivilegedServiceUtils.installPackage(apk, size, userId)
+        }
 
-            override fun exportDebugInfo(outputPath: String?): String =
-                DebugInfoExporter.export(
-                    this@RootServer,
-                    outputPath!!,
-                    BuildConfig.APPLICATION_ID,
-                )
+        override fun exportDebugInfo(outputPath: String?): String = DebugInfoExporter.export(
+            this@RootServer,
+            outputPath!!,
+            BuildConfig.APPLICATION_ID,
+        )
 
-            override fun registerNeighborTableCallback(callback: INeighborTableCallback?) {
-                if (callback == null) return
-                neighborCallbacks.register(callback)
-                synchronized(neighborCallbacks) {
-                    if (neighborSubscription == null) {
-                        try {
-                            neighborSubscription =
-                                Libbox.subscribeNeighborTable(
-                                    object : NeighborUpdateListener {
-                                        override fun updateNeighborTable(entries: NeighborEntryIterator?) {
-                                            if (entries == null) return
-                                            val rawList = mutableListOf<Pair<String, String>>()
-                                            while (entries.hasNext()) {
-                                                val entry = entries.next()
-                                                rawList.add(entry.address to entry.macAddress)
-                                            }
-                                            lastNeighborEntries = rawList
-                                            broadcastEnrichedEntries(rawList)
-                                        }
-                                    },
-                                )
-                        } catch (e: Exception) {
-                            Log.e("RootServer", "subscribeNeighborTable failed", e)
-                        }
-                        startTetheringMonitor()
+        override fun registerNeighborTableCallback(callback: INeighborTableCallback?) {
+            if (callback == null) return
+            neighborCallbacks.register(callback)
+            synchronized(neighborCallbacks) {
+                if (neighborSubscription == null) {
+                    try {
+                        neighborSubscription =
+                            Libbox.subscribeNeighborTable(object : NeighborUpdateListener {
+                                override fun updateNeighborTable(entries: NeighborEntryIterator?) {
+                                    if (entries == null) return
+                                    val rawList = mutableListOf<Pair<String, String>>()
+                                    while (entries.hasNext()) {
+                                        val entry = entries.next()
+                                        rawList.add(entry.address to entry.macAddress)
+                                    }
+                                    lastNeighborEntries = rawList
+                                    broadcastEnrichedEntries(rawList)
+                                }
+                            })
+                    } catch (e: Exception) {
+                        Log.e("RootServer", "subscribeNeighborTable failed", e)
                     }
+                    startTetheringMonitor()
                 }
-            }
-
-            override fun unregisterNeighborTableCallback(callback: INeighborTableCallback?) {
-                if (callback == null) return
-                neighborCallbacks.unregister(callback)
-                synchronized(neighborCallbacks) {
-                    if (neighborCallbacks.registeredCallbackCount == 0) {
-                        neighborSubscription?.close()
-                        neighborSubscription = null
-                        stopTetheringMonitor()
-                    }
-                }
-            }
-
-            override fun openShellSession(
-                user: String?,
-                command: String?,
-                env: Array<out String>?,
-                term: String?,
-                rows: Int,
-                cols: Int,
-            ): IRootShellSession {
-                val resolved = UserResolver.resolve(packageManager, user!!)
-                val shell: String
-                val shellEnv: Array<String>
-                val cwd: String
-                if (resolved.packageName == UserResolver.TERMUX_PACKAGE) {
-                    val termuxPrefix = File(UserResolver.TERMUX_PREFIX)
-                    val actualShell = UserResolver.findTermuxShell(termuxPrefix, resolved.homeDir)
-                    cwd = resolved.homeDir
-                    shellEnv =
-                        buildTermuxEnvironment(env, actualShell, cwd, termuxPrefix.absolutePath, term)
-                    shell =
-                        if (command.isNullOrEmpty()) {
-                            val loginBin = File(termuxPrefix, "bin/login")
-                            if (loginBin.canExecute()) loginBin.absolutePath else actualShell
-                        } else {
-                            actualShell
-                        }
-                } else if (resolved.uid == 0) {
-                    val termuxPrefix = File(UserResolver.TERMUX_PREFIX)
-                    val termuxAvailable = File(termuxPrefix, "bin").isDirectory
-                    if (termuxAvailable) {
-                        shell = UserResolver.findTermuxShell(termuxPrefix, UserResolver.TERMUX_HOME)
-                        cwd = UserResolver.TERMUX_HOME
-                        shellEnv =
-                            buildTermuxEnvironment(
-                                env,
-                                shell,
-                                cwd,
-                                termuxPrefix.absolutePath,
-                                term,
-                            )
-                    } else {
-                        shell = "/system/bin/sh"
-                        cwd = "/data/local"
-                        shellEnv = buildBasicEnvironment(env, shell, cwd, term)
-                    }
-                } else {
-                    shell = UserResolver.findShell(resolved)
-                    cwd = resolved.homeDir
-                    shellEnv = buildBasicEnvironment(env, shell, cwd, term)
-                }
-                val args: Array<String>
-                if (command.isNullOrEmpty()) {
-                    args = arrayOf("-" + File(shell).name)
-                } else {
-                    args = arrayOf(File(shell).name, "-c", command)
-                }
-                val supplementaryGids =
-                    if (resolved.packageName == "root" || resolved.packageName == "shell") {
-                        intArrayOf()
-                    } else {
-                        packageManager.getPackageGids(resolved.packageName)
-                    }
-                val argsIter = args.asIterable().toStringIterator()
-                val envIter = shellEnv.asIterable().toStringIterator()
-                val groupsIter = IntArrayIterator(supplementaryGids)
-                val isPipe = term.isNullOrEmpty()
-                val session =
-                    if (isPipe) {
-                        Libbox.openNativePipeSession(
-                            shell,
-                            cwd,
-                            argsIter,
-                            envIter,
-                            resolved.uid,
-                            resolved.gid,
-                            groupsIter,
-                        )
-                    } else {
-                        Libbox.openNativeShellSession(
-                            shell,
-                            cwd,
-                            argsIter,
-                            envIter,
-                            term,
-                            rows,
-                            cols,
-                            resolved.uid,
-                            resolved.gid,
-                            groupsIter,
-                        )
-                    }
-                return RootShellSession(session)
-            }
-
-            override fun openBridge(
-                bridgeName: String?,
-                mtu: Int,
-                inet4Port: String?,
-                inet6Port: String?,
-                ruleIndex: Int,
-                routeTable: Int,
-            ): IBridgeSession {
-                val options = BridgeOptions()
-                options.bridgeName = bridgeName ?: ""
-                options.mtu = mtu
-                options.inet4Port = inet4Port ?: ""
-                options.inet6Port = inet6Port ?: ""
-                options.ruleIndex = ruleIndex
-                options.routeTable = routeTable
-                val session = Libbox.newBridgeService(options)
-                val binder = BridgeSessionBinder(session)
-                synchronized(bridgeSessions) {
-                    bridgeSessions.add(binder)
-                }
-                return binder
-            }
-
-            override fun lookupSFTPServer(): String {
-                val termuxPrefix = File(UserResolver.TERMUX_PREFIX)
-                for (name in arrayOf("libexec/sftp-server", "lib/openssh/sftp-server")) {
-                    val candidate = File(termuxPrefix, name)
-                    if (candidate.canExecute()) return candidate.absolutePath
-                }
-                throw IOException("sftp-server not found, install openssh in Termux")
             }
         }
+
+        override fun unregisterNeighborTableCallback(callback: INeighborTableCallback?) {
+            if (callback == null) return
+            neighborCallbacks.unregister(callback)
+            synchronized(neighborCallbacks) {
+                if (neighborCallbacks.registeredCallbackCount == 0) {
+                    neighborSubscription?.close()
+                    neighborSubscription = null
+                    stopTetheringMonitor()
+                }
+            }
+        }
+
+        override fun openShellSession(
+            user: String?,
+            command: String?,
+            env: Array<out String>?,
+            term: String?,
+            rows: Int,
+            cols: Int,
+        ): IRootShellSession {
+            val resolved = UserResolver.resolve(packageManager, user!!)
+            val shell: String
+            val shellEnv: Array<String>
+            val cwd: String
+            if (resolved.packageName == UserResolver.TERMUX_PACKAGE) {
+                val termuxPrefix = File(UserResolver.TERMUX_PREFIX)
+                val actualShell = UserResolver.findTermuxShell(termuxPrefix, resolved.homeDir)
+                cwd = resolved.homeDir
+                shellEnv =
+                    buildTermuxEnvironment(env, actualShell, cwd, termuxPrefix.absolutePath, term)
+                shell = if (command.isNullOrEmpty()) {
+                    val loginBin = File(termuxPrefix, "bin/login")
+                    if (loginBin.canExecute()) loginBin.absolutePath else actualShell
+                } else {
+                    actualShell
+                }
+            } else if (resolved.uid == 0) {
+                val termuxPrefix = File(UserResolver.TERMUX_PREFIX)
+                val termuxAvailable = File(termuxPrefix, "bin").isDirectory
+                if (termuxAvailable) {
+                    shell = UserResolver.findTermuxShell(termuxPrefix, UserResolver.TERMUX_HOME)
+                    cwd = UserResolver.TERMUX_HOME
+                    shellEnv = buildTermuxEnvironment(
+                        env,
+                        shell,
+                        cwd,
+                        termuxPrefix.absolutePath,
+                        term,
+                    )
+                } else {
+                    shell = "/system/bin/sh"
+                    cwd = "/data/local"
+                    shellEnv = buildBasicEnvironment(env, shell, cwd, term)
+                }
+            } else {
+                shell = UserResolver.findShell(resolved)
+                cwd = resolved.homeDir
+                shellEnv = buildBasicEnvironment(env, shell, cwd, term)
+            }
+            val args: Array<String>
+            if (command.isNullOrEmpty()) {
+                args = arrayOf("-" + File(shell).name)
+            } else {
+                args = arrayOf(File(shell).name, "-c", command)
+            }
+            val supplementaryGids = if (resolved.packageName == "root" || resolved.packageName == "shell") {
+                intArrayOf()
+            } else {
+                packageManager.getPackageGids(resolved.packageName)
+            }
+            val argsIter = args.asIterable().toStringIterator()
+            val envIter = shellEnv.asIterable().toStringIterator()
+            val groupsIter = IntArrayIterator(supplementaryGids)
+            val isPipe = term.isNullOrEmpty()
+            val session = if (isPipe) {
+                Libbox.openNativePipeSession(
+                    shell,
+                    cwd,
+                    argsIter,
+                    envIter,
+                    resolved.uid,
+                    resolved.gid,
+                    groupsIter,
+                )
+            } else {
+                Libbox.openNativeShellSession(
+                    shell, cwd, argsIter, envIter,
+                    term, rows, cols,
+                    resolved.uid, resolved.gid, groupsIter,
+                )
+            }
+            return RootShellSession(session)
+        }
+
+        override fun openBridge(
+            bridgeName: String?,
+            mtu: Int,
+            inet4Port: String?,
+            inet6Port: String?,
+            ruleIndex: Int,
+            routeTable: Int,
+        ): IBridgeSession {
+            val options = BridgeOptions()
+            options.bridgeName = bridgeName ?: ""
+            options.mtu = mtu
+            options.inet4Port = inet4Port ?: ""
+            options.inet6Port = inet6Port ?: ""
+            options.ruleIndex = ruleIndex
+            options.routeTable = routeTable
+            val session = Libbox.newBridgeService(options)
+            val binder = BridgeSessionBinder(session)
+            synchronized(bridgeSessions) {
+                bridgeSessions.add(binder)
+            }
+            return binder
+        }
+
+        override fun lookupSFTPServer(): String {
+            val termuxPrefix = File(UserResolver.TERMUX_PREFIX)
+            for (name in arrayOf("libexec/sftp-server", "lib/openssh/sftp-server")) {
+                val candidate = File(termuxPrefix, name)
+                if (candidate.canExecute()) return candidate.absolutePath
+            }
+            throw IOException("sftp-server not found, install openssh in Termux")
+        }
+    }
 
     private fun buildTermuxEnvironment(
         sshEnv: Array<out String>?,
@@ -270,6 +249,7 @@ class RootServer : RootService() {
     private inner class BridgeSessionBinder(
         private val session: BridgeSession,
     ) : IBridgeSession.Stub() {
+
         override fun getFileDescriptor(): ParcelFileDescriptor = ParcelFileDescriptor.fromFd(session.fileDescriptor())
 
         override fun getName(): String = session.name()
@@ -291,12 +271,10 @@ class RootServer : RootService() {
     private class RootShellSession(
         private val session: ShellSession,
     ) : IRootShellSession.Stub() {
+
         override fun getMasterFD(): ParcelFileDescriptor = ParcelFileDescriptor.fromFd(session.masterFD())
 
-        override fun resize(
-            rows: Int,
-            cols: Int,
-        ) {
+        override fun resize(rows: Int, cols: Int) {
             session.resize(rows, cols)
         }
 
@@ -312,10 +290,9 @@ class RootServer : RootService() {
     }
 
     private fun broadcastEnrichedEntries(rawList: List<Pair<String, String>>) {
-        val list =
-            rawList.map { (address, mac) ->
-                NeighborEntry(address, mac, hostnameByMAC[mac.uppercase()] ?: "")
-            }
+        val list = rawList.map { (address, mac) ->
+            NeighborEntry(address, mac, hostnameByMAC[mac.uppercase()] ?: "")
+        }
         Log.d("RootServer", "neighborTable updated: ${list.size} entries")
         val slice = ParceledListSlice(list)
         val count = neighborCallbacks.beginBroadcast()
@@ -356,40 +333,31 @@ class RootServer : RootService() {
             tetheringManager = manager
             val callbackClass =
                 Class.forName("android.net.TetheringManager\$TetheringEventCallback")
-            val registerMethod =
-                manager.javaClass.getMethod(
-                    "registerTetheringEventCallback",
-                    java.util.concurrent.Executor::class.java,
-                    callbackClass,
-                )
-            val proxy =
-                Proxy.newProxyInstance(
-                    callbackClass.classLoader,
-                    arrayOf(callbackClass),
-                ) { proxyObject, method, args ->
-                    when (method.name) {
-                        "hashCode" -> {
-                            System.identityHashCode(proxyObject)
+            val registerMethod = manager.javaClass.getMethod(
+                "registerTetheringEventCallback",
+                java.util.concurrent.Executor::class.java,
+                callbackClass,
+            )
+            val proxy = Proxy.newProxyInstance(
+                callbackClass.classLoader,
+                arrayOf(callbackClass),
+            ) { proxyObject, method, args ->
+                when (method.name) {
+                    "hashCode" -> System.identityHashCode(proxyObject)
+                    "equals" -> proxyObject === args?.get(0)
+                    "toString" ->
+                        proxyObject.javaClass.name + "@" +
+                            Integer.toHexString(System.identityHashCode(proxyObject))
+                    "onClientsChanged" -> {
+                        if (args != null) {
+                            @Suppress("UNCHECKED_CAST")
+                            handleClientsChanged(args[0] as Collection<*>)
                         }
-                        "equals" -> {
-                            proxyObject === args?.get(0)
-                        }
-                        "toString" -> {
-                            proxyObject.javaClass.name + "@" +
-                                Integer.toHexString(System.identityHashCode(proxyObject))
-                        }
-                        "onClientsChanged" -> {
-                            if (args != null) {
-                                @Suppress("UNCHECKED_CAST")
-                                handleClientsChanged(args[0] as Collection<*>)
-                            }
-                            null
-                        }
-                        else -> {
-                            null
-                        }
+                        null
                     }
+                    else -> null
                 }
+            }
             tetheringCallback = proxy
             registerMethod.invoke(manager, Executors.newSingleThreadExecutor(), proxy)
             Log.d("RootServer", "TetheringManager monitor started")
@@ -404,11 +372,10 @@ class RootServer : RootService() {
         try {
             val callbackClass =
                 Class.forName("android.net.TetheringManager\$TetheringEventCallback")
-            val unregisterMethod =
-                manager.javaClass.getMethod(
-                    "unregisterTetheringEventCallback",
-                    callbackClass,
-                )
+            val unregisterMethod = manager.javaClass.getMethod(
+                "unregisterTetheringEventCallback",
+                callbackClass,
+            )
             unregisterMethod.invoke(manager, callback)
         } catch (e: Exception) {
             Log.e("RootServer", "stopTetheringMonitor failed", e)
@@ -445,12 +412,11 @@ class RootServer : RootService() {
     override fun onBind(intent: Intent): IBinder = binder
 
     override fun onDestroy() {
-        val sessions =
-            synchronized(bridgeSessions) {
-                val copied = bridgeSessions.toList()
-                bridgeSessions.clear()
-                copied
-            }
+        val sessions = synchronized(bridgeSessions) {
+            val copied = bridgeSessions.toList()
+            bridgeSessions.clear()
+            copied
+        }
         for (session in sessions) {
             try {
                 session.close()
@@ -493,23 +459,13 @@ internal fun buildBasicEnvironment(
 }
 
 internal fun addAndroidSystemEnvironment(env: MutableMap<String, String>) {
-    val androidVars =
-        arrayOf(
-            "ANDROID_ASSETS",
-            "ANDROID_DATA",
-            "ANDROID_ROOT",
-            "ANDROID_STORAGE",
-            "EXTERNAL_STORAGE",
-            "ASEC_MOUNTPOINT",
-            "LOOP_MOUNTPOINT",
-            "ANDROID_RUNTIME_ROOT",
-            "ANDROID_ART_ROOT",
-            "ANDROID_I18N_ROOT",
-            "ANDROID_TZDATA_ROOT",
-            "BOOTCLASSPATH",
-            "DEX2OATBOOTCLASSPATH",
-            "SYSTEMSERVERCLASSPATH",
-        )
+    val androidVars = arrayOf(
+        "ANDROID_ASSETS", "ANDROID_DATA", "ANDROID_ROOT", "ANDROID_STORAGE",
+        "EXTERNAL_STORAGE", "ASEC_MOUNTPOINT", "LOOP_MOUNTPOINT",
+        "ANDROID_RUNTIME_ROOT", "ANDROID_ART_ROOT",
+        "ANDROID_I18N_ROOT", "ANDROID_TZDATA_ROOT",
+        "BOOTCLASSPATH", "DEX2OATBOOTCLASSPATH", "SYSTEMSERVERCLASSPATH",
+    )
     for (name in androidVars) {
         val value = System.getenv(name)
         if (value != null) {

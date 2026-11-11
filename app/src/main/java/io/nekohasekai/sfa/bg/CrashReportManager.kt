@@ -47,10 +47,9 @@ object CrashReportManager {
     private const val PENDING_JVM_CRASH_FILE_NAME = "CrashReport-JVM.log"
     private const val PENDING_JVM_METADATA_FILE_NAME = "CrashReport-JVM-metadata.json"
 
-    private fun timestampFormat() =
-        SimpleDateFormat("yyyy-MM-dd'T'HH-mm-ss", Locale.US).apply {
-            timeZone = TimeZone.getTimeZone("UTC")
-        }
+    private fun timestampFormat() = SimpleDateFormat("yyyy-MM-dd'T'HH-mm-ss", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
 
     private lateinit var workingDir: File
     private lateinit var baseDir: File
@@ -60,10 +59,7 @@ object CrashReportManager {
     private val _unreadCount = MutableStateFlow(0)
     val unreadCount: StateFlow<Int> = _unreadCount
 
-    fun install(
-        workingDir: File,
-        baseDir: File,
-    ) {
+    fun install(workingDir: File, baseDir: File) {
         this.workingDir = workingDir
         this.baseDir = baseDir
         archivePendingJvmCrashReport()
@@ -74,41 +70,36 @@ object CrashReportManager {
         }
     }
 
-    private fun writePendingJvmCrashReport(
-        thread: Thread,
-        throwable: Throwable,
-    ) {
+    private fun writePendingJvmCrashReport(thread: Thread, throwable: Throwable) {
         try {
             val writer = StringWriter()
             throwable.printStackTrace(PrintWriter(writer))
             File(workingDir, PENDING_JVM_CRASH_FILE_NAME).writeText(writer.toString())
-            val metadata =
-                JSONObject().apply {
-                    put("source", "Application")
-                    put("crashedAt", formatTimestampISO8601(Date()))
-                    put("exceptionName", throwable.javaClass.name)
-                    put("exceptionReason", throwable.message ?: "")
-                    put("processName", Application.application.packageName)
-                    put("appVersion", BuildConfig.VERSION_CODE.toString())
-                    put("appMarketingVersion", BuildConfig.VERSION_NAME)
-                    runCatching {
-                        put("coreVersion", Libbox.version())
-                        put("goVersion", Libbox.goVersion())
-                    }
+            val metadata = JSONObject().apply {
+                put("source", "Application")
+                put("crashedAt", formatTimestampISO8601(Date()))
+                put("exceptionName", throwable.javaClass.name)
+                put("exceptionReason", throwable.message ?: "")
+                put("processName", Application.application.packageName)
+                put("appVersion", BuildConfig.VERSION_CODE.toString())
+                put("appMarketingVersion", BuildConfig.VERSION_NAME)
+                runCatching {
+                    put("coreVersion", Libbox.version())
+                    put("goVersion", Libbox.goVersion())
                 }
+            }
             File(workingDir, PENDING_JVM_METADATA_FILE_NAME).writeText(metadata.toString())
         } catch (_: Throwable) {
         }
     }
 
-    suspend fun refresh(reportFound: (String, String) -> Unit = DiagnosticsJournal::reportFound) =
-        withContext(Dispatchers.IO) {
-            if (!::workingDir.isInitialized) return@withContext
-            val reports = scanCrashReports()
-            _reports.value = reports
-            _unreadCount.value = reports.count { !it.isRead }
-            reports.forEach { reportFound("crash_report", it.id) }
-        }
+    suspend fun refresh(reportFound: (String, String) -> Unit = DiagnosticsJournal::reportFound) = withContext(Dispatchers.IO) {
+        if (!::workingDir.isInitialized) return@withContext
+        val reports = scanCrashReports()
+        _reports.value = reports
+        _unreadCount.value = reports.count { !it.isRead }
+        reports.forEach { reportFound("crash_report", it.id) }
+    }
 
     private fun archivePendingJvmCrashReport() {
         val crashFile = File(workingDir, PENDING_JVM_CRASH_FILE_NAME)
@@ -144,18 +135,17 @@ object CrashReportManager {
         val crashReportsDir = File(workingDir, CRASH_REPORTS_DIR_NAME)
         if (!crashReportsDir.isDirectory) return emptyList()
         val directories = crashReportsDir.listFiles { file -> file.isDirectory } ?: return emptyList()
-        return directories
-            .mapNotNull { dir ->
-                runCatching {
-                    val date = parseTimestamp(dir.name) ?: return@runCatching null
-                    CrashReport(
-                        id = dir.name,
-                        date = date,
-                        directory = dir,
-                        isRead = File(dir, READ_MARKER_FILE_NAME).exists(),
-                    )
-                }.getOrNull()
-            }.sortedByDescending { it.date }
+        return directories.mapNotNull { dir ->
+            runCatching {
+                val date = parseTimestamp(dir.name) ?: return@runCatching null
+                CrashReport(
+                    id = dir.name,
+                    date = date,
+                    directory = dir,
+                    isRead = File(dir, READ_MARKER_FILE_NAME).exists(),
+                )
+            }.getOrNull()
+        }.sortedByDescending { it.date }
     }
 
     fun availableFiles(report: CrashReport): List<CrashReportFile> {
@@ -192,56 +182,47 @@ object CrashReportManager {
 
     fun markAsRead(report: CrashReport) {
         File(report.directory, READ_MARKER_FILE_NAME).createNewFile()
-        val updated =
-            _reports.value.map {
-                if (it.id == report.id) it.copy(isRead = true) else it
-            }
+        val updated = _reports.value.map {
+            if (it.id == report.id) it.copy(isRead = true) else it
+        }
         _reports.value = updated
         _unreadCount.value = updated.count { !it.isRead }
     }
 
-    suspend fun delete(report: CrashReport) =
-        withContext(Dispatchers.IO) {
-            report.directory.deleteRecursively()
-            val updated = _reports.value.filter { it.id != report.id }
-            _reports.value = updated
-            _unreadCount.value = updated.count { !it.isRead }
-        }
+    suspend fun delete(report: CrashReport) = withContext(Dispatchers.IO) {
+        report.directory.deleteRecursively()
+        val updated = _reports.value.filter { it.id != report.id }
+        _reports.value = updated
+        _unreadCount.value = updated.count { !it.isRead }
+    }
 
-    suspend fun deleteAll() =
-        withContext(Dispatchers.IO) {
-            File(workingDir, CRASH_REPORTS_DIR_NAME).deleteRecursively()
-            _reports.value = emptyList()
-            _unreadCount.value = 0
-        }
+    suspend fun deleteAll() = withContext(Dispatchers.IO) {
+        File(workingDir, CRASH_REPORTS_DIR_NAME).deleteRecursively()
+        _reports.value = emptyList()
+        _unreadCount.value = 0
+    }
 
     fun hasConfigFile(report: CrashReport): Boolean = File(report.directory, CONFIG_FILE_NAME).exists()
 
-    suspend fun createZipArchive(
-        report: CrashReport,
-        includeConfig: Boolean,
-        includeLog: Boolean,
-        useAgeEncryption: Boolean,
-    ): File =
-        withContext(Dispatchers.IO) {
-            val cacheDir = File(Application.application.cacheDir, CRASH_REPORTS_DIR_NAME)
-            cacheDir.mkdirs()
-            val zipFile = File(cacheDir, if (useAgeEncryption) "${report.id}.zip.age" else "${report.id}.zip")
-            zipFile.delete()
-            val strippedDir = File(cacheDir, report.id)
-            strippedDir.deleteRecursively()
-            report.directory.copyRecursively(strippedDir, overwrite = true)
-            File(strippedDir, READ_MARKER_FILE_NAME).delete()
-            if (!includeConfig) {
-                File(strippedDir, CONFIG_FILE_NAME).delete()
-            }
-            if (!includeLog) {
-                File(strippedDir, GO_LOG_FILE_NAME).delete()
-                File(strippedDir, JVM_LOG_FILE_NAME).delete()
-            }
-            Libbox.createZipArchive(strippedDir.path, zipFile.path, useAgeEncryption)
-            zipFile
+    suspend fun createZipArchive(report: CrashReport, includeConfig: Boolean, includeLog: Boolean, useAgeEncryption: Boolean): File = withContext(Dispatchers.IO) {
+        val cacheDir = File(Application.application.cacheDir, CRASH_REPORTS_DIR_NAME)
+        cacheDir.mkdirs()
+        val zipFile = File(cacheDir, if (useAgeEncryption) "${report.id}.zip.age" else "${report.id}.zip")
+        zipFile.delete()
+        val strippedDir = File(cacheDir, report.id)
+        strippedDir.deleteRecursively()
+        report.directory.copyRecursively(strippedDir, overwrite = true)
+        File(strippedDir, READ_MARKER_FILE_NAME).delete()
+        if (!includeConfig) {
+            File(strippedDir, CONFIG_FILE_NAME).delete()
         }
+        if (!includeLog) {
+            File(strippedDir, GO_LOG_FILE_NAME).delete()
+            File(strippedDir, JVM_LOG_FILE_NAME).delete()
+        }
+        Libbox.createZipArchive(strippedDir.path, zipFile.path, useAgeEncryption)
+        zipFile
+    }
 
     private fun nextAvailableReportDir(date: Date): File {
         val crashReportsDir = File(workingDir, CRASH_REPORTS_DIR_NAME)
@@ -257,20 +238,18 @@ object CrashReportManager {
 
     private fun parseTimestamp(name: String): Date? {
         val components = name.split("-")
-        val baseName =
-            if (components.size > 5 && components.last().toIntOrNull() != null) {
-                components.dropLast(1).joinToString("-")
-            } else {
-                name
-            }
+        val baseName = if (components.size > 5 && components.last().toIntOrNull() != null) {
+            components.dropLast(1).joinToString("-")
+        } else {
+            name
+        }
         return timestampFormat().parse(baseName)
     }
 
     private fun formatTimestampISO8601(date: Date): String {
-        val format =
-            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US).apply {
-                timeZone = TimeZone.getTimeZone("UTC")
-            }
+        val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
         return format.format(date)
     }
 }

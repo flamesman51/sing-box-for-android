@@ -10,9 +10,7 @@ import androidx.annotation.StringRes
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.nekohasekai.sfa.R
 
-fun Context.errorDialogBuilder(
-    @StringRes messageId: Int,
-): MaterialAlertDialogBuilder = errorDialogBuilder(getString(messageId))
+fun Context.errorDialogBuilder(@StringRes messageId: Int): MaterialAlertDialogBuilder = errorDialogBuilder(getString(messageId))
 
 fun Context.errorDialogBuilder(message: String): MaterialAlertDialogBuilder {
     val contentView = buildSelectableMessageView(message)
@@ -21,7 +19,8 @@ fun Context.errorDialogBuilder(message: String): MaterialAlertDialogBuilder {
         .setView(contentView)
         .setNeutralButton(R.string.per_app_proxy_action_copy) { _, _ ->
             copyToClipboard(message)
-        }.setPositiveButton(android.R.string.ok, null)
+        }
+        .setPositiveButton(android.R.string.ok, null)
 }
 
 fun Context.errorDialogBuilder(exception: Throwable): MaterialAlertDialogBuilder = errorDialogBuilder(exception.localizedMessage ?: exception.toString())

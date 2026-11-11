@@ -18,15 +18,9 @@ import java.io.File
 object ProfileManager {
     private val callbacks = mutableListOf<() -> Unit>()
     private val profileAccess = Any()
-    private val diagnosticsSources =
-        DiagnosticsSources(profileAccess) { id ->
-            instance
-                .profileDao()
-                .get(id)
-                ?.typed
-                ?.takeIf { it.type == TypedProfile.Type.Remote }
-                ?.remoteURL
-        }
+    private val diagnosticsSources = DiagnosticsSources(profileAccess) { id ->
+        instance.profileDao().get(id)?.typed?.takeIf { it.type == TypedProfile.Type.Remote }?.remoteURL
+    }
 
     internal fun captureDiagnosticsSource(id: Long): () -> String? = diagnosticsSources.capture(id)
 
@@ -40,16 +34,14 @@ object ProfileManager {
 
     @OptIn(DelicateCoroutinesApi::class)
     private val instance by lazy {
-        Application.application
-            .getDatabasePath(Path.PROFILES_DATABASE_PATH)
-            .parentFile
-            ?.mkdirs()
+        Application.application.getDatabasePath(Path.PROFILES_DATABASE_PATH).parentFile?.mkdirs()
         Room
             .databaseBuilder(
                 Application.application,
                 ProfileDatabase::class.java,
                 Path.PROFILES_DATABASE_PATH,
-            ).addMigrations(ProfileDatabase.MIGRATION_1_2, ProfileDatabase.MIGRATION_2_3)
+            )
+            .addMigrations(ProfileDatabase.MIGRATION_1_2, ProfileDatabase.MIGRATION_2_3)
             .fallbackToDestructiveMigrationOnDowngrade()
             .enableMultiInstanceInvalidation()
             .setQueryExecutor { GlobalScope.launch { it.run() } }
@@ -184,12 +176,11 @@ object ProfileManager {
                 throw e
             } catch (e: Exception) {
                 try {
-                    val currentTyped =
-                        instance.profileDao().updateRemoteError(
-                            profile.id,
-                            remoteURL,
-                            e.message ?: e.toString(),
-                        )
+                    val currentTyped = instance.profileDao().updateRemoteError(
+                        profile.id,
+                        remoteURL,
+                        e.message ?: e.toString(),
+                    )
                     if (currentTyped != null) {
                         profile.typed = currentTyped
                         notifyProfilesChanged()

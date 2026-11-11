@@ -33,26 +33,23 @@ fun Iterable<String>.toStringIterator(): StringIterator {
     }
 }
 
-fun StringIterator.toList(): List<String> =
-    mutableListOf<String>().apply {
-        while (hasNext()) {
-            add(next())
-        }
+fun StringIterator.toList(): List<String> = mutableListOf<String>().apply {
+    while (hasNext()) {
+        add(next())
     }
+}
 
-fun LogIterator.toList(): List<LogEntry> =
-    mutableListOf<LogEntry>().apply {
-        while (hasNext()) {
-            add(next())
-        }
+fun LogIterator.toList(): List<LogEntry> = mutableListOf<LogEntry>().apply {
+    while (hasNext()) {
+        add(next())
     }
+}
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 fun RoutePrefix.toIpPrefix() = IpPrefix(InetAddress.getByName(address()), prefix())
 
-fun ConnectionIterator.toList(): List<LibboxConnection> =
-    mutableListOf<LibboxConnection>().apply {
-        while (hasNext()) {
-            add(next())
-        }
+fun ConnectionIterator.toList(): List<LibboxConnection> = mutableListOf<LibboxConnection>().apply {
+    while (hasNext()) {
+        add(next())
     }
+}

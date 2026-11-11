@@ -17,9 +17,7 @@ const val USB_TYPE_STANDARD = 0x00
 const val USB_TYPE_MASK = 0x60
 const val USB_DIR_IN = 0x80
 
-class UsbSetup(
-    setup: ByteArray,
-) {
+class UsbSetup(setup: ByteArray) {
     val requestType: Int = setup[0].toInt() and 0xff
     val request: Int = setup[1].toInt() and 0xff
     val value: Int = (setup[2].toInt() and 0xff) or ((setup[3].toInt() and 0xff) shl 8)

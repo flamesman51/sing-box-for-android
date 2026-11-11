@@ -10,20 +10,18 @@ import org.junit.Test
 class ServerUpdateInstallModelTest {
     private val ready = ReadyServerUpdate(760, "a".repeat(64), "/updates/760-aaaaaaaaaaaaaaaa.apk")
 
-    private fun model() =
-        ServerUpdateInstallModel().apply {
-            sessionId = 42
-            this.ready = this@ServerUpdateInstallModelTest.ready
-            committed = true
-        }
+    private fun model() = ServerUpdateInstallModel().apply {
+        sessionId = 42
+        this.ready = this@ServerUpdateInstallModelTest.ready
+        committed = true
+    }
 
     @Test
     fun grantedInstallPermissionClearsThePendingRequest() {
-        val model =
-            ServerUpdateInstallModel().apply {
-                waitingForPermission = true
-                permissionExplanation = true
-            }
+        val model = ServerUpdateInstallModel().apply {
+            waitingForPermission = true
+            permissionExplanation = true
+        }
 
         model.permissionResult(granted = true)
 
@@ -35,10 +33,9 @@ class ServerUpdateInstallModelTest {
 
     @Test
     fun deniedInstallPermissionOffersTheExistingSettingsRetry() {
-        val model =
-            ServerUpdateInstallModel().apply {
-                waitingForPermission = true
-            }
+        val model = ServerUpdateInstallModel().apply {
+            waitingForPermission = true
+        }
 
         model.permissionResult(granted = false)
 

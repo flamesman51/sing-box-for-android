@@ -14,11 +14,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 
 @Composable
-fun EditProfileRoute(
-    profileId: Long,
-    onNavigateBack: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun EditProfileRoute(profileId: Long, onNavigateBack: () -> Unit, modifier: Modifier = Modifier) {
     if (profileId == -1L) {
         LaunchedEffect(Unit) {
             onNavigateBack()
@@ -85,12 +81,12 @@ fun EditProfileRoute(
         composable(
             route = "icon_selection/{currentIconId}",
             arguments =
-                listOf(
-                    navArgument("currentIconId") {
-                        type = NavType.StringType
-                        nullable = true
-                    },
-                ),
+            listOf(
+                navArgument("currentIconId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+            ),
             enterTransition = {
                 slideIntoContainer(
                     AnimatedContentTransitionScope.SlideDirection.Left,
@@ -117,8 +113,7 @@ fun EditProfileRoute(
             },
         ) { backStackEntry ->
             val currentIconId =
-                backStackEntry.arguments
-                    ?.getString("currentIconId")
+                backStackEntry.arguments?.getString("currentIconId")
                     ?.takeIf { it != "null" }
 
             IconSelectionScreen(
@@ -136,12 +131,12 @@ fun EditProfileRoute(
         composable(
             route = "edit_content/{isReadOnly}",
             arguments =
-                listOf(
-                    navArgument("isReadOnly") {
-                        type = NavType.BoolType
-                        defaultValue = false
-                    },
-                ),
+            listOf(
+                navArgument("isReadOnly") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                },
+            ),
             enterTransition = {
                 slideIntoContainer(
                     AnimatedContentTransitionScope.SlideDirection.Left,

@@ -10,9 +10,7 @@ import de.robv.android.xposed.XposedHelpers
 import io.nekohasekai.sfa.xposed.HookErrorStore
 import io.nekohasekai.sfa.xposed.hooks.SafeMethodHook
 
-class HookConnectivityManagerProxyChangeAction(
-    private val helper: ConnectivityServiceHookHelper,
-) {
+class HookConnectivityManagerProxyChangeAction(private val helper: ConnectivityServiceHookHelper) {
     private companion object {
         private const val SOURCE = "HookProxyChangeAction"
     }
@@ -49,12 +47,11 @@ class HookConnectivityManagerProxyChangeAction(
                     intent.putExtra("android.intent.extra.PROXY_INFO", proxyInfo)
                     val ident = Binder.clearCallingIdentity()
                     try {
-                        val userAll =
-                            try {
-                                UserHandle::class.java.getField("ALL").get(null) as? UserHandle
-                            } catch (_: Throwable) {
-                                null
-                            }
+                        val userAll = try {
+                            UserHandle::class.java.getField("ALL").get(null) as? UserHandle
+                        } catch (_: Throwable) {
+                            null
+                        }
                         if (userAll != null) {
                             context.sendStickyBroadcastAsUser(intent, userAll)
                         } else {

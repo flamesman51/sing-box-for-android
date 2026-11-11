@@ -17,6 +17,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 object RootInstaller {
+
     suspend fun install(apkFile: File) {
         withContext(Dispatchers.IO) {
             bindRootService().use { handle ->
@@ -24,9 +25,7 @@ object RootInstaller {
                     handle.service.installPackage(
                         pfd,
                         apkFile.length(),
-                        android.os.Process
-                            .myUserHandle()
-                            .hashCode(),
+                        android.os.Process.myUserHandle().hashCode(),
                     )
                 }
             }
@@ -36,29 +35,24 @@ object RootInstaller {
     private suspend fun bindRootService(): RootServiceHandle {
         return withContext(Dispatchers.Main) {
             suspendCancellableCoroutine { continuation ->
-                val conn =
-                    object : ServiceConnection {
-                        override fun onServiceConnected(
-                            name: android.content.ComponentName?,
-                            binder: IBinder?,
-                        ) {
-                            val svc =
-                                if (binder != null && binder.pingBinder()) {
-                                    IRootService.Stub.asInterface(binder)
-                                } else {
-                                    null
-                                }
-                            if (svc == null) {
-                                continuation.resumeWithException(IllegalStateException("Invalid root service binder"))
-                                return
-                            }
-                            continuation.resume(RootServiceHandle(this, svc))
+                val conn = object : ServiceConnection {
+                    override fun onServiceConnected(name: android.content.ComponentName?, binder: IBinder?) {
+                        val svc = if (binder != null && binder.pingBinder()) {
+                            IRootService.Stub.asInterface(binder)
+                        } else {
+                            null
                         }
-
-                        override fun onServiceDisconnected(name: android.content.ComponentName?) {
-                            // Ignored
+                        if (svc == null) {
+                            continuation.resumeWithException(IllegalStateException("Invalid root service binder"))
+                            return
                         }
+                        continuation.resume(RootServiceHandle(this, svc))
                     }
+
+                    override fun onServiceDisconnected(name: android.content.ComponentName?) {
+                        // Ignored
+                    }
+                }
 
                 try {
                     val intent = Intent(Application.application, Class.forName("io.nekohasekai.sfa.bg.RootServer"))
@@ -75,10 +69,7 @@ object RootInstaller {
         }
     }
 
-    private class RootServiceHandle(
-        val connection: ServiceConnection,
-        val service: IRootService,
-    ) : java.io.Closeable {
+    private class RootServiceHandle(val connection: ServiceConnection, val service: IRootService) : java.io.Closeable {
         override fun close() {
             Handler(Looper.getMainLooper()).post {
                 RootService.unbind(connection)

@@ -14,17 +14,9 @@ object HookErrorClient {
         PROTOCOL_ERROR,
     }
 
-    data class Result(
-        val logs: List<LogEntry>,
-        val hasWarnings: Boolean,
-        val failure: Failure? = null,
-        val detail: String? = null,
-    )
+    data class Result(val logs: List<LogEntry>, val hasWarnings: Boolean, val failure: Failure? = null, val detail: String? = null)
 
-    private fun failureResult(
-        failure: Failure,
-        detail: String? = null,
-    ) = Result(
+    private fun failureResult(failure: Failure, detail: String? = null) = Result(
         logs = emptyList(),
         hasWarnings = false,
         failure = failure,
@@ -32,9 +24,8 @@ object HookErrorClient {
     )
 
     fun query(context: Context): Result {
-        val binder =
-            ConnectivityBinderUtils.getBinder(context)
-                ?: return failureResult(Failure.SERVICE_UNAVAILABLE)
+        val binder = ConnectivityBinderUtils.getBinder(context)
+            ?: return failureResult(Failure.SERVICE_UNAVAILABLE)
         return ConnectivityBinderUtils.withParcel { data, reply ->
             data.writeInterfaceToken(HookStatusKeys.DESCRIPTOR)
             if (!binder.transact(HookStatusKeys.TRANSACTION_GET_ERRORS, data, reply, 0)) {

@@ -43,12 +43,11 @@ class QRSDecoder {
 
     @Synchronized
     fun processFrame(base64Content: String): DecodeProgress? {
-        val payload =
-            try {
-                Base64.decode(base64Content, Base64.NO_WRAP)
-            } catch (e: Exception) {
-                return null
-            }
+        val payload = try {
+            Base64.decode(base64Content, Base64.NO_WRAP)
+        } catch (e: Exception) {
+            return null
+        }
         return processFrame(payload)
     }
 
@@ -81,20 +80,18 @@ class QRSDecoder {
             val assembledData = codec!!.assembleData(currentState)
             val compressedData = assembledData.copyOf(currentState.compressedSize)
 
-            val decompressedData =
-                try {
-                    decompress(compressedData)
-                } catch (e: Exception) {
-                    null
-                }
+            val decompressedData = try {
+                decompress(compressedData)
+            } catch (e: Exception) {
+                null
+            }
 
             if (decompressedData != null) {
-                val checksumValid =
-                    codec!!.verifyChecksum(
-                        decompressedData,
-                        currentState.checksum,
-                        currentState.totalBlocks,
-                    )
+                val checksumValid = codec!!.verifyChecksum(
+                    decompressedData,
+                    currentState.checksum,
+                    currentState.totalBlocks,
+                )
                 if (checksumValid) {
                     return DecodeProgress(
                         currentState.decodedCount,
@@ -105,12 +102,11 @@ class QRSDecoder {
                 }
             }
 
-            val rawChecksumValid =
-                codec!!.verifyChecksum(
-                    compressedData,
-                    currentState.checksum,
-                    currentState.totalBlocks,
-                )
+            val rawChecksumValid = codec!!.verifyChecksum(
+                compressedData,
+                currentState.checksum,
+                currentState.totalBlocks,
+            )
             if (rawChecksumValid) {
                 DecodeProgress(currentState.decodedCount, currentState.totalBlocks, true, compressedData)
             } else {
@@ -134,10 +130,9 @@ class QRSDecoder {
     }
 
     val progress: DecodeProgress?
-        @Synchronized get() =
-            state?.let {
-                DecodeProgress(it.decodedCount, it.totalBlocks, it.decodedCount == it.totalBlocks)
-            }
+        @Synchronized get() = state?.let {
+            DecodeProgress(it.decodedCount, it.totalBlocks, it.decodedCount == it.totalBlocks)
+        }
 
     private fun parsePayload(payload: ByteArray): LubyCodec.EncodedBlock? {
         if (payload.size < 16) return null
@@ -148,12 +143,11 @@ class QRSDecoder {
 
         if (degree <= 0 || payload.size < 4 + 4 * degree + 12) return null
 
-        val indices =
-            IntArray(degree) {
-                val idx = payload.readIntLE(offset)
-                offset += 4
-                idx
-            }
+        val indices = IntArray(degree) {
+            val idx = payload.readIntLE(offset)
+            offset += 4
+            idx
+        }
 
         val totalBlocks = payload.readIntLE(offset)
         offset += 4

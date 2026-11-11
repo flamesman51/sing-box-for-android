@@ -14,12 +14,7 @@ data class QRCodeCropArea(
 )
 
 object QRCodeSmartCrop {
-    fun findCropArea(
-        yData: ByteArray,
-        width: Int,
-        height: Int,
-        rotationDegrees: Int,
-    ): QRCodeCropArea? {
+    fun findCropArea(yData: ByteArray, width: Int, height: Int, rotationDegrees: Int): QRCodeCropArea? {
         val minDim = min(width, height)
         if (minDim <= 0) return null
 
@@ -58,12 +53,11 @@ object QRCodeSmartCrop {
         val p90 = percentile(histogram, sampleCount, 0.90f)
         val p85 = percentile(histogram, sampleCount, 0.85f)
 
-        val thresholds =
-            intArrayOf(
-                max((mean + contrast * 0.75f).toInt(), p95),
-                max((mean + contrast * 0.6f).toInt(), p90),
-                max((mean + contrast * 0.5f).toInt(), p85),
-            )
+        val thresholds = intArrayOf(
+            max((mean + contrast * 0.75f).toInt(), p95),
+            max((mean + contrast * 0.6f).toInt(), p90),
+            max((mean + contrast * 0.5f).toInt(), p85),
+        )
 
         val minBrightSamples = max(12, sampleCount / 300)
         var bestArea: QRCodeCropArea? = null
@@ -71,17 +65,16 @@ object QRCodeSmartCrop {
 
         for (i in thresholds.indices) {
             val threshold = thresholds[i].coerceAtMost(250)
-            val component =
-                findBestComponent(
-                    yData,
-                    width,
-                    height,
-                    step,
-                    samplesWide,
-                    samplesHigh,
-                    threshold,
-                    minBrightSamples,
-                ) ?: continue
+            val component = findBestComponent(
+                yData,
+                width,
+                height,
+                step,
+                samplesWide,
+                samplesHigh,
+                threshold,
+                minBrightSamples,
+            ) ?: continue
 
             val area = buildCropArea(component, step, width, height, rotationDegrees) ?: continue
             val areaRatio = ((area.right - area.left) * (area.bottom - area.top)).toFloat() / (width * height)
@@ -96,14 +89,7 @@ object QRCodeSmartCrop {
         return bestArea
     }
 
-    private data class CropComponent(
-        val minX: Int,
-        val minY: Int,
-        val maxX: Int,
-        val maxY: Int,
-        val count: Int,
-        val score: Float,
-    )
+    private data class CropComponent(val minX: Int, val minY: Int, val maxX: Int, val maxY: Int, val count: Int, val score: Float)
 
     private fun findBestComponent(
         yData: ByteArray,
@@ -209,11 +195,10 @@ object QRCodeSmartCrop {
                 val dx = compCenterX - centerX
                 val dy = compCenterY - centerY
                 val normDist = if (maxDistSq > 0f) (dx * dx + dy * dy) / maxDistSq else 0f
-                val edgeTouches =
-                    (if (minX == 0) 1 else 0) +
-                        (if (minY == 0) 1 else 0) +
-                        (if (maxX == samplesWide - 1) 1 else 0) +
-                        (if (maxY == samplesHigh - 1) 1 else 0)
+                val edgeTouches = (if (minX == 0) 1 else 0) +
+                    (if (minY == 0) 1 else 0) +
+                    (if (maxX == samplesWide - 1) 1 else 0) +
+                    (if (maxY == samplesHigh - 1) 1 else 0)
 
                 var score = count.toFloat()
                 score *= 1f - 0.5f * normDist.coerceIn(0f, 1f)
@@ -221,15 +206,14 @@ object QRCodeSmartCrop {
                 score *= 1f - 0.15f * edgeTouches
 
                 if (best == null || score > best!!.score) {
-                    best =
-                        CropComponent(
-                            minX = minX,
-                            minY = minY,
-                            maxX = maxX,
-                            maxY = maxY,
-                            count = count,
-                            score = score,
-                        )
+                    best = CropComponent(
+                        minX = minX,
+                        minY = minY,
+                        maxX = maxX,
+                        maxY = maxY,
+                        count = count,
+                        score = score,
+                    )
                 }
             }
         }
@@ -237,13 +221,7 @@ object QRCodeSmartCrop {
         return best
     }
 
-    private fun buildCropArea(
-        component: CropComponent,
-        step: Int,
-        width: Int,
-        height: Int,
-        rotationDegrees: Int,
-    ): QRCodeCropArea? {
+    private fun buildCropArea(component: CropComponent, step: Int, width: Int, height: Int, rotationDegrees: Int): QRCodeCropArea? {
         val left = component.minX * step
         val top = component.minY * step
         val right = min(width, (component.maxX + 1) * step)
@@ -277,11 +255,7 @@ object QRCodeSmartCrop {
         )
     }
 
-    private fun percentile(
-        histogram: IntArray,
-        count: Int,
-        percentile: Float,
-    ): Int {
+    private fun percentile(histogram: IntArray, count: Int, percentile: Float): Int {
         if (count <= 0) return 0
         val target = (count * percentile).toInt().coerceIn(0, count - 1)
         var acc = 0

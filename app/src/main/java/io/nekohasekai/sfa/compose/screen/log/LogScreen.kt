@@ -155,17 +155,17 @@ fun LogScreen(
                         IconButton(onClick = { resolvedViewModel.togglePause() }) {
                             Icon(
                                 imageVector =
-                                    if (uiState.isPaused) {
-                                        Icons.Default.PlayArrow
-                                    } else {
-                                        Icons.Default.Pause
-                                    },
+                                if (uiState.isPaused) {
+                                    Icons.Default.PlayArrow
+                                } else {
+                                    Icons.Default.Pause
+                                },
                                 contentDescription =
-                                    if (uiState.isPaused) {
-                                        stringResource(R.string.content_description_resume_logs)
-                                    } else {
-                                        stringResource(R.string.content_description_pause_logs)
-                                    },
+                                if (uiState.isPaused) {
+                                    stringResource(R.string.content_description_resume_logs)
+                                } else {
+                                    stringResource(R.string.content_description_pause_logs)
+                                },
                             )
                         }
                     }
@@ -173,23 +173,23 @@ fun LogScreen(
                     IconButton(onClick = { resolvedViewModel.toggleSearch() }) {
                         Icon(
                             imageVector =
-                                if (uiState.isSearchActive) {
-                                    Icons.Default.ExpandLess
-                                } else {
-                                    Icons.Default.Search
-                                },
+                            if (uiState.isSearchActive) {
+                                Icons.Default.ExpandLess
+                            } else {
+                                Icons.Default.Search
+                            },
                             contentDescription =
-                                if (uiState.isSearchActive) {
-                                    stringResource(R.string.content_description_collapse_search)
-                                } else {
-                                    stringResource(R.string.content_description_search_logs)
-                                },
+                            if (uiState.isSearchActive) {
+                                stringResource(R.string.content_description_collapse_search)
+                            } else {
+                                stringResource(R.string.content_description_search_logs)
+                            },
                             tint =
-                                if (uiState.isSearchActive) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                },
+                            if (uiState.isSearchActive) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
                         )
                     }
 
@@ -282,10 +282,9 @@ fun LogScreen(
         modifier = Modifier.fillMaxSize(),
     ) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(scaffoldPadding),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(scaffoldPadding),
         ) {
             // Show selection mode bar
             if (uiState.isSelectionMode) {
@@ -297,9 +296,9 @@ fun LogScreen(
                 ) {
                     Row(
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -314,10 +313,10 @@ fun LogScreen(
                             }
                             Text(
                                 text =
-                                    stringResource(
-                                        R.string.selected_count,
-                                        uiState.selectedLogIndices.size,
-                                    ),
+                                stringResource(
+                                    R.string.selected_count,
+                                    uiState.selectedLogIndices.size,
+                                ),
                                 style = MaterialTheme.typography.titleMedium,
                                 modifier = Modifier.padding(start = 8.dp),
                             )
@@ -330,12 +329,11 @@ fun LogScreen(
                                         val clipLabel = resolvedTitle
                                         val clip = ClipData.newPlainText(clipLabel, selectedText)
                                         Application.clipboard.setPrimaryClip(clip)
-                                        Toast
-                                            .makeText(
-                                                context,
-                                                context.getString(R.string.copied_to_clipboard),
-                                                Toast.LENGTH_SHORT,
-                                            ).show()
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(R.string.copied_to_clipboard),
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
                                         resolvedViewModel.clearSelection()
                                     }
                                 },
@@ -360,18 +358,18 @@ fun LogScreen(
                 ) {
                     Row(
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             text =
-                                stringResource(
-                                    R.string.filter_label,
-                                    uiState.filterLogLevel.label,
-                                ),
+                            stringResource(
+                                R.string.filter_label,
+                                uiState.filterLogLevel.label,
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                         )
                         TextButton(
@@ -392,19 +390,19 @@ fun LogScreen(
             AnimatedVisibility(
                 visible = uiState.isSearchActive,
                 enter =
-                    expandVertically(
+                expandVertically(
+                    animationSpec = tween(300),
+                ) +
+                    fadeIn(
                         animationSpec = tween(300),
-                    ) +
-                        fadeIn(
-                            animationSpec = tween(300),
-                        ),
+                    ),
                 exit =
-                    shrinkVertically(
+                shrinkVertically(
+                    animationSpec = tween(300),
+                ) +
+                    fadeOut(
                         animationSpec = tween(300),
-                    ) +
-                        fadeOut(
-                            animationSpec = tween(300),
-                        ),
+                    ),
             ) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
@@ -422,10 +420,10 @@ fun LogScreen(
                         value = uiState.searchQuery,
                         onValueChange = { resolvedViewModel.updateSearchQuery(it) },
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
-                                .focusRequester(focusRequester),
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+                            .focusRequester(focusRequester),
                         placeholder = { Text(stringResource(R.string.search_logs_placeholder)) },
                         leadingIcon = {
                             Icon(
@@ -446,11 +444,11 @@ fun LogScreen(
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                         keyboardActions =
-                            KeyboardActions(
-                                onSearch = {
-                                    focusManager.clearFocus()
-                                },
-                            ),
+                        KeyboardActions(
+                            onSearch = {
+                                focusManager.clearFocus()
+                            },
+                        ),
                     )
                 }
             }
@@ -486,32 +484,20 @@ fun LogScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
-                            text =
-                                if (showStatusInfo) {
-                                    when {
-                                        remoteServer != null && !uiState.isConnected -> {
-                                            stringResource(R.string.remote_connecting)
-                                        }
+                            text = if (showStatusInfo) {
+                                when {
+                                    remoteServer != null && !uiState.isConnected ->
+                                        stringResource(R.string.remote_connecting)
 
-                                        remoteServer != null -> {
-                                            stringResource(R.string.status_started)
-                                        }
-                                        serviceStatus == Status.Started -> {
-                                            stringResource(R.string.status_started)
-                                        }
-                                        serviceStatus == Status.Starting -> {
-                                            stringResource(R.string.status_starting)
-                                        }
-                                        serviceStatus == Status.Stopping -> {
-                                            stringResource(R.string.status_stopping)
-                                        }
-                                        else -> {
-                                            stringResource(R.string.status_default)
-                                        }
-                                    }
-                                } else {
-                                    emptyStateMessage
-                                },
+                                    remoteServer != null -> stringResource(R.string.status_started)
+                                    serviceStatus == Status.Started -> stringResource(R.string.status_started)
+                                    serviceStatus == Status.Starting -> stringResource(R.string.status_starting)
+                                    serviceStatus == Status.Stopping -> stringResource(R.string.status_stopping)
+                                    else -> stringResource(R.string.status_default)
+                                }
+                            } else {
+                                emptyStateMessage
+                            },
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -519,22 +505,21 @@ fun LogScreen(
                 }
             } else {
                 // Log list
-                val bottomPadding =
-                    when {
-                        showStartFab -> 88.dp
-                        showStatusBar -> 74.dp
-                        else -> 0.dp
-                    }
+                val bottomPadding = when {
+                    showStartFab -> 88.dp
+                    showStatusBar -> 74.dp
+                    else -> 0.dp
+                }
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding =
-                        PaddingValues(
-                            start = 8.dp,
-                            end = 8.dp,
-                            top = 8.dp,
-                            bottom = scaffoldPadding.calculateBottomPadding() + bottomPadding + 8.dp,
-                        ),
+                    PaddingValues(
+                        start = 8.dp,
+                        end = 8.dp,
+                        top = 8.dp,
+                        bottom = scaffoldPadding.calculateBottomPadding() + bottomPadding + 8.dp,
+                    ),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     itemsIndexed(
@@ -566,9 +551,9 @@ fun LogScreen(
         // Options Menu - Material 3 style
         Box(
             modifier =
-                Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(end = 8.dp),
+            Modifier
+                .align(Alignment.TopEnd)
+                .padding(end = 8.dp),
         ) {
             var expandedLogLevel by remember { mutableStateOf(false) }
             var expandedSave by remember { mutableStateOf(false) }
@@ -586,21 +571,19 @@ fun LogScreen(
                                         val output = checkNotNull(context.contentResolver.openOutputStream(uri))
                                         output.use { it.write(logsText.toByteArray()) }
                                     }
-                                    Toast
-                                        .makeText(
-                                            context,
-                                            context.getString(R.string.success_logs_saved),
-                                            Toast.LENGTH_SHORT,
-                                        ).show()
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.success_logs_saved),
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
                                 } catch (exception: CancellationException) {
                                     throw exception
                                 } catch (exception: Exception) {
-                                    Toast
-                                        .makeText(
-                                            context,
-                                            context.getString(R.string.failed_save_logs, exception.message),
-                                            Toast.LENGTH_SHORT,
-                                        ).show()
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.failed_save_logs, exception.message),
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
                                 }
                             }
                         }
@@ -635,11 +618,11 @@ fun LogScreen(
                     trailingIcon = {
                         Icon(
                             imageVector =
-                                if (expandedLogLevel) {
-                                    Icons.Default.ExpandLess
-                                } else {
-                                    Icons.Default.ExpandMore
-                                },
+                            if (expandedLogLevel) {
+                                Icons.Default.ExpandLess
+                            } else {
+                                Icons.Default.ExpandMore
+                            },
                             contentDescription = null,
                         )
                     },
@@ -660,23 +643,23 @@ fun LogScreen(
                             leadingIcon = {
                                 Icon(
                                     imageVector =
-                                        if (uiState.filterLogLevel == level) {
-                                            Icons.Default.RadioButtonChecked
-                                        } else {
-                                            Icons.Default.RadioButtonUnchecked
-                                        },
+                                    if (uiState.filterLogLevel == level) {
+                                        Icons.Default.RadioButtonChecked
+                                    } else {
+                                        Icons.Default.RadioButtonUnchecked
+                                    },
                                     contentDescription =
-                                        if (uiState.filterLogLevel == level) {
-                                            stringResource(R.string.group_selected_title)
-                                        } else {
-                                            null
-                                        },
+                                    if (uiState.filterLogLevel == level) {
+                                        stringResource(R.string.group_selected_title)
+                                    } else {
+                                        null
+                                    },
                                     tint =
-                                        if (uiState.filterLogLevel == level) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        },
+                                    if (uiState.filterLogLevel == level) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
                                     modifier = Modifier.padding(start = 24.dp),
                                 )
                             },
@@ -705,11 +688,11 @@ fun LogScreen(
                     trailingIcon = {
                         Icon(
                             imageVector =
-                                if (expandedSave) {
-                                    Icons.Default.ExpandLess
-                                } else {
-                                    Icons.Default.ExpandMore
-                                },
+                            if (expandedSave) {
+                                Icons.Default.ExpandLess
+                            } else {
+                                Icons.Default.ExpandMore
+                            },
                             contentDescription = null,
                         )
                     },
@@ -728,19 +711,17 @@ fun LogScreen(
                                 val clip =
                                     ClipData.newPlainText(resolvedTitle, logsText)
                                 Application.clipboard.setPrimaryClip(clip)
-                                Toast
-                                    .makeText(
-                                        context,
-                                        context.getString(R.string.logs_copied_to_clipboard),
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.logs_copied_to_clipboard),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
                             } else {
-                                Toast
-                                    .makeText(
-                                        context,
-                                        context.getString(R.string.no_logs_to_copy),
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.no_logs_to_copy),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
                             }
                             resolvedViewModel.toggleOptionsMenu()
                             expandedSave = false
@@ -790,41 +771,37 @@ fun LogScreen(
                             if (logsText.isNotEmpty()) {
                                 coroutineScope.launch {
                                     try {
-                                        val uri =
-                                            withContext(Dispatchers.IO) {
-                                                val logsDir = File(context.cacheDir, "logs").also { it.mkdirs() }
-                                                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-                                                val logFile = File(logsDir, "${saveFilePrefix}_$timestamp.txt")
-                                                logFile.writeText(logsText)
-                                                FileProvider.getUriForFile(context, "${context.packageName}.cache", logFile)
-                                            }
-                                        val shareIntent =
-                                            Intent(Intent.ACTION_SEND).apply {
-                                                type = "text/plain"
-                                                putExtra(Intent.EXTRA_STREAM, uri)
-                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                            }
+                                        val uri = withContext(Dispatchers.IO) {
+                                            val logsDir = File(context.cacheDir, "logs").also { it.mkdirs() }
+                                            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                                            val logFile = File(logsDir, "${saveFilePrefix}_$timestamp.txt")
+                                            logFile.writeText(logsText)
+                                            FileProvider.getUriForFile(context, "${context.packageName}.cache", logFile)
+                                        }
+                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_STREAM, uri)
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
                                         context.startActivity(
                                             Intent.createChooser(shareIntent, context.getString(R.string.intent_share_logs)),
                                         )
                                     } catch (exception: CancellationException) {
                                         throw exception
                                     } catch (exception: Exception) {
-                                        Toast
-                                            .makeText(
-                                                context,
-                                                context.getString(R.string.failed_share_logs, exception.message),
-                                                Toast.LENGTH_SHORT,
-                                            ).show()
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(R.string.failed_share_logs, exception.message),
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
                                     }
                                 }
                             } else {
-                                Toast
-                                    .makeText(
-                                        context,
-                                        context.getString(R.string.no_logs_to_share),
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.no_logs_to_share),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
                             }
                             resolvedViewModel.toggleOptionsMenu()
                             expandedSave = false
@@ -876,19 +853,18 @@ fun LogScreen(
 
         // FABs - Hide during selection mode
         val padFabVisible = isTablet && (showStartFab || showStatusBar)
-        val fabBottomPadding =
-            when {
-                padFabVisible -> 20.dp + 64.dp + 16.dp
-                showStartFab -> 88.dp
-                showStatusBar -> 74.dp
-                else -> 16.dp
-            }
+        val fabBottomPadding = when {
+            padFabVisible -> 20.dp + 64.dp + 16.dp
+            showStartFab -> 88.dp
+            showStatusBar -> 74.dp
+            else -> 16.dp
+        }
         val fabEndPadding = if (isTablet) 20.dp else 16.dp
         Column(
             modifier =
-                Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(bottom = scaffoldPadding.calculateBottomPadding() + fabBottomPadding, end = fabEndPadding, top = 16.dp),
+            Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = scaffoldPadding.calculateBottomPadding() + fabBottomPadding, end = fabEndPadding, top = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Scroll to bottom FAB
@@ -925,34 +901,34 @@ fun LogItem(
 ) {
     Card(
         modifier =
-            Modifier
-                .fillMaxWidth()
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = onLongClick,
-                ),
+        Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+            ),
         shape = RoundedCornerShape(4.dp),
         colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    if (isSelected) {
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                    } else {
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                    },
-            ),
-        border =
+        CardDefaults.cardColors(
+            containerColor =
             if (isSelected) {
-                CardDefaults.outlinedCardBorder().copy(
-                    width = 2.dp,
-                    brush =
-                        androidx.compose.ui.graphics.SolidColor(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                        ),
-                )
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
             } else {
-                null
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
             },
+        ),
+        border =
+        if (isSelected) {
+            CardDefaults.outlinedCardBorder().copy(
+                width = 2.dp,
+                brush =
+                androidx.compose.ui.graphics.SolidColor(
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                ),
+            )
+        } else {
+            null
+        },
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -962,13 +938,13 @@ fun LogItem(
                 Icon(
                     imageVector = if (isSelected) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
                     contentDescription =
-                        if (isSelected) {
-                            stringResource(R.string.group_selected_title)
-                        } else {
-                            stringResource(
-                                R.string.not_selected,
-                            )
-                        },
+                    if (isSelected) {
+                        stringResource(R.string.group_selected_title)
+                    } else {
+                        stringResource(
+                            R.string.not_selected,
+                        )
+                    },
                     modifier = Modifier.padding(start = 12.dp, end = 4.dp),
                     tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -976,14 +952,14 @@ fun LogItem(
             Text(
                 text = annotatedString,
                 modifier =
-                    Modifier
-                        .weight(1f)
-                        .padding(
-                            start = if (isSelectionMode) 4.dp else 12.dp,
-                            end = 12.dp,
-                            top = 8.dp,
-                            bottom = 8.dp,
-                        ),
+                Modifier
+                    .weight(1f)
+                    .padding(
+                        start = if (isSelectionMode) 4.dp else 12.dp,
+                        end = 12.dp,
+                        top = 8.dp,
+                        bottom = 8.dp,
+                    ),
                 fontSize = 13.sp,
                 fontFamily = FontFamily.Monospace,
                 lineHeight = 18.sp,

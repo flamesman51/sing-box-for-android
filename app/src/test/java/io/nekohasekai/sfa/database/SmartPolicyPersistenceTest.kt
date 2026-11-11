@@ -9,35 +9,31 @@ import org.junit.Test
 
 class SmartPolicyPersistenceTest {
     @Test
-    fun realPreferenceDelegateDefaultsToEmptyAndRoundTripsExactStoredBytes() =
-        runBlocking {
-            val dao = MemoryDao()
-            val store = RoomPreferenceDataStore { dao }
-            val settings = PolicyPreferences(store)
-            assertEquals("", settings.smartPolicy)
+    fun realPreferenceDelegateDefaultsToEmptyAndRoundTripsExactStoredBytes() = runBlocking {
+        val dao = MemoryDao()
+        val store = RoomPreferenceDataStore { dao }
+        val settings = PolicyPreferences(store)
+        assertEquals("", settings.smartPolicy)
 
-            val values =
-                listOf(
-                    "{\"preference\":{\"profile\":\"default\"}}",
-                    "{\"preference\":{\"profile\":\"phone\"}}",
-                    """ { "preference": { "profile": "phone", "rank": ["latency", "udp"], "speed_floor_hysteresis": 0.123456789 }, "throughput": { "target_mbps": 17.123456789, "enabled": false } }
+        val values = listOf(
+            "{\"preference\":{\"profile\":\"default\"}}",
+            "{\"preference\":{\"profile\":\"phone\"}}",
+            """ { "preference": { "profile": "phone", "rank": ["latency", "udp"], "speed_floor_hysteresis": 0.123456789 }, "throughput": { "target_mbps": 17.123456789, "enabled": false } }
 """,
-                    "{\"preference\":{\"profile\":\"future-é\"}}",
-                    "",
-                )
-            for (value in values) {
-                settings.smartPolicy = value
-                assertEquals(value, settings.smartPolicy)
-                store.flush()
-                assertEquals(value, dao[Settings.SMART_POLICY_KEY]?.string)
-                val reopened = PolicyPreferences(RoomPreferenceDataStore { dao })
-                assertEquals(value, reopened.smartPolicy)
-            }
+            "{\"preference\":{\"profile\":\"future-é\"}}",
+            "",
+        )
+        for (value in values) {
+            settings.smartPolicy = value
+            assertEquals(value, settings.smartPolicy)
+            store.flush()
+            assertEquals(value, dao[Settings.SMART_POLICY_KEY]?.string)
+            val reopened = PolicyPreferences(RoomPreferenceDataStore { dao })
+            assertEquals(value, reopened.smartPolicy)
         }
+    }
 
-    private class PolicyPreferences(
-        store: RoomPreferenceDataStore,
-    ) {
+    private class PolicyPreferences(store: RoomPreferenceDataStore) {
         var smartPolicy by store.string(Settings.SMART_POLICY_KEY) { "" }
     }
 

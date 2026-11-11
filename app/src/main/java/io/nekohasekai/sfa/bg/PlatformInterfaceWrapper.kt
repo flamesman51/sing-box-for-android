@@ -48,18 +48,14 @@ interface PlatformInterfaceWrapper : PlatformInterface {
 
     override fun autoDetectInterfaceControl(fd: Int) {
     }
-    override fun bindInterfaceControl(
-        fd: Int,
-        interfaceName: String,
-    ) {
+    override fun bindInterfaceControl(fd: Int, interfaceName: String) {
         check(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) { "android: interface binding requires Android 6" }
-        val network =
-            Application.connectivity.allNetworks.firstOrNull { network ->
-                val capabilities = Application.connectivity.getNetworkCapabilities(network)
-                capabilities != null &&
-                    !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN) &&
-                    Application.connectivity.getLinkProperties(network)?.interfaceName == interfaceName
-            } ?: error("android: network interface not found: $interfaceName")
+        val network = Application.connectivity.allNetworks.firstOrNull { network ->
+            val capabilities = Application.connectivity.getNetworkCapabilities(network)
+            capabilities != null &&
+                !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN) &&
+                Application.connectivity.getLinkProperties(network)?.interfaceName == interfaceName
+        } ?: error("android: network interface not found: $interfaceName")
         autoDetectInterfaceControl(fd)
         val descriptor = ParcelFileDescriptor.adoptFd(fd)
         try {
@@ -155,8 +151,7 @@ interface PlatformInterfaceWrapper : PlatformInterface {
             }
             boxInterface.addresses =
                 StringArray(
-                    networkInterface.interfaceAddresses
-                        .mapTo(mutableListOf()) { it.toPrefix() }
+                    networkInterface.interfaceAddresses.mapTo(mutableListOf()) { it.toPrefix() }
                         .iterator(),
                 )
             var dumpFlags = 0
@@ -213,26 +208,24 @@ interface PlatformInterfaceWrapper : PlatformInterface {
 
     override fun startNeighborMonitor(listener: NeighborUpdateListener?) {
         if (listener == null) return
-        val callback =
-            object : INeighborTableCallback.Stub() {
-                override fun onNeighborTableUpdated(entries: ParceledListSlice<*>?) {
-                    if (entries == null) return
-                    @Suppress("UNCHECKED_CAST")
-                    val list = entries.list as List<NeighborEntry>
-                    listener.updateNeighborTable(
-                        NeighborEntryArray(
-                            list
-                                .map { entry ->
-                                    LibboxNeighborEntry().apply {
-                                        address = entry.address
-                                        macAddress = entry.macAddress
-                                        hostname = entry.hostname
-                                    }
-                                }.iterator(),
-                        ),
-                    )
-                }
+        val callback = object : INeighborTableCallback.Stub() {
+            override fun onNeighborTableUpdated(entries: ParceledListSlice<*>?) {
+                if (entries == null) return
+                @Suppress("UNCHECKED_CAST")
+                val list = entries.list as List<NeighborEntry>
+                listener.updateNeighborTable(
+                    NeighborEntryArray(
+                        list.map { entry ->
+                            LibboxNeighborEntry().apply {
+                                address = entry.address
+                                macAddress = entry.macAddress
+                                hostname = entry.hostname
+                            }
+                        }.iterator(),
+                    ),
+                )
             }
+        }
         neighborCallback = callback
         runBlocking(Dispatchers.IO) {
             RootClient.registerNeighborTableCallback(callback)
@@ -242,10 +235,9 @@ interface PlatformInterfaceWrapper : PlatformInterface {
     override fun usePlatformShell(): Boolean = true
 
     override fun checkPlatformShell() {
-        val available =
-            RootClient.rootAvailable.value ?: runBlocking(Dispatchers.IO) {
-                RootClient.checkRootAvailable()
-            }
+        val available = RootClient.rootAvailable.value ?: runBlocking(Dispatchers.IO) {
+            RootClient.checkRootAvailable()
+        }
         if (!available) {
             error("missing root permission")
         }
@@ -265,12 +257,11 @@ interface PlatformInterfaceWrapper : PlatformInterface {
             val resolved = ResolvedUser(user.username, user.uid, user.gid, user.homeDir)
             val shell = UserResolver.findShell(resolved)
             val shellEnv = buildBasicEnvironment(envList.toTypedArray(), shell, resolved.homeDir, term)
-            val args =
-                if (command.isNullOrEmpty()) {
-                    arrayOf("-" + File(shell).name)
-                } else {
-                    arrayOf(File(shell).name, "-c", command)
-                }
+            val args = if (command.isNullOrEmpty()) {
+                arrayOf("-" + File(shell).name)
+            } else {
+                arrayOf(File(shell).name, "-c", command)
+            }
             val argsIter = args.asIterable().toStringIterator()
             val envIter = shellEnv.asIterable().toStringIterator()
             return if (term.isNullOrEmpty()) {
@@ -298,17 +289,16 @@ interface PlatformInterfaceWrapper : PlatformInterface {
                 )
             }
         }
-        val rootSession =
-            runBlocking(Dispatchers.IO) {
-                RootClient.openShellSession(
-                    user.username,
-                    command,
-                    envList.toTypedArray(),
-                    term,
-                    rows,
-                    cols,
-                )
-            }
+        val rootSession = runBlocking(Dispatchers.IO) {
+            RootClient.openShellSession(
+                user.username,
+                command,
+                envList.toTypedArray(),
+                term,
+                rows,
+                cols,
+            )
+        }
         return RootShellSessionWrapper(rootSession)
     }
 
@@ -316,37 +306,32 @@ interface PlatformInterfaceWrapper : PlatformInterface {
         error("not supported")
     }
 
-    override fun lookupSFTPServer(): String =
-        runBlocking(Dispatchers.IO) {
-            RootClient.lookupSFTPServer()
-        }
+    override fun lookupSFTPServer(): String = runBlocking(Dispatchers.IO) {
+        RootClient.lookupSFTPServer()
+    }
 
-    override fun tailscaleHostname(): String =
-        Settings.Global
-            .getString(
-                Application.application.contentResolver,
-                Settings.Global.DEVICE_NAME,
-            )?.takeIf { it.isNotBlank() }
-            ?: "${Build.MANUFACTURER} ${Build.MODEL}"
+    override fun tailscaleHostname(): String = Settings.Global.getString(
+        Application.application.contentResolver,
+        Settings.Global.DEVICE_NAME,
+    )?.takeIf { it.isNotBlank() }
+        ?: "${Build.MANUFACTURER} ${Build.MODEL}"
 
-    override fun usePlatformBridge(): Boolean =
-        RootClient.rootAvailable.value ?: runBlocking(Dispatchers.IO) {
-            RootClient.checkRootAvailable()
-        }
+    override fun usePlatformBridge(): Boolean = RootClient.rootAvailable.value ?: runBlocking(Dispatchers.IO) {
+        RootClient.checkRootAvailable()
+    }
 
     override fun createBridge(options: BridgeOptions?): BridgeSession {
         options!!
-        val session =
-            runBlocking(Dispatchers.IO) {
-                RootClient.openBridge(
-                    options.bridgeName,
-                    options.mtu,
-                    options.inet4Port,
-                    options.inet6Port,
-                    options.ruleIndex,
-                    options.routeTable,
-                )
-            }
+        val session = runBlocking(Dispatchers.IO) {
+            RootClient.openBridge(
+                options.bridgeName,
+                options.mtu,
+                options.inet4Port,
+                options.inet6Port,
+                options.ruleIndex,
+                options.routeTable,
+            )
+        }
         return RootBridgeSessionWrapper(session)
     }
 
@@ -396,10 +381,7 @@ interface PlatformInterfaceWrapper : PlatformInterface {
 
         override fun masterFD(): Int = masterPfd.fd
 
-        override fun resize(
-            rows: Int,
-            cols: Int,
-        ) {
+        override fun resize(rows: Int, cols: Int) {
             rootSession.resize(rows, cols)
         }
 
@@ -415,25 +397,19 @@ interface PlatformInterfaceWrapper : PlatformInterface {
         }
     }
 
-    private class NeighborEntryArray(
-        private val iterator: Iterator<LibboxNeighborEntry>,
-    ) : NeighborEntryIterator {
+    private class NeighborEntryArray(private val iterator: Iterator<LibboxNeighborEntry>) : NeighborEntryIterator {
         override fun hasNext(): Boolean = iterator.hasNext()
 
         override fun next(): LibboxNeighborEntry = iterator.next()
     }
 
-    private class InterfaceArray(
-        private val iterator: Iterator<LibboxNetworkInterface>,
-    ) : NetworkInterfaceIterator {
+    private class InterfaceArray(private val iterator: Iterator<LibboxNetworkInterface>) : NetworkInterfaceIterator {
         override fun hasNext(): Boolean = iterator.hasNext()
 
         override fun next(): LibboxNetworkInterface = iterator.next()
     }
 
-    class StringArray(
-        private val iterator: Iterator<String>,
-    ) : StringIterator {
+    class StringArray(private val iterator: Iterator<String>) : StringIterator {
         override fun len(): Int {
             // not used by core
             return 0
@@ -444,12 +420,11 @@ interface PlatformInterfaceWrapper : PlatformInterface {
         override fun next(): String = iterator.next()
     }
 
-    private fun InterfaceAddress.toPrefix(): String =
-        if (address is Inet6Address) {
-            "${Inet6Address.getByAddress(address.address).hostAddress}/$networkPrefixLength"
-        } else {
-            "${address.hostAddress}/$networkPrefixLength"
-        }
+    private fun InterfaceAddress.toPrefix(): String = if (address is Inet6Address) {
+        "${Inet6Address.getByAddress(address.address).hostAddress}/$networkPrefixLength"
+    } else {
+        "${address.hostAddress}/$networkPrefixLength"
+    }
 
     private val NetworkInterface.flags: Int
         @SuppressLint("SoonBlockedPrivateApi")

@@ -21,14 +21,13 @@ internal data class ManagedScanState(
     val failure: Exception? = null,
 ) {
     val status: ManagedScanStatus
-        get() =
-            when {
-                regions.isEmpty() -> ManagedScanStatus.Off
-                isScanning -> ManagedScanStatus.Scanning
-                failure != null -> ManagedScanStatus.Failed
-                appliedRevision == requestedRevision && appliedRegions == regions -> ManagedScanStatus.Applied
-                else -> ManagedScanStatus.Scanning
-            }
+        get() = when {
+            regions.isEmpty() -> ManagedScanStatus.Off
+            isScanning -> ManagedScanStatus.Scanning
+            failure != null -> ManagedScanStatus.Failed
+            appliedRevision == requestedRevision && appliedRegions == regions -> ManagedScanStatus.Applied
+            else -> ManagedScanStatus.Scanning
+        }
 }
 
 internal enum class ManagedScanStatus {
@@ -49,10 +48,9 @@ internal class ManagedScanController(
     private val publish: (Set<AppScanRegion>, Set<String>) -> Unit,
 ) {
     private val mutex = Mutex()
-    private val mutableState =
-        MutableStateFlow(
-            ManagedScanState(initialRegions, appliedRegions = initialAppliedRegions, bypassedAppCount = initialAppCount),
-        )
+    private val mutableState = MutableStateFlow(
+        ManagedScanState(initialRegions, appliedRegions = initialAppliedRegions, bypassedAppCount = initialAppCount),
+    )
     val state = mutableState.asStateFlow()
     private var revision = 0L
     private var job: Job? = null
@@ -62,38 +60,36 @@ internal class ManagedScanController(
         val request = ++revision
         job?.cancel()
         saveSelection(snapshot)
-        mutableState.value =
-            mutableState.value.copy(
-                regions = snapshot,
-                requestedRevision = request,
-                isScanning = snapshot.isNotEmpty(),
-                failure = null,
-            )
-        return scope
-            .launch {
-                try {
-                    if (snapshot.isEmpty()) {
-                        publish(snapshot, emptySet())
-                        mutableState.value = mutableState.value.copy(appliedRegions = snapshot, bypassedAppCount = 0)
-                    } else {
-                        mutex.withLock {
-                            val apps = scan(snapshot)
-                            ensureActive()
-                            if (request != revision) return@withLock
-                            publish(snapshot, apps)
-                            mutableState.value = mutableState.value.copy(appliedRegions = snapshot, bypassedAppCount = apps.size)
-                        }
-                    }
-                    if (request == revision) {
-                        mutableState.value = mutableState.value.copy(isScanning = false, appliedRevision = request)
-                    }
-                } catch (exception: CancellationException) {
-                    throw exception
-                } catch (exception: Exception) {
-                    if (request == revision) {
-                        mutableState.value = mutableState.value.copy(isScanning = false, failure = exception)
+        mutableState.value = mutableState.value.copy(
+            regions = snapshot,
+            requestedRevision = request,
+            isScanning = snapshot.isNotEmpty(),
+            failure = null,
+        )
+        return scope.launch {
+            try {
+                if (snapshot.isEmpty()) {
+                    publish(snapshot, emptySet())
+                    mutableState.value = mutableState.value.copy(appliedRegions = snapshot, bypassedAppCount = 0)
+                } else {
+                    mutex.withLock {
+                        val apps = scan(snapshot)
+                        ensureActive()
+                        if (request != revision) return@withLock
+                        publish(snapshot, apps)
+                        mutableState.value = mutableState.value.copy(appliedRegions = snapshot, bypassedAppCount = apps.size)
                     }
                 }
-            }.also { job = it }
+                if (request == revision) {
+                    mutableState.value = mutableState.value.copy(isScanning = false, appliedRevision = request)
+                }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                if (request == revision) {
+                    mutableState.value = mutableState.value.copy(isScanning = false, failure = exception)
+                }
+            }
+        }.also { job = it }
     }
 }

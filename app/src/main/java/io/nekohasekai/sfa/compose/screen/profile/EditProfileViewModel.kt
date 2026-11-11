@@ -52,9 +52,7 @@ data class EditProfileUiState(
     val showIconDialog: Boolean = false,
 )
 
-class EditProfileViewModel(
-    application: Application,
-) : AndroidViewModel(application) {
+class EditProfileViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(EditProfileUiState())
     val uiState: StateFlow<EditProfileUiState> = _uiState.asStateFlow()
 
@@ -112,9 +110,9 @@ class EditProfileViewModel(
             state.copy(
                 name = name,
                 hasChanges =
-                    checkHasChanges(
-                        state.copy(name = name),
-                    ),
+                checkHasChanges(
+                    state.copy(name = name),
+                ),
             )
         }
     }
@@ -124,9 +122,9 @@ class EditProfileViewModel(
             state.copy(
                 icon = icon,
                 hasChanges =
-                    checkHasChanges(
-                        state.copy(icon = icon),
-                    ),
+                checkHasChanges(
+                    state.copy(icon = icon),
+                ),
             )
         }
     }
@@ -144,9 +142,9 @@ class EditProfileViewModel(
             state.copy(
                 remoteUrl = url,
                 hasChanges =
-                    checkHasChanges(
-                        state.copy(remoteUrl = url),
-                    ),
+                checkHasChanges(
+                    state.copy(remoteUrl = url),
+                ),
             )
         }
     }
@@ -156,9 +154,9 @@ class EditProfileViewModel(
             state.copy(
                 autoUpdate = enabled,
                 hasChanges =
-                    checkHasChanges(
-                        state.copy(autoUpdate = enabled),
-                    ),
+                checkHasChanges(
+                    state.copy(autoUpdate = enabled),
+                ),
             )
         }
     }
@@ -177,21 +175,20 @@ class EditProfileViewModel(
                 autoUpdateInterval = intValue,
                 autoUpdateIntervalError = error,
                 hasChanges =
-                    if (error == null) {
-                        checkHasChanges(state.copy(autoUpdateInterval = intValue))
-                    } else {
-                        state.hasChanges
-                    },
+                if (error == null) {
+                    checkHasChanges(state.copy(autoUpdateInterval = intValue))
+                } else {
+                    state.hasChanges
+                },
             )
         }
     }
 
-    private fun checkHasChanges(state: EditProfileUiState): Boolean =
-        state.name != state.originalName ||
-            state.icon != state.originalIcon ||
-            state.remoteUrl != state.originalRemoteUrl ||
-            state.autoUpdate != state.originalAutoUpdate ||
-            state.autoUpdateInterval != state.originalAutoUpdateInterval
+    private fun checkHasChanges(state: EditProfileUiState): Boolean = state.name != state.originalName ||
+        state.icon != state.originalIcon ||
+        state.remoteUrl != state.originalRemoteUrl ||
+        state.autoUpdate != state.originalAutoUpdate ||
+        state.autoUpdateInterval != state.originalAutoUpdateInterval
 
     fun saveChanges() {
         val state = _uiState.value
@@ -317,23 +314,19 @@ class EditProfileViewModel(
 
             fileName
         } catch (e: Exception) {
-            Toast
-                .makeText(
-                    context,
-                    context.getString(
-                        io.nekohasekai.sfa.R.string.failed_read_configuration,
-                        e.message,
-                    ),
-                    Toast.LENGTH_SHORT,
-                ).show()
+            Toast.makeText(
+                context,
+                context.getString(
+                    io.nekohasekai.sfa.R.string.failed_read_configuration,
+                    e.message,
+                ),
+                Toast.LENGTH_SHORT,
+            ).show()
             null
         }
     }
 
-    fun saveExportToUri(
-        context: Context,
-        uri: Uri,
-    ) {
+    fun saveExportToUri(context: Context, uri: Uri) {
         val content = pendingExportContent ?: return
 
         viewModelScope.launch(Dispatchers.IO) {
@@ -343,12 +336,11 @@ class EditProfileViewModel(
                 }
 
                 withContext(Dispatchers.Main) {
-                    Toast
-                        .makeText(
-                            context,
-                            "Configuration exported successfully",
-                            Toast.LENGTH_SHORT,
-                        ).show()
+                    Toast.makeText(
+                        context,
+                        "Configuration exported successfully",
+                        Toast.LENGTH_SHORT,
+                    ).show()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {

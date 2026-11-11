@@ -29,11 +29,7 @@ private fun hex2(value: Int): String = "0x" + (value and 0xff).toString(16).padS
 
 fun usbClassName(code: Int): String? = if (code == 0) null else USB_CLASS_NAMES[code] ?: hex2(code)
 
-fun usbClassTriplet(
-    cls: Int,
-    sub: Int,
-    proto: Int,
-): String {
+fun usbClassTriplet(cls: Int, sub: Int, proto: Int): String {
     val name = usbClassName(cls) ?: hex2(cls)
     return if (sub > 0 || proto > 0) "$name · ${hex2(sub)} · ${hex2(proto)}" else name
 }
@@ -52,19 +48,15 @@ fun usbSpeedLabel(code: Int): String? = USB_SPEED_LABELS[code]
 
 fun bcdToVersion(bcd: Int): String = "${(bcd shr 8) and 0xff}.${(bcd shr 4) and 0x0f}${bcd and 0x0f}"
 
-fun formatVidPid(
-    vendorId: Int,
-    productId: Int,
-): String {
+fun formatVidPid(vendorId: Int, productId: Int): String {
     fun hex4(value: Int) = (value and 0xffff).toString(16).padStart(4, '0')
     return "${hex4(vendorId)}:${hex4(productId)}"
 }
 
-fun usbBackendLabel(backend: Int): String? =
-    when (backend) {
-        1 -> "linux-sysfs"
-        2 -> "dynamic"
-        3 -> "darwin-iokit"
-        4 -> "windows-vboxusb"
-        else -> null
-    }
+fun usbBackendLabel(backend: Int): String? = when (backend) {
+    1 -> "linux-sysfs"
+    2 -> "dynamic"
+    3 -> "darwin-iokit"
+    4 -> "windows-vboxusb"
+    else -> null
+}

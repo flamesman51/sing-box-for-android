@@ -59,11 +59,7 @@ import io.nekohasekai.sfa.qrs.QRSEncoder
 import kotlinx.coroutines.delay
 
 @Composable
-fun QRSDialog(
-    profileData: ByteArray,
-    profileName: String,
-    onDismiss: () -> Unit,
-) {
+fun QRSDialog(profileData: ByteArray, profileName: String, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
     val isTablet = windowSizeClass.isWidthAtLeastBreakpointCompat(WindowSizeClassCompat.WIDTH_DP_MEDIUM_LOWER_BOUND)
@@ -72,38 +68,33 @@ fun QRSDialog(
     var sliceSize by remember { mutableIntStateOf(QRSConstants.DEFAULT_SLICE_SIZE) }
 
     val encoder = remember(sliceSize) { QRSEncoder(sliceSize) }
-    val dataWithMeta =
-        remember(profileData, profileName) {
-            QRSEncoder.appendFileHeaderMeta(
-                data = profileData,
-                filename = "$profileName.bpf",
-                contentType = "application/octet-stream",
-            )
-        }
-    val requiredFrames =
-        remember(dataWithMeta, sliceSize) {
-            QRSConstants.calculateRequiredFrames(dataWithMeta.size, sliceSize)
-        }
-    val frames =
-        remember(dataWithMeta, sliceSize, requiredFrames) {
-            encoder
-                .encode(dataWithMeta, QRSConstants.OFFICIAL_URL_PREFIX)
-                .take(requiredFrames)
-                .toList()
-        }
+    val dataWithMeta = remember(profileData, profileName) {
+        QRSEncoder.appendFileHeaderMeta(
+            data = profileData,
+            filename = "$profileName.bpf",
+            contentType = "application/octet-stream",
+        )
+    }
+    val requiredFrames = remember(dataWithMeta, sliceSize) {
+        QRSConstants.calculateRequiredFrames(dataWithMeta.size, sliceSize)
+    }
+    val frames = remember(dataWithMeta, sliceSize, requiredFrames) {
+        encoder.encode(dataWithMeta, QRSConstants.OFFICIAL_URL_PREFIX)
+            .take(requiredFrames)
+            .toList()
+    }
 
     val frameInterval = remember(fps) { 1000L / fps }
 
-    val generator =
-        remember(frames) {
-            QRSBitmapGenerator(
-                scope = coroutineScope,
-                frames = frames,
-                foregroundColor = Color.BLACK,
-                backgroundColor = Color.WHITE,
-                bufferSize = QRSConstants.BITMAP_BUFFER_SIZE,
-            )
-        }
+    val generator = remember(frames) {
+        QRSBitmapGenerator(
+            scope = coroutineScope,
+            frames = frames,
+            foregroundColor = Color.BLACK,
+            backgroundColor = Color.WHITE,
+            bufferSize = QRSConstants.BITMAP_BUFFER_SIZE,
+        )
+    }
 
     val generationState by generator.state.collectAsState()
 
@@ -132,37 +123,34 @@ fun QRSDialog(
     ) {
         Card(
             modifier =
-                if (isTablet) {
-                    Modifier
-                        .fillMaxWidth(0.85f)
-                        .sizeIn(maxWidth = 960.dp)
-                        .wrapContentHeight()
-                } else {
-                    Modifier
-                        .fillMaxWidth(0.9f)
-                        .wrapContentHeight()
-                },
+            if (isTablet) {
+                Modifier
+                    .fillMaxWidth(0.85f)
+                    .sizeIn(maxWidth = 960.dp)
+                    .wrapContentHeight()
+            } else {
+                Modifier
+                    .fillMaxWidth(0.9f)
+                    .wrapContentHeight()
+            },
             shape = RoundedCornerShape(16.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
         ) {
             val qrSurface: @Composable () -> Unit = {
                 Surface(
-                    modifier =
-                        Modifier
-                            .sizeIn(maxWidth = if (isTablet) 420.dp else 360.dp, maxHeight = if (isTablet) 420.dp else 360.dp)
-                            .fillMaxWidth()
-                            .aspectRatio(1f),
+                    modifier = Modifier
+                        .sizeIn(maxWidth = if (isTablet) 420.dp else 360.dp, maxHeight = if (isTablet) 420.dp else 360.dp)
+                        .fillMaxWidth()
+                        .aspectRatio(1f),
                     shape = RoundedCornerShape(0.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
                 ) {
                     Box(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .background(androidx.compose.ui.graphics.Color.White),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(androidx.compose.ui.graphics.Color.White),
                         contentAlignment = Alignment.Center,
                     ) {
                         generationState.currentBitmap?.let { bitmap ->
@@ -269,10 +257,9 @@ fun QRSDialog(
 
             if (isTablet) {
                 Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
                     verticalAlignment = Alignment.Top,
                 ) {
@@ -291,10 +278,9 @@ fun QRSDialog(
                 }
             } else {
                 Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     qrSurface()

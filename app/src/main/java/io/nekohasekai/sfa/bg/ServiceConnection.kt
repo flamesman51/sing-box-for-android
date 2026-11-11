@@ -20,11 +20,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
-class ServiceConnection(
-    private val context: Context,
-    callback: Callback,
-    private val register: Boolean = true,
-) : ServiceConnection {
+class ServiceConnection(private val context: Context, callback: Callback, private val register: Boolean = true) : ServiceConnection {
     companion object {
         private const val TAG = "ServiceConnection"
     }
@@ -38,13 +34,12 @@ class ServiceConnection(
 
     fun connect() {
         connectJob?.cancel()
-        connectJob =
-            scope.launch {
-                Settings.dataStore.initialize()
-                val intent = Intent(context, Settings.serviceClass()).setAction(Action.SERVICE)
-                context.bindService(intent, this@ServiceConnection, AppCompatActivity.BIND_AUTO_CREATE)
-                Log.d(TAG, "request connect")
-            }
+        connectJob = scope.launch {
+            Settings.dataStore.initialize()
+            val intent = Intent(context, Settings.serviceClass()).setAction(Action.SERVICE)
+            context.bindService(intent, this@ServiceConnection, AppCompatActivity.BIND_AUTO_CREATE)
+            Log.d(TAG, "request connect")
+        }
     }
 
     fun disconnect() {
@@ -62,10 +57,7 @@ class ServiceConnection(
         connect()
     }
 
-    override fun onServiceConnected(
-        name: ComponentName,
-        binder: IBinder,
-    ) {
+    override fun onServiceConnected(name: ComponentName, binder: IBinder) {
         val service = IService.Stub.asInterface(binder)
         this.service = service
         try {
@@ -94,24 +86,16 @@ class ServiceConnection(
     interface Callback {
         fun onServiceStatusChanged(status: Status)
 
-        fun onServiceAlert(
-            type: Alert,
-            message: String?,
-        ) {
+        fun onServiceAlert(type: Alert, message: String?) {
         }
     }
 
-    class ServiceCallback(
-        private val callback: Callback,
-    ) : IServiceCallback.Stub() {
+    class ServiceCallback(private val callback: Callback) : IServiceCallback.Stub() {
         override fun onServiceStatusChanged(status: Int) {
             callback.onServiceStatusChanged(Status.values()[status])
         }
 
-        override fun onServiceAlert(
-            type: Int,
-            message: String?,
-        ) {
+        override fun onServiceAlert(type: Int, message: String?) {
             callback.onServiceAlert(Alert.values()[type], message)
         }
     }

@@ -146,51 +146,36 @@ class ShareActivity :
         serviceStatus = status
     }
 
-    override fun onServiceAlert(
-        type: Alert,
-        message: String?,
-    ) {
+    override fun onServiceAlert(type: Alert, message: String?) {
         errorMessage = message ?: type.name
     }
 
     private fun openSharedContent(intent: Intent): List<TaildropSendFile> {
-        val uris =
-            when (intent.action) {
-                Intent.ACTION_SEND -> {
-                    listOfNotNull(IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java))
-                }
+        val uris = when (intent.action) {
+            Intent.ACTION_SEND ->
+                listOfNotNull(IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java))
 
-                Intent.ACTION_SEND_MULTIPLE -> {
-                    IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java).orEmpty()
-                }
+            Intent.ACTION_SEND_MULTIPLE ->
+                IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java).orEmpty()
 
-                else -> {
-                    emptyList()
-                }
-            }
+            else -> emptyList()
+        }
         if (uris.isNotEmpty()) {
             return TaildropSendManager.openURIs(uris)
         }
-        val text =
-            intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()?.takeIf { it.isNotBlank() }
-                ?: return emptyList()
+        val text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()?.takeIf { it.isNotBlank() }
+            ?: return emptyList()
         return listOf(TaildropSendManager.createTextFile(textFileName(intent, text), text))
     }
 
-    private fun textFileName(
-        intent: Intent,
-        text: String,
-    ): String {
+    private fun textFileName(intent: Intent, text: String): String {
         val subject = intent.getStringExtra(Intent.EXTRA_SUBJECT)?.takeIf { it.isNotBlank() }
         val source = subject ?: text.trim().lineSequence().first()
         val name = source.take(48).replace(Regex("[^\\p{L}\\p{N}._-]+"), "_").trim('_', '.')
         return if (name.isEmpty()) "shared.txt" else "$name.txt"
     }
 
-    private fun startSend(
-        endpointTag: String,
-        peer: TailscalePeerData,
-    ) {
+    private fun startSend(endpointTag: String, peer: TailscalePeerData) {
         val files = sharedFiles
         if (files.isEmpty()) return
         sharedFiles = emptyList()
@@ -235,12 +220,11 @@ class ShareActivity :
             sheetState = sheetState,
         ) {
             Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(horizontal = 24.dp)
-                        .padding(bottom = 24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 24.dp),
             ) {
                 Text(
                     stringResource(R.string.taildrop),
@@ -282,31 +266,25 @@ class ShareActivity :
 
                     endpoint == null -> {
                         when {
-                            remoteServer == null && serviceStatus != Status.Started && serviceStatus != Status.Starting -> {
+                            remoteServer == null && serviceStatus != Status.Started && serviceStatus != Status.Starting ->
                                 ServiceNotStarted()
-                            }
 
-                            !state.hasUpdate -> {
-                                Connecting()
-                            }
+                            !state.hasUpdate -> Connecting()
 
-                            else -> {
-                                Text(
-                                    stringResource(R.string.taildrop_no_targets),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
+                            else -> Text(
+                                stringResource(R.string.taildrop_no_targets),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
 
                     else -> {
                         if (endpoints.size > 1) {
                             Row(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .horizontalScroll(rememberScrollState()),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 for (candidate in endpoints) {
@@ -367,16 +345,12 @@ class ShareActivity :
     }
 
     @Composable
-    private fun TargetList(
-        endpoint: TailscaleEndpointData,
-        onSelect: (TailscalePeerData) -> Unit,
-    ) {
+    private fun TargetList(endpoint: TailscaleEndpointData, onSelect: (TailscalePeerData) -> Unit) {
         val selfID = endpoint.selfPeer?.stableID
-        val peers =
-            endpoint.userGroups
-                .flatMap { it.peers }
-                .filter { it.canReceiveFiles && it.stableID != selfID }
-                .sortedWith(compareByDescending<TailscalePeerData> { it.online }.thenBy { it.displayName })
+        val peers = endpoint.userGroups
+            .flatMap { it.peers }
+            .filter { it.canReceiveFiles && it.stableID != selfID }
+            .sortedWith(compareByDescending<TailscalePeerData> { it.online }.thenBy { it.displayName })
         if (peers.isEmpty()) {
             Text(
                 stringResource(R.string.taildrop_no_targets),
@@ -386,37 +360,33 @@ class ShareActivity :
             return
         }
         Column(
-            modifier =
-                Modifier
-                    .heightIn(max = 400.dp)
-                    .verticalScroll(rememberScrollState()),
+            modifier = Modifier
+                .heightIn(max = 400.dp)
+                .verticalScroll(rememberScrollState()),
         ) {
             for (peer in peers) {
                 Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable(enabled = peer.online) { onSelect(peer) }
-                            .padding(vertical = 12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = peer.online) { onSelect(peer) }
+                        .padding(vertical = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(
-                        modifier =
-                            Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(if (peer.online) Color(0xFF4CAF50) else Color.Gray),
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(if (peer.online) Color(0xFF4CAF50) else Color.Gray),
                     )
                     Text(
                         peer.displayName,
                         style = MaterialTheme.typography.bodyLarge,
-                        color =
-                            if (peer.online) {
-                                MaterialTheme.colorScheme.onSurface
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
+                        color = if (peer.online) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),

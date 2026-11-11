@@ -62,12 +62,11 @@ class OutboundPickerViewModel :
 
     fun connect() {
         disconnect()
-        commandClient =
-            CommandClient(
-                viewModelScope,
-                CommandClient.ConnectionType.Outbounds,
-                this,
-            )
+        commandClient = CommandClient(
+            viewModelScope,
+            CommandClient.ConnectionType.Outbounds,
+            this,
+        )
         commandClient?.connect()
     }
 
@@ -102,12 +101,11 @@ fun OutboundPickerScreen(
         }
     }
 
-    val filteredOutbounds =
-        if (searchText.isEmpty()) {
-            outbounds
-        } else {
-            outbounds.filter { it.tag.contains(searchText, ignoreCase = true) }
-        }
+    val filteredOutbounds = if (searchText.isEmpty()) {
+        outbounds
+    } else {
+        outbounds.filter { it.tag.contains(searchText, ignoreCase = true) }
+    }
 
     fun selectOutbound(tag: String) {
         navController.previousBackStackEntry?.savedStateHandle?.set("selected_outbound", tag)
@@ -131,18 +129,16 @@ fun OutboundPickerScreen(
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(scaffoldPadding),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(scaffoldPadding),
     ) {
         OutlinedTextField(
             value = searchText,
             onValueChange = { searchText = it },
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             placeholder = { Text(stringResource(android.R.string.search_go)) },
             leadingIcon = {
                 Icon(
@@ -188,11 +184,10 @@ private fun OutboundPickerItem(
     onClick: () -> Unit,
 ) {
     Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -236,27 +231,24 @@ fun OutboundPickerRow(
     selectedOutbound: String,
     onClick: () -> Unit,
 ) {
-    val displayText =
-        if (selectedOutbound.isEmpty()) {
-            stringResource(R.string.tool_default_outbound)
-        } else {
-            selectedOutbound
-        }
+    val displayText = if (selectedOutbound.isEmpty()) {
+        stringResource(R.string.tool_default_outbound)
+    } else {
+        selectedOutbound
+    }
 
     Surface(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .clickable(onClick = onClick),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         shape = RoundedCornerShape(12.dp),
     ) {
         Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {

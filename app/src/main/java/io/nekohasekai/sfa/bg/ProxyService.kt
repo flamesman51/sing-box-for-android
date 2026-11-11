@@ -10,11 +10,7 @@ class ProxyService :
     PlatformInterfaceWrapper {
     private val service = BoxService(this, this)
 
-    override fun onStartCommand(
-        intent: Intent?,
-        flags: Int,
-        startId: Int,
-    ) = service.onStartCommand(BoxService.startReason(intent), startId)
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int) = service.onStartCommand(BoxService.startReason(intent), startId)
 
     override fun onBind(intent: Intent) = service.onBind()
 
@@ -24,8 +20,5 @@ class ProxyService :
         prepareSmartNotification(notification)?.let(service::sendNotification)
     }
 
-    override fun cancelNotification(
-        identifier: String,
-        typeID: Int,
-    ) = service.cancelNotification(identifier, typeID)
+    override fun cancelNotification(identifier: String, typeID: Int) = service.cancelNotification(identifier, typeID)
 }

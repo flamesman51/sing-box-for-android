@@ -125,15 +125,14 @@ class KeyValueEntity() : Parcelable {
     }
 
     @Suppress("IMPLICIT_CAST_TO_ANY")
-    override fun toString(): String =
-        when (valueType) {
-            TYPE_BOOLEAN -> boolean
-            TYPE_FLOAT -> float
-            TYPE_LONG -> long
-            TYPE_STRING -> string
-            TYPE_STRING_SET -> stringSet
-            else -> null
-        }?.toString() ?: "null"
+    override fun toString(): String = when (valueType) {
+        TYPE_BOOLEAN -> boolean
+        TYPE_FLOAT -> float
+        TYPE_LONG -> long
+        TYPE_STRING -> string
+        TYPE_STRING_SET -> stringSet
+        else -> null
+    }?.toString() ?: "null"
 
     constructor(parcel: Parcel) : this() {
         key = parcel.readString()!!
@@ -141,10 +140,7 @@ class KeyValueEntity() : Parcelable {
         value = parcel.createByteArray()!!
     }
 
-    override fun writeToParcel(
-        parcel: Parcel,
-        flags: Int,
-    ) {
+    override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeString(key)
         parcel.writeInt(valueType)
         parcel.writeByteArray(value)

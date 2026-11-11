@@ -14,9 +14,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicInteger
 
-class HookNetworkInterfaceGetName(
-    private val classLoader: ClassLoader,
-) : XHook {
+class HookNetworkInterfaceGetName(private val classLoader: ClassLoader) : XHook {
     private companion object {
         private const val SOURCE = "HookNetworkInterfaceGetName"
         private const val MAX_NAME_LEN = 15
@@ -65,10 +63,7 @@ class HookNetworkInterfaceGetName(
         HookErrorStore.i(SOURCE, "Hooked ${vpnClass.name}.jniGetName")
     }
 
-    private fun renameInterface(
-        oldName: String,
-        prefix: String,
-    ): String? {
+    private fun renameInterface(oldName: String, prefix: String): String? {
         val oldIndex = getInterfaceIndex(oldName)
         if (oldIndex <= 0) {
             HookErrorStore.e(SOURCE, "rename interface: old name not found (old=$oldName)")
@@ -114,36 +109,28 @@ class HookNetworkInterfaceGetName(
         return null
     }
 
-    private fun buildInterfaceName(
-        prefix: String,
-        suffix: Int,
-    ): String? {
+    private fun buildInterfaceName(prefix: String, suffix: Int): String? {
         val suffixText = suffix.toString()
         val maxPrefixLen = MAX_NAME_LEN - suffixText.length
         if (maxPrefixLen <= 0) {
             return null
         }
-        val trimmed =
-            if (prefix.length > maxPrefixLen) {
-                prefix.substring(0, maxPrefixLen)
-            } else {
-                prefix
-            }
+        val trimmed = if (prefix.length > maxPrefixLen) {
+            prefix.substring(0, maxPrefixLen)
+        } else {
+            prefix
+        }
         return trimmed + suffixText
     }
 
-    private fun renameWithNetlink(
-        index: Int,
-        newName: String,
-    ): Boolean {
+    private fun renameWithNetlink(index: Int, newName: String): Boolean {
         val fd = openNetlinkSocket()
         try {
-            val renameResult =
-                sendNetlinkMessage(
-                    fd,
-                    buildLinkMessage(index, newName, 0, 0, seq.getAndIncrement()),
-                    OsConstants.EBUSY,
-                ) ?: return false
+            val renameResult = sendNetlinkMessage(
+                fd,
+                buildLinkMessage(index, newName, 0, 0, seq.getAndIncrement()),
+                OsConstants.EBUSY,
+            ) ?: return false
             if (renameResult == 0) {
                 return true
             }
@@ -151,29 +138,26 @@ class HookNetworkInterfaceGetName(
                 HookErrorStore.e(SOURCE, "rename interface: netlink ack errno=$renameResult")
                 return false
             }
-            val downResult =
-                sendNetlinkMessage(
-                    fd,
-                    buildLinkMessage(index, null, 0, IFF_UP, seq.getAndIncrement()),
-                ) ?: return false
+            val downResult = sendNetlinkMessage(
+                fd,
+                buildLinkMessage(index, null, 0, IFF_UP, seq.getAndIncrement()),
+            ) ?: return false
             if (downResult != 0) {
                 HookErrorStore.e(SOURCE, "rename interface: set down failed errno=$downResult")
                 return false
             }
-            val retryResult =
-                sendNetlinkMessage(
-                    fd,
-                    buildLinkMessage(index, newName, 0, 0, seq.getAndIncrement()),
-                ) ?: return false
+            val retryResult = sendNetlinkMessage(
+                fd,
+                buildLinkMessage(index, newName, 0, 0, seq.getAndIncrement()),
+            ) ?: return false
             if (retryResult != 0) {
                 HookErrorStore.e(SOURCE, "rename interface: retry failed errno=$retryResult")
                 return false
             }
-            val upResult =
-                sendNetlinkMessage(
-                    fd,
-                    buildLinkMessage(index, null, IFF_UP, IFF_UP, seq.getAndIncrement()),
-                )
+            val upResult = sendNetlinkMessage(
+                fd,
+                buildLinkMessage(index, null, IFF_UP, IFF_UP, seq.getAndIncrement()),
+            )
             if (upResult != null && upResult != 0) {
                 HookErrorStore.w(SOURCE, "rename interface: set up failed errno=$upResult")
             }
@@ -205,13 +189,7 @@ class HookNetworkInterfaceGetName(
 
     private fun buildNetlinkAddress(): SocketAddress = netlinkSocketAddressCtor.newInstance(0, 0) as SocketAddress
 
-    private fun buildLinkMessage(
-        index: Int,
-        ifName: String?,
-        flags: Int,
-        change: Int,
-        seq: Int,
-    ): ByteArray {
+    private fun buildLinkMessage(index: Int, ifName: String?, flags: Int, change: Int, seq: Int): ByteArray {
         val nameBytes = ifName?.let { (it + "\u0000").toByteArray(Charsets.US_ASCII) }
         val attrLen = if (nameBytes != null) NLA_HEADER_LEN + nameBytes.size else 0
         val attrAligned = align(attrLen)
@@ -242,11 +220,7 @@ class HookNetworkInterfaceGetName(
 
     private fun align(length: Int): Int = (length + 3) and -4
 
-    private fun sendNetlinkMessage(
-        fd: FileDescriptor,
-        message: ByteArray,
-        suppressErrno: Int? = null,
-    ): Int? {
+    private fun sendNetlinkMessage(fd: FileDescriptor, message: ByteArray, suppressErrno: Int? = null): Int? {
         Os.write(fd, message, 0, message.size)
         val ack = readNetlinkAck(fd)
         if (ack == null) {
@@ -262,11 +236,7 @@ class HookNetworkInterfaceGetName(
         return ack.errno
     }
 
-    private data class NetlinkAck(
-        val errno: Int,
-        val seq: Int,
-        val pid: Int,
-    )
+    private data class NetlinkAck(val errno: Int, val seq: Int, val pid: Int)
 
     private fun readNetlinkAck(fd: FileDescriptor): NetlinkAck? {
         val buffer = ByteArray(4096)

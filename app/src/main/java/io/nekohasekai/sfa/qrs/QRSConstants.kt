@@ -17,10 +17,7 @@ object QRSConstants {
     const val MIN_SLICE_SIZE = 100
     const val MAX_SLICE_SIZE = 1500
 
-    fun calculateRequiredFrames(
-        dataSize: Int,
-        sliceSize: Int,
-    ): Int {
+    fun calculateRequiredFrames(dataSize: Int, sliceSize: Int): Int {
         val k = (dataSize + sliceSize - 1) / sliceSize
         if (k == 0) return 1
         return (k * RECOVERY_FACTOR).toInt().coerceAtLeast(k + 5)

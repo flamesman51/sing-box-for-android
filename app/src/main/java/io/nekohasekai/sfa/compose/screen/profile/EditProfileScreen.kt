@@ -177,9 +177,9 @@ fun EditProfileScreen(
                 }
             },
             colors =
-                TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
+            TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
         )
     }
 
@@ -205,21 +205,21 @@ fun EditProfileScreen(
         if (!uiState.isLoading) {
             Column(
                 modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(scaffoldPadding)
-                        .padding(bottom = bottomBarPadding)
-                        .padding(16.dp),
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(scaffoldPadding)
+                    .padding(bottom = bottomBarPadding)
+                    .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 // Basic Information Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        ),
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    ),
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -254,18 +254,18 @@ fun EditProfileScreen(
 
                         Surface(
                             modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable { viewModel.showIconDialog() },
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { viewModel.showIconDialog() },
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             shape = RoundedCornerShape(12.dp),
                         ) {
                             Row(
                                 modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
@@ -283,12 +283,10 @@ fun EditProfileScreen(
 
                                 Text(
                                     text =
-                                        uiState.icon?.let { iconId ->
-                                            MaterialIconsLibrary
-                                                .getAllIcons()
-                                                .find { it.id == iconId }
-                                                ?.label
-                                        } ?: stringResource(R.string.default_text),
+                                    uiState.icon?.let { iconId ->
+                                        MaterialIconsLibrary.getAllIcons()
+                                            .find { it.id == iconId }?.label
+                                    } ?: stringResource(R.string.default_text),
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.weight(1f),
@@ -310,9 +308,9 @@ fun EditProfileScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors =
-                            CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f),
-                            ),
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f),
+                        ),
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
@@ -344,13 +342,13 @@ fun EditProfileScreen(
                                         uiState.lastUpdated?.let { lastUpdated ->
                                             Text(
                                                 text =
-                                                    stringResource(
-                                                        R.string.last_updated_format,
-                                                        RelativeTimeFormatter.format(
-                                                            context,
-                                                            lastUpdated,
-                                                        ),
+                                                stringResource(
+                                                    R.string.last_updated_format,
+                                                    RelativeTimeFormatter.format(
+                                                        context,
+                                                        lastUpdated,
                                                     ),
+                                                ),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
@@ -447,9 +445,9 @@ fun EditProfileScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
-                        ),
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
+                    ),
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -475,22 +473,22 @@ fun EditProfileScreen(
                         // JSON Editor/Viewer option
                         Surface(
                             modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable {
-                                        onNavigateToEditContent(
-                                            uiState.profileType == TypedProfile.Type.Remote,
-                                        )
-                                    },
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    onNavigateToEditContent(
+                                        uiState.profileType == TypedProfile.Type.Remote,
+                                    )
+                                },
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             shape = RoundedCornerShape(12.dp),
                         ) {
                             Row(
                                 modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
@@ -502,11 +500,11 @@ fun EditProfileScreen(
                                 )
                                 Text(
                                     text =
-                                        if (uiState.profileType == TypedProfile.Type.Remote) {
-                                            stringResource(R.string.json_viewer)
-                                        } else {
-                                            stringResource(R.string.json_editor)
-                                        },
+                                    if (uiState.profileType == TypedProfile.Type.Remote) {
+                                        stringResource(R.string.json_viewer)
+                                    } else {
+                                        stringResource(R.string.json_editor)
+                                    },
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.weight(1f),
@@ -536,10 +534,10 @@ fun EditProfileScreen(
             ) {
                 Box(
                     modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = scaffoldPadding.calculateBottomPadding())
-                            .padding(16.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = scaffoldPadding.calculateBottomPadding())
+                        .padding(16.dp),
                 ) {
                     Button(
                         onClick = { viewModel.saveChanges() },

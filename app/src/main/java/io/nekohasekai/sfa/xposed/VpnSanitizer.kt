@@ -11,10 +11,9 @@ import de.robv.android.xposed.XposedHelpers
 import java.util.Locale
 
 object VpnSanitizer {
-    private val vpnInterfacePrefixes =
-        arrayOf(
-            "tun",
-        )
+    private val vpnInterfacePrefixes = arrayOf(
+        "tun",
+    )
 
     private val getStackedLinksMethod by lazy {
         LinkProperties::class.java.getMethod("getStackedLinks")

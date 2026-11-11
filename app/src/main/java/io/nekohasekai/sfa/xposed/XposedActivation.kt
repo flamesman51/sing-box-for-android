@@ -10,21 +10,16 @@ object XposedActivation {
     private const val KEY_SYSTEM_IN_SCOPE = "system_in_scope"
 
     fun markActivated(context: Context) {
-        context
-            .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .putInt(KEY_ACTIVATED_PID, Process.myPid())
             .putLong(KEY_ACTIVATED_AT, System.currentTimeMillis())
             .apply()
     }
 
-    fun updateScope(
-        context: Context,
-        scope: Collection<String>,
-    ) {
+    fun updateScope(context: Context, scope: Collection<String>) {
         val hasSystemScope = scope.any { it == "system" || it == "android" }
-        context
-            .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .putBoolean(KEY_SYSTEM_IN_SCOPE, hasSystemScope)
             .putLong(KEY_ACTIVATED_AT, System.currentTimeMillis())

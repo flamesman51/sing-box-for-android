@@ -40,30 +40,19 @@ import kotlinx.coroutines.runBlocking
 
 object DefaultNetworkListener {
     private sealed class NetworkMessage {
-        class Start(
-            val key: Any,
-            val listener: (Network?) -> Unit,
-        ) : NetworkMessage()
+        class Start(val key: Any, val listener: (Network?) -> Unit) : NetworkMessage()
 
         class Get : NetworkMessage() {
             val response = CompletableDeferred<Network>()
         }
 
-        class Stop(
-            val key: Any,
-        ) : NetworkMessage()
+        class Stop(val key: Any) : NetworkMessage()
 
-        class Put(
-            val network: Network,
-        ) : NetworkMessage()
+        class Put(val network: Network) : NetworkMessage()
 
-        class Update(
-            val network: Network,
-        ) : NetworkMessage()
+        class Update(val network: Network) : NetworkMessage()
 
-        class Lost(
-            val network: Network,
-        ) : NetworkMessage()
+        class Lost(val network: Network) : NetworkMessage()
     }
 
     @OptIn(DelicateCoroutinesApi::class, ObsoleteCoroutinesApi::class)
@@ -91,7 +80,7 @@ object DefaultNetworkListener {
                         }
                     }
 
-                    is NetworkMessage.Stop -> {
+                    is NetworkMessage.Stop ->
                         if (listeners.isNotEmpty() &&
                             // was not empty
                             listeners.remove(message.key) != null &&
@@ -100,7 +89,6 @@ object DefaultNetworkListener {
                             network = null
                             unregister()
                         }
-                    }
 
                     is NetworkMessage.Put -> {
                         network = message.network
@@ -109,7 +97,7 @@ object DefaultNetworkListener {
                         listeners.values.forEach { it(network) }
                     }
 
-                    is NetworkMessage.Update -> {
+                    is NetworkMessage.Update ->
                         if (network == message.network) {
                             listeners.values.forEach {
                                 it(
@@ -117,39 +105,33 @@ object DefaultNetworkListener {
                                 )
                             }
                         }
-                    }
 
-                    is NetworkMessage.Lost -> {
+                    is NetworkMessage.Lost ->
                         if (network == message.network) {
                             network = null
                             listeners.values.forEach { it(null) }
                         }
-                    }
                 }
             }
         }
 
-    suspend fun start(
-        key: Any,
-        listener: (Network?) -> Unit,
-    ) = networkActor.send(
+    suspend fun start(key: Any, listener: (Network?) -> Unit) = networkActor.send(
         NetworkMessage.Start(
             key,
             listener,
         ),
     )
 
-    suspend fun get(): Network =
-        if (fallback) {
-            @TargetApi(23)
-            Application.connectivity.activeNetwork
-                ?: error("missing default network") // failed to listen, return current if available
-        } else {
-            NetworkMessage.Get().run {
-                networkActor.send(this)
-                response.await()
-            }
+    suspend fun get(): Network = if (fallback) {
+        @TargetApi(23)
+        Application.connectivity.activeNetwork
+            ?: error("missing default network") // failed to listen, return current if available
+    } else {
+        NetworkMessage.Get().run {
+            networkActor.send(this)
+            response.await()
         }
+    }
 
     suspend fun stop(key: Any) = networkActor.send(NetworkMessage.Stop(key))
 
@@ -157,52 +139,42 @@ object DefaultNetworkListener {
     // no handler can be passed. The actor is unconfined, so its listeners run here too: they
     // probe the new interface with retries and must never reach the main thread.
     private object Callback : ConnectivityManager.NetworkCallback() {
-        override fun onAvailable(network: Network) =
-            runBlocking {
-                networkActor.send(
-                    NetworkMessage.Put(
-                        network,
-                    ),
-                )
-            }
+        override fun onAvailable(network: Network) = runBlocking {
+            networkActor.send(
+                NetworkMessage.Put(
+                    network,
+                ),
+            )
+        }
 
-        override fun onCapabilitiesChanged(
-            network: Network,
-            networkCapabilities: NetworkCapabilities,
-        ) {
+        override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
             // it's a good idea to refresh capabilities
             runBlocking { networkActor.send(NetworkMessage.Update(network)) }
         }
 
-        override fun onLinkPropertiesChanged(
-            network: Network,
-            linkProperties: LinkProperties,
-        ) {
+        override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) {
             runBlocking { networkActor.send(NetworkMessage.Update(network)) }
         }
 
-        override fun onLost(network: Network) =
-            runBlocking {
-                networkActor.send(
-                    NetworkMessage.Lost(
-                        network,
-                    ),
-                )
-            }
+        override fun onLost(network: Network) = runBlocking {
+            networkActor.send(
+                NetworkMessage.Lost(
+                    network,
+                ),
+            )
+        }
     }
 
     private var fallback = false
     private val request =
-        NetworkRequest
-            .Builder()
-            .apply {
-                addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
-                if (Build.VERSION.SDK_INT == 23) { // workarounds for OEM bugs
-                    removeCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-                    removeCapability(NetworkCapabilities.NET_CAPABILITY_CAPTIVE_PORTAL)
-                }
-            }.build()
+        NetworkRequest.Builder().apply {
+            addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
+            if (Build.VERSION.SDK_INT == 23) { // workarounds for OEM bugs
+                removeCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                removeCapability(NetworkCapabilities.NET_CAPABILITY_CAPTIVE_PORTAL)
+            }
+        }.build()
     private val callbackHandler by lazy {
         Handler(HandlerThread("network-callback").apply { start() }.looper)
     }
@@ -219,20 +191,12 @@ object DefaultNetworkListener {
      */
     private fun register() {
         when (Build.VERSION.SDK_INT) {
-            in 31..Int.MAX_VALUE -> {
-                registerBestMatchingNetworkCallback()
-            }
-            in 28 until 31 -> {
-                requestNetworkWithHandler()
-            }
-            in 26 until 28 -> {
-                registerDefaultNetworkCallbackWithHandler()
-            }
-            in 24 until 26 -> {
-                registerDefaultNetworkCallback()
-            }
+            in 31..Int.MAX_VALUE -> registerBestMatchingNetworkCallback()
+            in 28 until 31 -> requestNetworkWithHandler()
+            in 26 until 28 -> registerDefaultNetworkCallbackWithHandler()
+            in 24 until 26 -> registerDefaultNetworkCallback()
 
-            else -> {
+            else ->
                 try {
                     fallback = false
                     Application.connectivity.requestNetwork(request, Callback)
@@ -240,7 +204,6 @@ object DefaultNetworkListener {
                     fallback =
                         true // known bug on API 23: https://stackoverflow.com/a/33509180/2245107
                 }
-            }
         }
     }
 

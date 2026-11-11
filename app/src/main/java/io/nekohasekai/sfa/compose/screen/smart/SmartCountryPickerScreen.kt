@@ -52,18 +52,14 @@ fun SmartCountryPickerScreen(navController: NavController) {
     val selected = remember { SmartSettings.countryOverride }
     val automatic = stringResource(R.string.smart_country_auto)
     val resolved = SmartSettings.automaticCountry
-    val countries =
-        remember(locale) {
-            val collator = Collator.getInstance(locale)
-            Locale
-                .getISOCountries()
-                .map { it to Locale("", it).getDisplayCountry(locale) }
-                .sortedWith { left, right -> collator.compare(left.second, right.second) }
-        }
-    val filtered =
-        remember(query, countries) {
-            countries.filter { (code, name) -> name.contains(query, ignoreCase = true) || code.contains(query, ignoreCase = true) }
-        }
+    val countries = remember(locale) {
+        val collator = Collator.getInstance(locale)
+        Locale.getISOCountries().map { it to Locale("", it).getDisplayCountry(locale) }
+            .sortedWith { left, right -> collator.compare(left.second, right.second) }
+    }
+    val filtered = remember(query, countries) {
+        countries.filter { (code, name) -> name.contains(query, ignoreCase = true) || code.contains(query, ignoreCase = true) }
+    }
     fun select(code: String) {
         SmartSettings.countryOverride = code
         navController.navigateUp()
@@ -80,11 +76,9 @@ fun SmartCountryPickerScreen(navController: NavController) {
     }
     val scaffoldPadding = LocalScaffoldPadding.current
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(top = scaffoldPadding.calculateTopPadding()),
+        modifier = Modifier.fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(top = scaffoldPadding.calculateTopPadding()),
     ) {
         SearchBarDefaults.InputField(
             query = query,
@@ -104,19 +98,18 @@ fun SmartCountryPickerScreen(navController: NavController) {
                 item(key = "automatic") {
                     ListItem(
                         headlineContent = { Text(automatic, style = MaterialTheme.typography.bodyLarge) },
-                        supportingContent =
-                            if (resolved.isEmpty()) {
-                                null
-                            } else {
-                                {
-                                    Text(
-                                        Locale("", resolved).getDisplayCountry(locale),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(top = 4.dp),
-                                    )
-                                }
-                            },
+                        supportingContent = if (resolved.isEmpty()) {
+                            null
+                        } else {
+                            {
+                                Text(
+                                    Locale("", resolved).getDisplayCountry(locale),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            }
+                        },
                         leadingContent = { RadioButton(selected = selected.isEmpty(), onClick = null) },
                         modifier = Modifier.selectable(selected = selected.isEmpty(), role = Role.RadioButton, onClick = { select("") }),
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),

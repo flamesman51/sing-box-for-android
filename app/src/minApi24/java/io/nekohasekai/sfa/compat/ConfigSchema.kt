@@ -19,11 +19,7 @@ enum class ScaffoldKind {
     PLAIN,
 }
 
-data class KeySuggestion(
-    val name: String,
-    val description: String?,
-    val scaffold: ScaffoldKind,
-)
+data class KeySuggestion(val name: String, val description: String?, val scaffold: ScaffoldKind)
 
 enum class ValueSuggestionKind {
     VALUE,
@@ -43,9 +39,8 @@ data class ValueSuggestion(
     val arrayElements: List<String>? = null,
 )
 
-class ConfigSchema(
-    private val root: JsonObject,
-) {
+class ConfigSchema(private val root: JsonObject) {
+
     companion object {
         private val loadAccess = Any()
 
@@ -122,19 +117,12 @@ class ConfigSchema(
         val kinds = mutableSetOf<ScaffoldKind>()
         for (part in expand(node, emptyMap(), 0)) {
             when {
-                part.containsKey("properties") || typeContains(part, "object") -> {
-                    kinds += ScaffoldKind.OBJECT
-                }
-                typeContains(part, "array") -> {
-                    kinds += ScaffoldKind.ARRAY
-                }
-                typeContains(part, "string") || hasStringValues(part) -> {
-                    kinds += ScaffoldKind.STRING
-                }
+                part.containsKey("properties") || typeContains(part, "object") -> kinds += ScaffoldKind.OBJECT
+                typeContains(part, "array") -> kinds += ScaffoldKind.ARRAY
+                typeContains(part, "string") || hasStringValues(part) -> kinds += ScaffoldKind.STRING
 
-                typeContains(part, "boolean") || typeContains(part, "integer") || typeContains(part, "number") -> {
+                typeContains(part, "boolean") || typeContains(part, "integer") || typeContains(part, "number") ->
                     kinds += ScaffoldKind.PLAIN
-                }
             }
         }
         return kinds.singleOrNull() ?: ScaffoldKind.PLAIN
@@ -197,10 +185,7 @@ class ConfigSchema(
         }
     }
 
-    private fun leafVariants(
-        variants: JsonArray,
-        depth: Int,
-    ): List<JsonObject> {
+    private fun leafVariants(variants: JsonArray, depth: Int): List<JsonObject> {
         if (depth > 8) return emptyList()
         val result = mutableListOf<JsonObject>()
         for (variant in variants.filterIsInstance<JsonObject>()) {
@@ -215,21 +200,14 @@ class ConfigSchema(
         return result
     }
 
-    private fun detectDiscriminator(
-        leaves: List<JsonObject>,
-        depth: Int,
-    ): String? {
+    private fun detectDiscriminator(leaves: List<JsonObject>, depth: Int): String? {
         if (leaves.isEmpty()) return null
         return discriminatorNames.firstOrNull { name ->
             leaves.all { leaf -> discriminatorSchema(leaf, name, depth) != null }
         }
     }
 
-    private fun discriminatorSchema(
-        variant: JsonObject,
-        name: String,
-        depth: Int,
-    ): JsonObject? {
+    private fun discriminatorSchema(variant: JsonObject, name: String, depth: Int): JsonObject? {
         for (part in expand(variant, emptyMap(), depth)) {
             val propertySchema = (part["properties"] as? JsonObject)?.get(name) as? JsonObject ?: continue
             val resolvedProperty = resolve(propertySchema)
@@ -240,11 +218,7 @@ class ConfigSchema(
         return null
     }
 
-    private fun admitsAbsence(
-        variant: JsonObject,
-        name: String,
-        depth: Int,
-    ): Boolean {
+    private fun admitsAbsence(variant: JsonObject, name: String, depth: Int): Boolean {
         var required = false
         var emptyAllowed = false
         for (part in expand(variant, emptyMap(), depth)) {
@@ -298,12 +272,8 @@ class ConfigSchema(
             }
             (part["examples"] as? JsonArray)?.forEach { element ->
                 when (element) {
-                    is JsonPrimitive -> {
-                        addValue(examples, element, ValueSuggestionKind.EXAMPLE)
-                    }
-                    is JsonArray -> {
-                        addArrayExample(examples, element)
-                    }
+                    is JsonPrimitive -> addValue(examples, element, ValueSuggestionKind.EXAMPLE)
+                    is JsonArray -> addArrayExample(examples, element)
                     else -> {}
                 }
             }
@@ -322,10 +292,7 @@ class ConfigSchema(
         return result
     }
 
-    private fun enclosingEntityTags(
-        context: JsonCursorContext,
-        containers: List<String>,
-    ): Set<String> {
+    private fun enclosingEntityTags(context: JsonCursorContext, containers: List<String>): Set<String> {
         val frames = context.frames
         val result = mutableSetOf<String>()
         val path = StringBuilder()
@@ -348,12 +315,8 @@ class ConfigSchema(
         var stringHasValues = false
         for (part in parts) {
             when {
-                typeContains(part, "array") -> {
-                    hasArray = true
-                }
-                part.containsKey("properties") || typeContains(part, "object") -> {
-                    hasObject = true
-                }
+                typeContains(part, "array") -> hasArray = true
+                part.containsKey("properties") || typeContains(part, "object") -> hasObject = true
 
                 typeContains(part, "string") || hasStringValues(part) -> {
                     hasString = true
@@ -372,10 +335,7 @@ class ConfigSchema(
         return result
     }
 
-    private fun addArrayExample(
-        result: LinkedHashMap<String, ValueSuggestion>,
-        example: JsonArray,
-    ) {
+    private fun addArrayExample(result: LinkedHashMap<String, ValueSuggestion>, example: JsonArray) {
         if (example.isEmpty()) return
         val elements =
             example.map { element ->
@@ -386,20 +346,13 @@ class ConfigSchema(
         result.getOrPut(compact) { ValueSuggestion(label, false, ValueSuggestionKind.ARRAY_EXAMPLE, "example", elements) }
     }
 
-    private fun addValue(
-        result: LinkedHashMap<String, ValueSuggestion>,
-        primitive: JsonPrimitive,
-        kind: ValueSuggestionKind,
-    ) {
+    private fun addValue(result: LinkedHashMap<String, ValueSuggestion>, primitive: JsonPrimitive, kind: ValueSuggestionKind) {
         val content = primitive.contentOrNull ?: return
         if (content.isEmpty()) return
         result.getOrPut(content) { ValueSuggestion(content, primitive.isString, kind) }
     }
 
-    private fun partsAt(
-        frames: List<JsonFrame>,
-        excludeValueKey: String? = null,
-    ): List<JsonObject> {
+    private fun partsAt(frames: List<JsonFrame>, excludeValueKey: String? = null): List<JsonObject> {
         if (frames.isEmpty()) return emptyList()
         var parts = expand(root, siblingValuesOf(frames, 0, excludeValueKey), 0)
         for (i in 1 until frames.size) {
@@ -417,21 +370,13 @@ class ConfigSchema(
         return parts
     }
 
-    private fun siblingValuesOf(
-        frames: List<JsonFrame>,
-        index: Int,
-        excludeValueKey: String?,
-    ): Map<String, String> {
+    private fun siblingValuesOf(frames: List<JsonFrame>, index: Int, excludeValueKey: String?): Map<String, String> {
         val values = frames[index].stringValues
         if (excludeValueKey == null || index != frames.size - 1) return values
         return values - excludeValueKey
     }
 
-    private fun expand(
-        node: JsonObject,
-        siblingValues: Map<String, String>,
-        depth: Int,
-    ): List<JsonObject> {
+    private fun expand(node: JsonObject, siblingValues: Map<String, String>, depth: Int): List<JsonObject> {
         if (depth > 8) return emptyList()
         val resolved = resolve(node)
         val parts = mutableListOf<JsonObject>()
@@ -450,11 +395,7 @@ class ConfigSchema(
         return parts
     }
 
-    private fun matchesSiblings(
-        variant: JsonObject,
-        siblingValues: Map<String, String>,
-        depth: Int,
-    ): Boolean {
+    private fun matchesSiblings(variant: JsonObject, siblingValues: Map<String, String>, depth: Int): Boolean {
         if (siblingValues.isEmpty()) return false
         for (part in expand(variant, emptyMap(), depth)) {
             val properties = part["properties"] as? JsonObject ?: continue
@@ -486,10 +427,7 @@ class ConfigSchema(
         return current
     }
 
-    private fun describe(
-        node: JsonObject,
-        depth: Int = 0,
-    ): String? {
+    private fun describe(node: JsonObject, depth: Int = 0): String? {
         if (depth > 3) return null
         (node["\$ref"] as? JsonPrimitive)?.contentOrNull?.let { return it.substringAfterLast('/') }
         (node["type"] as? JsonPrimitive)?.contentOrNull?.let { type ->
@@ -508,13 +446,9 @@ class ConfigSchema(
         return null
     }
 
-    private fun typeContains(
-        part: JsonObject,
-        type: String,
-    ): Boolean =
-        when (val typeElement = part["type"]) {
-            is JsonPrimitive -> typeElement.contentOrNull == type
-            is JsonArray -> typeElement.any { (it as? JsonPrimitive)?.contentOrNull == type }
-            else -> false
-        }
+    private fun typeContains(part: JsonObject, type: String): Boolean = when (val typeElement = part["type"]) {
+        is JsonPrimitive -> typeElement.contentOrNull == type
+        is JsonArray -> typeElement.any { (it as? JsonPrimitive)?.contentOrNull == type }
+        else -> false
+    }
 }

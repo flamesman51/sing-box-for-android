@@ -54,10 +54,9 @@ fun TailscaleThemePickerScreen(
     var themes by remember { mutableStateOf<List<String>>(emptyList()) }
 
     LaunchedEffect(Unit) {
-        themes =
-            withContext(Dispatchers.IO) {
-                GhosttyThemeStore.listThemes(context, isDark)
-            }
+        themes = withContext(Dispatchers.IO) {
+            GhosttyThemeStore.listThemes(context, isDark)
+        }
         if (selectedTheme !in themes) {
             selectedTheme = GhosttyThemeStore.defaultTheme(isDark)
             if (isDark) {
@@ -68,12 +67,11 @@ fun TailscaleThemePickerScreen(
         }
     }
 
-    val filteredThemes =
-        if (searchQuery.isBlank()) {
-            themes
-        } else {
-            themes.filter { it.contains(searchQuery, ignoreCase = true) }
-        }
+    val filteredThemes = if (searchQuery.isBlank()) {
+        themes
+    } else {
+        themes.filter { it.contains(searchQuery, ignoreCase = true) }
+    }
 
     OverrideTopBar {
         TopAppBar(
@@ -97,11 +95,10 @@ fun TailscaleThemePickerScreen(
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(top = scaffoldPadding.calculateTopPadding()),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(top = scaffoldPadding.calculateTopPadding()),
     ) {
         SearchBarDefaults.InputField(
             query = searchQuery,
@@ -109,10 +106,9 @@ fun TailscaleThemePickerScreen(
             onSearch = {},
             expanded = false,
             onExpandedChange = {},
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             placeholder = { Text(stringResource(R.string.tailscale_terminal_search_themes)) },
             leadingIcon = {
                 Icon(Icons.Default.Search, contentDescription = null)
@@ -121,10 +117,9 @@ fun TailscaleThemePickerScreen(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding =
-                PaddingValues(
-                    bottom = scaffoldPadding.calculateBottomPadding() + 16.dp,
-                ),
+            contentPadding = PaddingValues(
+                bottom = scaffoldPadding.calculateBottomPadding() + 16.dp,
+            ),
         ) {
             items(filteredThemes) { theme ->
                 ListItem(
@@ -135,15 +130,14 @@ fun TailscaleThemePickerScreen(
                             onClick = null,
                         )
                     },
-                    modifier =
-                        Modifier.clickable {
-                            selectedTheme = theme
-                            if (isDark) {
-                                Settings.tailscaleSSHDarkTheme = theme
-                            } else {
-                                Settings.tailscaleSSHLightTheme = theme
-                            }
-                        },
+                    modifier = Modifier.clickable {
+                        selectedTheme = theme
+                        if (isDark) {
+                            Settings.tailscaleSSHDarkTheme = theme
+                        } else {
+                            Settings.tailscaleSSHLightTheme = theme
+                        }
+                    },
                 )
             }
         }

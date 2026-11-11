@@ -94,8 +94,7 @@ fun CoreSettingsScreen(navController: NavController) {
         withContext(Dispatchers.IO) {
             val filesDir = context.getExternalFilesDir(null) ?: context.filesDir
             val size =
-                filesDir
-                    .walkTopDown()
+                filesDir.walkTopDown()
                     .filter { it.isFile }
                     .map { it.length() }
                     .sum()
@@ -108,25 +107,25 @@ fun CoreSettingsScreen(navController: NavController) {
 
     Column(
         modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    top = scaffoldPadding.calculateTopPadding() + 8.dp,
-                    bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
-                ),
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .verticalScroll(rememberScrollState())
+            .padding(
+                top = scaffoldPadding.calculateTopPadding() + 8.dp,
+                bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
+            ),
     ) {
         // Core Information Card
         Card(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             Column {
                 // Version Info
@@ -153,17 +152,16 @@ fun CoreSettingsScreen(navController: NavController) {
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         },
-                        modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                                .combinedClickable(
-                                    onClick = {},
-                                    onLongClick = { showVersionMenu = true },
-                                ),
-                        colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                            .combinedClickable(
+                                onClick = {},
+                                onLongClick = { showVersionMenu = true },
                             ),
+                        colors =
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                     )
                     Box(modifier = Modifier.align(Alignment.BottomEnd)) {
                         DropdownMenu(
@@ -180,12 +178,11 @@ fun CoreSettingsScreen(navController: NavController) {
                                 },
                                 onClick = {
                                     clipboardText = version
-                                    Toast
-                                        .makeText(
-                                            context,
-                                            R.string.copied_to_clipboard,
-                                            Toast.LENGTH_SHORT,
-                                        ).show()
+                                    Toast.makeText(
+                                        context,
+                                        R.string.copied_to_clipboard,
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
                                     showVersionMenu = false
                                 },
                             )
@@ -217,16 +214,16 @@ fun CoreSettingsScreen(navController: NavController) {
                         )
                     },
                     modifier =
-                        Modifier.clip(
-                            RoundedCornerShape(
-                                bottomStart = 12.dp,
-                                bottomEnd = 12.dp,
-                            ),
+                    Modifier.clip(
+                        RoundedCornerShape(
+                            bottomStart = 12.dp,
+                            bottomEnd = 12.dp,
                         ),
+                    ),
                     colors =
-                        ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        ),
+                    ListItemDefaults.colors(
+                        containerColor = Color.Transparent,
+                    ),
                 )
             }
         }
@@ -243,13 +240,13 @@ fun CoreSettingsScreen(navController: NavController) {
 
             Card(
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
                 colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
             ) {
                 ListItem(
                     headlineContent = {
@@ -278,9 +275,9 @@ fun CoreSettingsScreen(navController: NavController) {
                     },
                     modifier = Modifier.clip(RoundedCornerShape(12.dp)),
                     colors =
-                        ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        ),
+                    ListItemDefaults.colors(
+                        containerColor = Color.Transparent,
+                    ),
                 )
             }
         }
@@ -297,13 +294,13 @@ fun CoreSettingsScreen(navController: NavController) {
         // Working Directory Card
         Card(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             // Browse
             ListItem(
@@ -321,15 +318,15 @@ fun CoreSettingsScreen(navController: NavController) {
                     )
                 },
                 modifier =
-                    Modifier
-                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                        .clickable {
-                            openInFileManager(context)
-                        },
+                Modifier
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                    .clickable {
+                        openInFileManager(context)
+                    },
                 colors =
-                    ListItemDefaults.colors(
-                        containerColor = Color.Transparent,
-                    ),
+                ListItemDefaults.colors(
+                    containerColor = Color.Transparent,
+                ),
             )
 
             // Destroy
@@ -349,29 +346,28 @@ fun CoreSettingsScreen(navController: NavController) {
                     )
                 },
                 modifier =
-                    Modifier
-                        .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                        .clickable {
-                            scope.launch(Dispatchers.IO) {
-                                val filesDir = context.getExternalFilesDir(null) ?: context.filesDir
-                                filesDir.deleteRecursively()
-                                filesDir.mkdirs()
+                Modifier
+                    .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                    .clickable {
+                        scope.launch(Dispatchers.IO) {
+                            val filesDir = context.getExternalFilesDir(null) ?: context.filesDir
+                            filesDir.deleteRecursively()
+                            filesDir.mkdirs()
 
-                                // Recalculate data size
-                                val newSize =
-                                    filesDir
-                                        .walkTopDown()
-                                        .filter { it.isFile }
-                                        .map { it.length() }
-                                        .sum()
-                                val formattedSize = Libbox.formatBytes(newSize)
-                                dataSize = formattedSize
-                            }
-                        },
+                            // Recalculate data size
+                            val newSize =
+                                filesDir.walkTopDown()
+                                    .filter { it.isFile }
+                                    .map { it.length() }
+                                    .sum()
+                            val formattedSize = Libbox.formatBytes(newSize)
+                            dataSize = formattedSize
+                        }
+                    },
                 colors =
-                    ListItemDefaults.colors(
-                        containerColor = Color.Transparent,
-                    ),
+                ListItemDefaults.colors(
+                    containerColor = Color.Transparent,
+                ),
             )
         }
 
@@ -383,21 +379,19 @@ private fun openInFileManager(context: Context) {
     val authority = "${context.packageName}.workingdir"
     val rootUri = DocumentsContract.buildRootUri(authority, "working_directory")
 
-    val intent =
-        Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(rootUri, DocumentsContract.Document.MIME_TYPE_DIR)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-        }
+    val intent = Intent(Intent.ACTION_VIEW).apply {
+        setDataAndType(rootUri, DocumentsContract.Document.MIME_TYPE_DIR)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+    }
 
     try {
         context.startActivity(intent)
     } catch (e: ActivityNotFoundException) {
-        Toast
-            .makeText(
-                context,
-                context.getString(R.string.no_file_manager),
-                Toast.LENGTH_SHORT,
-            ).show()
+        Toast.makeText(
+            context,
+            context.getString(R.string.no_file_manager),
+            Toast.LENGTH_SHORT,
+        ).show()
     }
 }

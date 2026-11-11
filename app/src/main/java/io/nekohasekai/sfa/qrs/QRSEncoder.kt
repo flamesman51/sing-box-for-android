@@ -4,35 +4,28 @@ import android.util.Base64
 import java.io.ByteArrayOutputStream
 import java.util.zip.Deflater
 
-class QRSEncoder(
-    private val sliceSize: Int = QRSConstants.DEFAULT_SLICE_SIZE,
-) {
+class QRSEncoder(private val sliceSize: Int = QRSConstants.DEFAULT_SLICE_SIZE) {
     private val codec = LubyCodec(sliceSize)
 
     companion object {
-        fun appendFileHeaderMeta(
-            data: ByteArray,
-            filename: String? = null,
-            contentType: String? = null,
-        ): ByteArray {
-            val meta =
-                buildString {
-                    append("{")
-                    var hasContent = false
-                    filename?.let {
-                        append("\"filename\":\"")
-                        append(escapeJson(it))
-                        append("\"")
-                        hasContent = true
-                    }
-                    contentType?.let {
-                        if (hasContent) append(",")
-                        append("\"contentType\":\"")
-                        append(escapeJson(it))
-                        append("\"")
-                    }
-                    append("}")
+        fun appendFileHeaderMeta(data: ByteArray, filename: String? = null, contentType: String? = null): ByteArray {
+            val meta = buildString {
+                append("{")
+                var hasContent = false
+                filename?.let {
+                    append("\"filename\":\"")
+                    append(escapeJson(it))
+                    append("\"")
+                    hasContent = true
                 }
+                contentType?.let {
+                    if (hasContent) append(",")
+                    append("\"contentType\":\"")
+                    append(escapeJson(it))
+                    append("\"")
+                }
+                append("}")
+            }
             val metaBytes = meta.toByteArray(Charsets.ISO_8859_1)
 
             val result = ByteArray(4 + metaBytes.size + 4 + data.size)
@@ -50,25 +43,16 @@ class QRSEncoder(
             return result
         }
 
-        private fun escapeJson(s: String): String =
-            s
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t")
+        private fun escapeJson(s: String): String = s.replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t")
     }
 
-    data class QRSFrame(
-        val content: String,
-        val frameIndex: Int,
-        val totalBlocks: Int,
-    )
+    data class QRSFrame(val content: String, val frameIndex: Int, val totalBlocks: Int)
 
-    fun encode(
-        data: ByteArray,
-        urlPrefix: String = "",
-    ): Sequence<QRSFrame> {
+    fun encode(data: ByteArray, urlPrefix: String = ""): Sequence<QRSFrame> {
         val compressed = compress(data)
 
         return codec.encode(data, compressed, compressed.size).mapIndexed { index, block ->

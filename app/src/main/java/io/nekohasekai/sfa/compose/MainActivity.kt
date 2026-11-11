@@ -291,9 +291,8 @@ class MainActivity :
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        val pending =
-            launchIntentUnhandled || parseImportLocalProfileJob?.isActive == true ||
-                showImportProfileDialog || showImportLocalProfileDialog
+        val pending = launchIntentUnhandled || parseImportLocalProfileJob?.isActive == true ||
+            showImportProfileDialog || showImportLocalProfileDialog
         outState.putBoolean(KEY_LAUNCH_INTENT_PENDING, pending)
     }
 
@@ -403,23 +402,22 @@ class MainActivity :
         }
     }
 
-    private suspend fun prepare() =
-        withContext(Dispatchers.Main) {
-            try {
-                val intent = VpnService.prepare(this@MainActivity)
-                if (intent != null) {
-                    systemPermissionActive = true
-                    prepareLauncher.launch(intent)
-                    true
-                } else {
-                    false
-                }
-            } catch (e: Exception) {
-                systemPermissionActive = false
-                onServiceAlert(Alert.RequestVPNPermission, e.message)
+    private suspend fun prepare() = withContext(Dispatchers.Main) {
+        try {
+            val intent = VpnService.prepare(this@MainActivity)
+            if (intent != null) {
+                systemPermissionActive = true
+                prepareLauncher.launch(intent)
                 true
+            } else {
+                false
             }
+        } catch (e: Exception) {
+            systemPermissionActive = false
+            onServiceAlert(Alert.RequestVPNPermission, e.message)
+            true
         }
+    }
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -454,17 +452,14 @@ class MainActivity :
         fun mergeApplyServiceChangeMode(
             current: UiEvent.ApplyServiceChange.Mode?,
             incoming: UiEvent.ApplyServiceChange.Mode,
-        ): UiEvent.ApplyServiceChange.Mode =
-            when {
-                current == UiEvent.ApplyServiceChange.Mode.Restart ||
-                    incoming == UiEvent.ApplyServiceChange.Mode.Restart -> {
-                    UiEvent.ApplyServiceChange.Mode.Restart
-                }
-
-                else -> {
-                    incoming
-                }
+        ): UiEvent.ApplyServiceChange.Mode = when {
+            current == UiEvent.ApplyServiceChange.Mode.Restart ||
+                incoming == UiEvent.ApplyServiceChange.Mode.Restart -> {
+                UiEvent.ApplyServiceChange.Mode.Restart
             }
+
+            else -> incoming
+        }
 
         fun enqueueApplyServiceChange(mode: UiEvent.ApplyServiceChange.Mode) {
             if (currentServiceStatus != Status.Started) {
@@ -699,14 +694,13 @@ class MainActivity :
                 title = { Text(stringResource(R.string.check_update)) },
                 text = {
                     MarkdownText(
-                        markdown =
-                            stringResource(
-                                if (BuildConfig.FLAVOR == "play") {
-                                    R.string.check_update_prompt_play
-                                } else {
-                                    R.string.check_update_prompt_github
-                                },
-                            ),
+                        markdown = stringResource(
+                            if (BuildConfig.FLAVOR == "play") {
+                                R.string.check_update_prompt_play
+                            } else {
+                                R.string.check_update_prompt_github
+                            },
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 },
@@ -740,10 +734,9 @@ class MainActivity :
 
         // Handle update available dialog
         val updateInfo by UpdateState.updateInfo
-        val shouldShowUpdateDialog =
-            updateInfo != null &&
-                UpdateSource.fromString(Settings.updateSource) != UpdateSource.SERVER &&
-                updateInfo!!.versionCode > Settings.lastShownUpdateVersion
+        val shouldShowUpdateDialog = updateInfo != null &&
+            UpdateSource.fromString(Settings.updateSource) != UpdateSource.SERVER &&
+            updateInfo!!.versionCode > Settings.lastShownUpdateVersion
         var showUpdateDialog by remember { mutableStateOf(true) }
 
         // Download dialog state
@@ -761,20 +754,19 @@ class MainActivity :
                 onUpdate = {
                     showDownloadDialog = true
                     downloadError = null
-                    downloadJob =
-                        scope.launch {
-                            try {
-                                withContext(Dispatchers.IO) {
-                                    Vendor.downloadAndInstall(
-                                        this@MainActivity,
-                                        updateInfo!!.downloadUrl,
-                                    )
-                                }
-                                showDownloadDialog = false
-                            } catch (e: Exception) {
-                                downloadError = e.message
+                    downloadJob = scope.launch {
+                        try {
+                            withContext(Dispatchers.IO) {
+                                Vendor.downloadAndInstall(
+                                    this@MainActivity,
+                                    updateInfo!!.downloadUrl,
+                                )
                             }
+                            showDownloadDialog = false
+                        } catch (e: Exception) {
+                            downloadError = e.message
                         }
+                    }
                 },
             )
         }
@@ -857,29 +849,28 @@ class MainActivity :
                     }
                 },
                 dismissButton =
-                    if (!note.migrationLink.isNullOrBlank()) {
-                        {
-                            TextButton(onClick = {
-                                dashboardViewModel.sendGlobalEvent(UiEvent.OpenUrl(note.migrationLink))
-                                dashboardViewModel.dismissDeprecatedNote()
-                            }) {
-                                Text(stringResource(R.string.error_deprecated_documentation))
-                            }
+                if (!note.migrationLink.isNullOrBlank()) {
+                    {
+                        TextButton(onClick = {
+                            dashboardViewModel.sendGlobalEvent(UiEvent.OpenUrl(note.migrationLink))
+                            dashboardViewModel.dismissDeprecatedNote()
+                        }) {
+                            Text(stringResource(R.string.error_deprecated_documentation))
                         }
-                    } else {
-                        null
-                    },
+                    }
+                } else {
+                    null
+                },
             )
         }
 
-        val otherDialogVisible =
-            currentAlert != null || showErrorDialog || pendingIntentError != null ||
-                showLocationPermissionDialog || showBackgroundLocationDialog || showLocalNetworkPermissionDialog ||
-                showImportProfileDialog || showImportLocalProfileDialog || showUpdateCheckPrompt ||
-                (showUpdateDialog && shouldShowUpdateDialog) || showDownloadDialog ||
-                (dashboardUiState.showDeprecatedDialog && dashboardUiState.deprecatedNotes.isNotEmpty()) ||
-                dashboardUiState.showAddProfileSheet || dashboardUiState.showProfilePickerSheet || dashboardUiState.showCardSettingsDialog ||
-                showGroupsSheet || showConnectionsSheet || systemPermissionActive
+        val otherDialogVisible = currentAlert != null || showErrorDialog || pendingIntentError != null ||
+            showLocationPermissionDialog || showBackgroundLocationDialog || showLocalNetworkPermissionDialog ||
+            showImportProfileDialog || showImportLocalProfileDialog || showUpdateCheckPrompt ||
+            (showUpdateDialog && shouldShowUpdateDialog) || showDownloadDialog ||
+            (dashboardUiState.showDeprecatedDialog && dashboardUiState.deprecatedNotes.isNotEmpty()) ||
+            dashboardUiState.showAddProfileSheet || dashboardUiState.showProfilePickerSheet || dashboardUiState.showCardSettingsDialog ||
+            showGroupsSheet || showConnectionsSheet || systemPermissionActive
         if (!showHistoryPermissions) {
             ServerUpdateForegroundReminder(
                 allowPermissionRequest = historyPrompted && !otherDialogVisible,
@@ -932,13 +923,12 @@ class MainActivity :
         val groupsViewModel: GroupsViewModel? =
             if (isGroupsRoute) {
                 viewModel(
-                    factory =
-                        object : ViewModelProvider.Factory {
-                            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                                @Suppress("UNCHECKED_CAST")
-                                return GroupsViewModel(dashboardViewModel.commandClient) as T
-                            }
-                        },
+                    factory = object : ViewModelProvider.Factory {
+                        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                            @Suppress("UNCHECKED_CAST")
+                            return GroupsViewModel(dashboardViewModel.commandClient) as T
+                        }
+                    },
                 )
             } else {
                 null
@@ -1099,9 +1089,7 @@ class MainActivity :
                         }
                     }
 
-                    is UiEvent.ApplyServiceChange -> {
-                        enqueueApplyServiceChange(event.mode)
-                    }
+                    is UiEvent.ApplyServiceChange -> enqueueApplyServiceChange(event.mode)
                 }
             }
         }
@@ -1183,11 +1171,10 @@ class MainActivity :
                             visible = showPadFab,
                             enter = scaleIn(),
                             exit = scaleOut(),
-                            modifier =
-                                Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(bottom = bottomOverlayPadding)
-                                    .padding(20.dp),
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(bottom = bottomOverlayPadding)
+                                .padding(20.dp),
                         ) {
                             val isRunning =
                                 currentServiceStatus == Status.Started || currentServiceStatus == Status.Starting
@@ -1207,11 +1194,11 @@ class MainActivity :
                                         } else {
                                             Text(
                                                 text =
-                                                    if (remoteConnected) {
-                                                        remoteServer?.displayName ?: ""
-                                                    } else {
-                                                        stringResource(R.string.remote_connecting)
-                                                    },
+                                                if (remoteConnected) {
+                                                    remoteServer?.displayName ?: ""
+                                                } else {
+                                                    stringResource(R.string.remote_connecting)
+                                                },
                                                 style = MaterialTheme.typography.labelLarge,
                                             )
                                         }
@@ -1243,17 +1230,17 @@ class MainActivity :
                                     icon = {
                                         Icon(
                                             imageVector =
-                                                if (isRunning || isStopping) {
-                                                    Icons.Default.Stop
-                                                } else {
-                                                    Icons.Default.PlayArrow
-                                                },
+                                            if (isRunning || isStopping) {
+                                                Icons.Default.Stop
+                                            } else {
+                                                Icons.Default.PlayArrow
+                                            },
                                             contentDescription =
-                                                if (isRunning || isStopping) {
-                                                    stringResource(R.string.stop)
-                                                } else {
-                                                    stringResource(R.string.action_start)
-                                                },
+                                            if (isRunning || isStopping) {
+                                                stringResource(R.string.stop)
+                                            } else {
+                                                stringResource(R.string.action_start)
+                                            },
                                         )
                                     },
                                     text = {
@@ -1296,18 +1283,16 @@ class MainActivity :
                     } else {
                         // Start FAB (shown when service is stopped and a profile is selected)
                         androidx.compose.animation.AnimatedVisibility(
-                            visible =
-                                !isRemote &&
-                                    currentServiceStatus == Status.Stopped &&
-                                    dashboardUiState.selectedProfileId != -1L &&
-                                    !isSubScreen,
+                            visible = !isRemote &&
+                                currentServiceStatus == Status.Stopped &&
+                                dashboardUiState.selectedProfileId != -1L &&
+                                !isSubScreen,
                             enter = scaleIn(),
                             exit = scaleOut(),
-                            modifier =
-                                Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(bottom = bottomOverlayPadding)
-                                    .padding(16.dp),
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(bottom = bottomOverlayPadding)
+                                .padding(16.dp),
                         ) {
                             FloatingActionButton(
                                 onClick = { startService() },
@@ -1386,14 +1371,12 @@ class MainActivity :
                     }
 
                     Scaffold(
-                        modifier =
-                            Modifier
-                                .weight(1f)
-                                .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
-                        contentWindowInsets =
-                            ScaffoldDefaults.contentWindowInsets.exclude(
-                                WindowInsets.safeDrawing.only(WindowInsetsSides.Start),
-                            ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
+                        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(
+                            WindowInsets.safeDrawing.only(WindowInsetsSides.Start),
+                        ),
                         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
                         topBar = topBarContent,
                     ) { paddingValues ->
@@ -1430,9 +1413,9 @@ class MainActivity :
                                         },
                                         label = { Text(stringResource(screen.titleRes)) },
                                         selected =
-                                            currentDestination?.hierarchy?.any {
-                                                it.route == screen.route
-                                            } == true,
+                                        currentDestination?.hierarchy?.any {
+                                            it.route == screen.route
+                                        } == true,
                                         onClick = {
                                             navController.navigate(screen.route) {
                                                 // Pop up to the start destination of the graph to
@@ -1471,16 +1454,14 @@ class MainActivity :
         // Groups ModalBottomSheet
         if (showGroupsSheet && !useNavigationRail) {
             val groupsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-            val groupsViewModel: GroupsViewModel =
-                viewModel(
-                    factory =
-                        object : ViewModelProvider.Factory {
-                            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                                @Suppress("UNCHECKED_CAST")
-                                return GroupsViewModel(dashboardViewModel.commandClient) as T
-                            }
-                        },
-                )
+            val groupsViewModel: GroupsViewModel = viewModel(
+                factory = object : ViewModelProvider.Factory {
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                        @Suppress("UNCHECKED_CAST")
+                        return GroupsViewModel(dashboardViewModel.commandClient) as T
+                    }
+                },
+            )
             val groupsUiState by groupsViewModel.uiState.collectAsState()
             val allCollapsed = groupsUiState.expandedGroups.isEmpty()
 
@@ -1491,10 +1472,9 @@ class MainActivity :
                 contentColor = MaterialTheme.colorScheme.onSurface,
             ) {
                 Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(),
                 ) {
                     // Groups content
                     GroupsCard(
@@ -1512,9 +1492,9 @@ class MainActivity :
                         listHeaderContent = {
                             Row(
                                 modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 8.dp),
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
@@ -1527,18 +1507,16 @@ class MainActivity :
                                 if (groupsUiState.groups.isNotEmpty()) {
                                     IconButton(onClick = { groupsViewModel.toggleAllGroups() }) {
                                         Icon(
-                                            imageVector =
-                                                if (allCollapsed) {
-                                                    Icons.Default.UnfoldMore
-                                                } else {
-                                                    Icons.Default.UnfoldLess
-                                                },
-                                            contentDescription =
-                                                if (allCollapsed) {
-                                                    stringResource(R.string.expand_all)
-                                                } else {
-                                                    stringResource(R.string.collapse_all)
-                                                },
+                                            imageVector = if (allCollapsed) {
+                                                Icons.Default.UnfoldMore
+                                            } else {
+                                                Icons.Default.UnfoldLess
+                                            },
+                                            contentDescription = if (allCollapsed) {
+                                                stringResource(R.string.expand_all)
+                                            } else {
+                                                stringResource(R.string.collapse_all)
+                                            },
                                         )
                                     }
                                 }
@@ -1590,10 +1568,9 @@ class MainActivity :
                 contentColor = MaterialTheme.colorScheme.onSurface,
             ) {
                 Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(),
                 ) {
                     if (displayConnection != null) {
                         ConnectionDetailsScreen(
@@ -1627,10 +1604,7 @@ class MainActivity :
         connection.reconnect()
     }
 
-    override fun onServiceAlert(
-        type: Alert,
-        message: String?,
-    ) {
+    override fun onServiceAlert(type: Alert, message: String?) {
         when (type) {
             Alert.RequestLocationPermission -> {
                 return requestLocationPermission()
@@ -1690,11 +1664,7 @@ class MainActivity :
     }
 
     @Composable
-    private fun ServiceAlertDialog(
-        alertType: Alert,
-        message: String?,
-        onDismiss: () -> Unit,
-    ) {
+    private fun ServiceAlertDialog(alertType: Alert, message: String?, onDismiss: () -> Unit) {
         val title =
             when (alertType) {
                 Alert.RequestNotificationPermission -> stringResource(R.string.notification_permission_title)
@@ -1725,10 +1695,7 @@ class MainActivity :
     }
 
     @Composable
-    private fun LocationPermissionDialog(
-        onConfirm: () -> Unit,
-        onDismiss: () -> Unit,
-    ) {
+    private fun LocationPermissionDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text(stringResource(R.string.location_permission_title)) },
@@ -1747,10 +1714,7 @@ class MainActivity :
     }
 
     @Composable
-    private fun BackgroundLocationPermissionDialog(
-        onConfirm: () -> Unit,
-        onDismiss: () -> Unit,
-    ) {
+    private fun BackgroundLocationPermissionDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text(stringResource(R.string.location_permission_title)) },
@@ -1769,10 +1733,7 @@ class MainActivity :
     }
 
     @Composable
-    private fun LocalNetworkPermissionDialog(
-        onConfirm: () -> Unit,
-        onDismiss: () -> Unit,
-    ) {
+    private fun LocalNetworkPermissionDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text(stringResource(R.string.local_network_permission_title)) },

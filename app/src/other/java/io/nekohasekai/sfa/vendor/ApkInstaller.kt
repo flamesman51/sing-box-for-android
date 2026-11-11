@@ -18,6 +18,7 @@ enum class InstallMethod {
 }
 
 object ApkInstaller {
+
     fun getConfiguredMethod(): InstallMethod {
         if (HookStatusClient.status.value?.active == true ||
             XposedActivation.isActivated(Application.application)
@@ -31,14 +32,9 @@ object ApkInstaller {
         }
     }
 
-    suspend fun install(
-        context: Context,
-        apkFile: File,
-        method: InstallMethod = getConfiguredMethod(),
-    ) {
+    suspend fun install(context: Context, apkFile: File, method: InstallMethod = getConfiguredMethod()) {
         if (UpdateSource.fromString(Settings.updateSource) == UpdateSource.SERVER ||
-            ServerUpdates.state.value.ready
-                ?.path == apkFile.absolutePath
+            ServerUpdates.state.value.ready?.path == apkFile.absolutePath
         ) {
             context.startActivity(ServerUpdateNotifier.installIntent(context))
             return

@@ -109,22 +109,13 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.ZipFile
 
-private data class LoadResult(
-    val proxyMode: Int,
-    val packages: List<PackageCache>,
-    val selectedUids: Set<Int>,
-)
+private data class LoadResult(val proxyMode: Int, val packages: List<PackageCache>, val selectedUids: Set<Int>)
 
-private data class ScanProgress(
-    val current: Int,
-    val max: Int,
-)
+private data class ScanProgress(val current: Int, val max: Int)
 
 private sealed class ScanResult {
     data object Empty : ScanResult()
-    data class Found(
-        val apps: Map<String, PackageCache>,
-    ) : ScanResult()
+    data class Found(val apps: Map<String, PackageCache>) : ScanResult()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -157,11 +148,9 @@ fun PerAppProxyScreen(
     var scanProgress by remember { mutableStateOf<ScanProgress?>(null) }
     var scanResult by remember { mutableStateOf<ScanResult?>(null) }
 
-    fun buildPackageList(newUids: Set<Int>): Set<String> =
-        newUids
-            .mapNotNull { uid ->
-                packages.find { it.uid == uid }?.packageName
-            }.toSet()
+    fun buildPackageList(newUids: Set<Int>): Set<String> = newUids.mapNotNull { uid ->
+        packages.find { it.uid == uid }?.packageName
+    }.toSet()
 
     fun updateCurrentPackages(filterQuery: String) {
         currentPackages =
@@ -205,10 +194,7 @@ fun PerAppProxyScreen(
         saveSelectedApplications(newUids)
     }
 
-    fun toggleSelection(
-        packageCache: PackageCache,
-        selected: Boolean,
-    ) {
+    fun toggleSelection(packageCache: PackageCache, selected: Boolean) {
         val newSelected =
             if (selected) {
                 selectedUids + packageCache.uid
@@ -232,20 +218,19 @@ fun PerAppProxyScreen(
                 withContext(Dispatchers.Default) {
                     mutableMapOf<String, PackageCache>().also { found ->
                         val progressInt = AtomicInteger()
-                        scanPackages
-                            .map { packageCache ->
-                                async {
-                                    if (PerAppProxyScanner.scanPackage(packageCache.info, scanRegions)) {
-                                        synchronized(found) {
-                                            found[packageCache.packageName] = packageCache
-                                        }
-                                    }
-                                    val nextValue = progressInt.incrementAndGet()
-                                    withContext(Dispatchers.Main) {
-                                        scanProgress = ScanProgress(nextValue, scanPackages.size)
+                        scanPackages.map { packageCache ->
+                            async {
+                                if (PerAppProxyScanner.scanPackage(packageCache.info, scanRegions)) {
+                                    synchronized(found) {
+                                        found[packageCache.packageName] = packageCache
                                     }
                                 }
-                            }.awaitAll()
+                                val nextValue = progressInt.incrementAndGet()
+                                withContext(Dispatchers.Main) {
+                                    scanProgress = ScanProgress(nextValue, scanPackages.size)
+                                }
+                            }
+                        }.awaitAll()
                     }
                 }
             Log.d(
@@ -296,26 +281,24 @@ fun PerAppProxyScreen(
                         }
                     val selectedPackageNames = Settings.perAppProxyList.toMutableSet()
                     val selectedUidSet =
-                        packageCaches
-                            .mapNotNull { packageCache ->
-                                if (selectedPackageNames.contains(packageCache.packageName)) {
-                                    packageCache.uid
-                                } else {
-                                    null
-                                }
-                            }.toSet()
+                        packageCaches.mapNotNull { packageCache ->
+                            if (selectedPackageNames.contains(packageCache.packageName)) {
+                                packageCache.uid
+                            } else {
+                                null
+                            }
+                        }.toSet()
                     LoadResult(mode, packageCaches, selectedUidSet)
                 } catch (_: PrivilegedAccessRequiredException) {
                     null
                 }
             }
         if (loadResult == null) {
-            Toast
-                .makeText(
-                    context,
-                    R.string.privileged_access_required,
-                    Toast.LENGTH_LONG,
-                ).show()
+            Toast.makeText(
+                context,
+                R.string.privileged_access_required,
+                Toast.LENGTH_LONG,
+            ).show()
             onBack()
             return@LaunchedEffect
         }
@@ -399,34 +382,29 @@ fun PerAppProxyScreen(
                     },
                     onImport = {
                         val packageNames =
-                            clipboardText
-                                ?.split("\n")
-                                ?.distinct()
+                            clipboardText?.split("\n")?.distinct()
                                 ?.takeIf { it.isNotEmpty() && it[0].isNotEmpty() }
                         if (packageNames.isNullOrEmpty()) {
-                            Toast
-                                .makeText(
-                                    context,
-                                    R.string.toast_clipboard_empty,
-                                    Toast.LENGTH_SHORT,
-                                ).show()
+                            Toast.makeText(
+                                context,
+                                R.string.toast_clipboard_empty,
+                                Toast.LENGTH_SHORT,
+                            ).show()
                         } else {
                             val newSelected =
-                                packages
-                                    .mapNotNull { packageCache ->
-                                        if (packageNames.contains(packageCache.packageName)) {
-                                            packageCache.uid
-                                        } else {
-                                            null
-                                        }
-                                    }.toSet()
+                                packages.mapNotNull { packageCache ->
+                                    if (packageNames.contains(packageCache.packageName)) {
+                                        packageCache.uid
+                                    } else {
+                                        null
+                                    }
+                                }.toSet()
                             postSaveSelectedApplications(newSelected)
-                            Toast
-                                .makeText(
-                                    context,
-                                    R.string.toast_imported_from_clipboard,
-                                    Toast.LENGTH_SHORT,
-                                ).show()
+                            Toast.makeText(
+                                context,
+                                R.string.toast_imported_from_clipboard,
+                                Toast.LENGTH_SHORT,
+                            ).show()
                         }
                     },
                     onExport = {
@@ -439,32 +417,30 @@ fun PerAppProxyScreen(
                                 }
                             }
                         clipboardText = packageList.joinToString("\n")
-                        Toast
-                            .makeText(
-                                context,
-                                R.string.toast_copied_to_clipboard,
-                                Toast.LENGTH_SHORT,
-                            ).show()
+                        Toast.makeText(
+                            context,
+                            R.string.toast_copied_to_clipboard,
+                            Toast.LENGTH_SHORT,
+                        ).show()
                     },
                     onScanChinaApps = { startScan(AppScanRegion.China) },
                     onScanRussianApps = { startScan(AppScanRegion.Russia) },
                 )
             },
             colors =
-                TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
+            TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+            ),
         )
     }
 
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(scaffoldPadding),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(scaffoldPadding),
     ) {
         AnimatedVisibility(
             visible = isLoading,
@@ -480,11 +456,11 @@ fun PerAppProxyScreen(
         ) {
             Text(
                 text =
-                    if (proxyMode == Settings.PER_APP_PROXY_INCLUDE) {
-                        stringResource(R.string.per_app_proxy_mode_include_description)
-                    } else {
-                        stringResource(R.string.per_app_proxy_mode_exclude_description)
-                    },
+                if (proxyMode == Settings.PER_APP_PROXY_INCLUDE) {
+                    stringResource(R.string.per_app_proxy_mode_include_description)
+                } else {
+                    stringResource(R.string.per_app_proxy_mode_exclude_description)
+                },
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -510,10 +486,10 @@ fun PerAppProxyScreen(
                     updateCurrentPackages(it)
                 },
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .focusRequester(focusRequester),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .focusRequester(focusRequester),
                 placeholder = { Text(stringResource(R.string.search)) },
                 leadingIcon = {
                     Icon(
@@ -542,10 +518,10 @@ fun PerAppProxyScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding =
-                androidx.compose.foundation.layout.PaddingValues(
-                    horizontal = 16.dp,
-                    vertical = 12.dp,
-                ),
+            androidx.compose.foundation.layout.PaddingValues(
+                horizontal = 16.dp,
+                vertical = 12.dp,
+            ),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(currentPackages, key = { it.packageName }) { packageCache ->
@@ -654,10 +630,10 @@ fun PerAppProxyScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                         Box(
                             modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(max = 360.dp)
-                                    .verticalScroll(rememberScrollState()),
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 360.dp)
+                                .verticalScroll(rememberScrollState()),
                         ) {
                             Text(
                                 text = dialogContent,
@@ -704,9 +680,7 @@ fun PerAppProxyScreen(
             }
         }
 
-        null -> {
-            Unit
-        }
+        null -> Unit
     }
 }
 
@@ -770,11 +744,11 @@ private fun PerAppProxyMenus(
                 trailingIcon = {
                     Icon(
                         imageVector =
-                            if (showModeMenu) {
-                                Icons.Default.ExpandLess
-                            } else {
-                                Icons.Default.ExpandMore
-                            },
+                        if (showModeMenu) {
+                            Icons.Default.ExpandLess
+                        } else {
+                            Icons.Default.ExpandMore
+                        },
                         contentDescription = null,
                     )
                 },
@@ -790,18 +764,18 @@ private fun PerAppProxyMenus(
                     leadingIcon = {
                         Icon(
                             imageVector =
-                                if (proxyMode == Settings.PER_APP_PROXY_INCLUDE) {
-                                    Icons.Default.RadioButtonChecked
-                                } else {
-                                    Icons.Default.RadioButtonUnchecked
-                                },
+                            if (proxyMode == Settings.PER_APP_PROXY_INCLUDE) {
+                                Icons.Default.RadioButtonChecked
+                            } else {
+                                Icons.Default.RadioButtonUnchecked
+                            },
                             contentDescription = null,
                             tint =
-                                if (proxyMode == Settings.PER_APP_PROXY_INCLUDE) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
+                            if (proxyMode == Settings.PER_APP_PROXY_INCLUDE) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                             modifier = Modifier.padding(start = 24.dp),
                         )
                     },
@@ -816,18 +790,18 @@ private fun PerAppProxyMenus(
                     leadingIcon = {
                         Icon(
                             imageVector =
-                                if (proxyMode == Settings.PER_APP_PROXY_EXCLUDE) {
-                                    Icons.Default.RadioButtonChecked
-                                } else {
-                                    Icons.Default.RadioButtonUnchecked
-                                },
+                            if (proxyMode == Settings.PER_APP_PROXY_EXCLUDE) {
+                                Icons.Default.RadioButtonChecked
+                            } else {
+                                Icons.Default.RadioButtonUnchecked
+                            },
                             contentDescription = null,
                             tint =
-                                if (proxyMode == Settings.PER_APP_PROXY_EXCLUDE) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
+                            if (proxyMode == Settings.PER_APP_PROXY_EXCLUDE) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                             modifier = Modifier.padding(start = 24.dp),
                         )
                     },
@@ -847,11 +821,11 @@ private fun PerAppProxyMenus(
                 trailingIcon = {
                     Icon(
                         imageVector =
-                            if (showSortMenu) {
-                                Icons.Default.ExpandLess
-                            } else {
-                                Icons.Default.ExpandMore
-                            },
+                        if (showSortMenu) {
+                            Icons.Default.ExpandLess
+                        } else {
+                            Icons.Default.ExpandMore
+                        },
                         contentDescription = null,
                     )
                 },
@@ -867,18 +841,18 @@ private fun PerAppProxyMenus(
                     leadingIcon = {
                         Icon(
                             imageVector =
-                                if (sortMode == SortMode.NAME) {
-                                    Icons.Default.RadioButtonChecked
-                                } else {
-                                    Icons.Default.RadioButtonUnchecked
-                                },
+                            if (sortMode == SortMode.NAME) {
+                                Icons.Default.RadioButtonChecked
+                            } else {
+                                Icons.Default.RadioButtonUnchecked
+                            },
                             contentDescription = null,
                             tint =
-                                if (sortMode == SortMode.NAME) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
+                            if (sortMode == SortMode.NAME) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                             modifier = Modifier.padding(start = 24.dp),
                         )
                     },
@@ -893,18 +867,18 @@ private fun PerAppProxyMenus(
                     leadingIcon = {
                         Icon(
                             imageVector =
-                                if (sortMode == SortMode.PACKAGE_NAME) {
-                                    Icons.Default.RadioButtonChecked
-                                } else {
-                                    Icons.Default.RadioButtonUnchecked
-                                },
+                            if (sortMode == SortMode.PACKAGE_NAME) {
+                                Icons.Default.RadioButtonChecked
+                            } else {
+                                Icons.Default.RadioButtonUnchecked
+                            },
                             contentDescription = null,
                             tint =
-                                if (sortMode == SortMode.PACKAGE_NAME) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
+                            if (sortMode == SortMode.PACKAGE_NAME) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                             modifier = Modifier.padding(start = 24.dp),
                         )
                     },
@@ -919,18 +893,18 @@ private fun PerAppProxyMenus(
                     leadingIcon = {
                         Icon(
                             imageVector =
-                                if (sortMode == SortMode.UID) {
-                                    Icons.Default.RadioButtonChecked
-                                } else {
-                                    Icons.Default.RadioButtonUnchecked
-                                },
+                            if (sortMode == SortMode.UID) {
+                                Icons.Default.RadioButtonChecked
+                            } else {
+                                Icons.Default.RadioButtonUnchecked
+                            },
                             contentDescription = null,
                             tint =
-                                if (sortMode == SortMode.UID) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
+                            if (sortMode == SortMode.UID) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                             modifier = Modifier.padding(start = 24.dp),
                         )
                     },
@@ -945,18 +919,18 @@ private fun PerAppProxyMenus(
                     leadingIcon = {
                         Icon(
                             imageVector =
-                                if (sortMode == SortMode.INSTALL_TIME) {
-                                    Icons.Default.RadioButtonChecked
-                                } else {
-                                    Icons.Default.RadioButtonUnchecked
-                                },
+                            if (sortMode == SortMode.INSTALL_TIME) {
+                                Icons.Default.RadioButtonChecked
+                            } else {
+                                Icons.Default.RadioButtonUnchecked
+                            },
                             contentDescription = null,
                             tint =
-                                if (sortMode == SortMode.INSTALL_TIME) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
+                            if (sortMode == SortMode.INSTALL_TIME) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                             modifier = Modifier.padding(start = 24.dp),
                         )
                     },
@@ -971,18 +945,18 @@ private fun PerAppProxyMenus(
                     leadingIcon = {
                         Icon(
                             imageVector =
-                                if (sortMode == SortMode.UPDATE_TIME) {
-                                    Icons.Default.RadioButtonChecked
-                                } else {
-                                    Icons.Default.RadioButtonUnchecked
-                                },
+                            if (sortMode == SortMode.UPDATE_TIME) {
+                                Icons.Default.RadioButtonChecked
+                            } else {
+                                Icons.Default.RadioButtonUnchecked
+                            },
                             contentDescription = null,
                             tint =
-                                if (sortMode == SortMode.UPDATE_TIME) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
+                            if (sortMode == SortMode.UPDATE_TIME) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                             modifier = Modifier.padding(start = 24.dp),
                         )
                     },
@@ -997,18 +971,18 @@ private fun PerAppProxyMenus(
                     leadingIcon = {
                         Icon(
                             imageVector =
-                                if (sortReverse) {
-                                    Icons.Default.Check
-                                } else {
-                                    Icons.Default.RadioButtonUnchecked
-                                },
+                            if (sortReverse) {
+                                Icons.Default.Check
+                            } else {
+                                Icons.Default.RadioButtonUnchecked
+                            },
                             contentDescription = null,
                             tint =
-                                if (sortReverse) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
+                            if (sortReverse) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                             modifier = Modifier.padding(start = 24.dp),
                         )
                     },
@@ -1028,11 +1002,11 @@ private fun PerAppProxyMenus(
                 trailingIcon = {
                     Icon(
                         imageVector =
-                            if (showFilterMenu) {
-                                Icons.Default.ExpandLess
-                            } else {
-                                Icons.Default.ExpandMore
-                            },
+                        if (showFilterMenu) {
+                            Icons.Default.ExpandLess
+                        } else {
+                            Icons.Default.ExpandMore
+                        },
                         contentDescription = null,
                     )
                 },
@@ -1048,18 +1022,18 @@ private fun PerAppProxyMenus(
                     leadingIcon = {
                         Icon(
                             imageVector =
-                                if (hideSystemApps) {
-                                    Icons.Default.Check
-                                } else {
-                                    Icons.Default.RadioButtonUnchecked
-                                },
+                            if (hideSystemApps) {
+                                Icons.Default.Check
+                            } else {
+                                Icons.Default.RadioButtonUnchecked
+                            },
                             contentDescription = null,
                             tint =
-                                if (hideSystemApps) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
+                            if (hideSystemApps) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                             modifier = Modifier.padding(start = 24.dp),
                         )
                     },
@@ -1074,18 +1048,18 @@ private fun PerAppProxyMenus(
                     leadingIcon = {
                         Icon(
                             imageVector =
-                                if (hideOfflineApps) {
-                                    Icons.Default.Check
-                                } else {
-                                    Icons.Default.RadioButtonUnchecked
-                                },
+                            if (hideOfflineApps) {
+                                Icons.Default.Check
+                            } else {
+                                Icons.Default.RadioButtonUnchecked
+                            },
                             contentDescription = null,
                             tint =
-                                if (hideOfflineApps) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
+                            if (hideOfflineApps) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                             modifier = Modifier.padding(start = 24.dp),
                         )
                     },
@@ -1100,18 +1074,18 @@ private fun PerAppProxyMenus(
                     leadingIcon = {
                         Icon(
                             imageVector =
-                                if (hideDisabledApps) {
-                                    Icons.Default.Check
-                                } else {
-                                    Icons.Default.RadioButtonUnchecked
-                                },
+                            if (hideDisabledApps) {
+                                Icons.Default.Check
+                            } else {
+                                Icons.Default.RadioButtonUnchecked
+                            },
                             contentDescription = null,
                             tint =
-                                if (hideDisabledApps) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
+                            if (hideDisabledApps) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                             modifier = Modifier.padding(start = 24.dp),
                         )
                     },
@@ -1131,11 +1105,11 @@ private fun PerAppProxyMenus(
                 trailingIcon = {
                     Icon(
                         imageVector =
-                            if (showSelectMenu) {
-                                Icons.Default.ExpandLess
-                            } else {
-                                Icons.Default.ExpandMore
-                            },
+                        if (showSelectMenu) {
+                            Icons.Default.ExpandLess
+                        } else {
+                            Icons.Default.ExpandMore
+                        },
                         contentDescription = null,
                     )
                 },
@@ -1188,11 +1162,11 @@ private fun PerAppProxyMenus(
                 trailingIcon = {
                     Icon(
                         imageVector =
-                            if (showBackupMenu) {
-                                Icons.Default.ExpandLess
-                            } else {
-                                Icons.Default.ExpandMore
-                            },
+                        if (showBackupMenu) {
+                            Icons.Default.ExpandLess
+                        } else {
+                            Icons.Default.ExpandMore
+                        },
                         contentDescription = null,
                     )
                 },
@@ -1245,11 +1219,11 @@ private fun PerAppProxyMenus(
                 trailingIcon = {
                     Icon(
                         imageVector =
-                            if (showScanMenu) {
-                                Icons.Default.ExpandLess
-                            } else {
-                                Icons.Default.ExpandMore
-                            },
+                        if (showScanMenu) {
+                            Icons.Default.ExpandLess
+                        } else {
+                            Icons.Default.ExpandMore
+                        },
                         contentDescription = null,
                     )
                 },
@@ -1351,11 +1325,7 @@ object PerAppProxyScanner {
         ("(" + chinaAppPrefixList.joinToString("|").replace(".", "\\.") + ").*").toRegex()
     }
     private val russianRules by lazy {
-        val content =
-            Application.application.assets
-                .open("ru-apps.json")
-                .bufferedReader()
-                .use { it.readText() }
+        val content = Application.application.assets.open("ru-apps.json").bufferedReader().use { it.readText() }
         val packages = JSONObject(content).getJSONArray("packages")
         RussianAppRules((0 until packages.length()).map { packages.getString(it) }.toSet())
     }
@@ -1363,45 +1333,38 @@ object PerAppProxyScanner {
 
     suspend fun scanAllManagedApps(
         regions: Set<AppScanRegion>,
-    ): Set<String> =
-        withContext(Dispatchers.Default) {
-            val packageManagerFlags =
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    PackageManager.MATCH_UNINSTALLED_PACKAGES or
-                        PackageManager.GET_ACTIVITIES or PackageManager.GET_SERVICES or
-                        PackageManager.GET_RECEIVERS or PackageManager.GET_PROVIDERS
-                } else {
-                    @Suppress("DEPRECATION")
-                    PackageManager.GET_UNINSTALLED_PACKAGES or
-                        PackageManager.GET_ACTIVITIES or PackageManager.GET_SERVICES or
-                        PackageManager.GET_RECEIVERS or PackageManager.GET_PROVIDERS
-                }
-            val retryFlags =
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    PackageManager.MATCH_UNINSTALLED_PACKAGES or PackageManager.GET_PERMISSIONS
-                } else {
-                    @Suppress("DEPRECATION")
-                    PackageManager.GET_UNINSTALLED_PACKAGES or PackageManager.GET_PERMISSIONS
-                }
-            val installedPackages = PackageQueryManager.getInstalledPackages(packageManagerFlags, retryFlags)
-            val managedApps = mutableSetOf<String>()
-            installedPackages
-                .map { packageInfo ->
-                    async {
-                        if (scanPackage(packageInfo, regions)) {
-                            synchronized(managedApps) {
-                                managedApps.add(packageInfo.packageName)
-                            }
-                        }
-                    }
-                }.awaitAll()
-            managedApps.toSet()
+    ): Set<String> = withContext(Dispatchers.Default) {
+        val packageManagerFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            PackageManager.MATCH_UNINSTALLED_PACKAGES or
+                PackageManager.GET_ACTIVITIES or PackageManager.GET_SERVICES or
+                PackageManager.GET_RECEIVERS or PackageManager.GET_PROVIDERS
+        } else {
+            @Suppress("DEPRECATION")
+            PackageManager.GET_UNINSTALLED_PACKAGES or
+                PackageManager.GET_ACTIVITIES or PackageManager.GET_SERVICES or
+                PackageManager.GET_RECEIVERS or PackageManager.GET_PROVIDERS
         }
+        val retryFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            PackageManager.MATCH_UNINSTALLED_PACKAGES or PackageManager.GET_PERMISSIONS
+        } else {
+            @Suppress("DEPRECATION")
+            PackageManager.GET_UNINSTALLED_PACKAGES or PackageManager.GET_PERMISSIONS
+        }
+        val installedPackages = PackageQueryManager.getInstalledPackages(packageManagerFlags, retryFlags)
+        val managedApps = mutableSetOf<String>()
+        installedPackages.map { packageInfo ->
+            async {
+                if (scanPackage(packageInfo, regions)) {
+                    synchronized(managedApps) {
+                        managedApps.add(packageInfo.packageName)
+                    }
+                }
+            }
+        }.awaitAll()
+        managedApps.toSet()
+    }
 
-    suspend fun scanPackage(
-        packageInfo: PackageInfo,
-        regions: Set<AppScanRegion>,
-    ): Boolean {
+    suspend fun scanPackage(packageInfo: PackageInfo, regions: Set<AppScanRegion>): Boolean {
         val scanContext = currentCoroutineContext()
         scanContext.ensureActive()
         val packageName = packageInfo.packageName
@@ -1450,7 +1413,7 @@ object PerAppProxyScanner {
                         if (!(
                                 packageEntry.name.startsWith("classes") &&
                                     packageEntry.name.endsWith(".dex")
-                            )
+                                )
                         ) {
                             continue
                         }
@@ -1462,20 +1425,17 @@ object PerAppProxyScanner {
                             return true
                         }
                         if (!canParseAppDex(packageEntry.size)) continue
-                        val matched =
-                            it.getInputStream(packageEntry).buffered().use { input ->
-                                val dexFile = DexBackedDexFile.fromInputStream(null, input)
-                                dexFile.classes.any { clazz ->
-                                    scanContext.ensureActive()
-                                    val clazzName =
-                                        clazz.type
-                                            .substring(1, clazz.type.length - 1)
-                                            .replace("/", ".")
-                                            .replace("$", ".")
-                                    (chinaCandidate && !hasFirebase && clazzName.matches(chinaAppRegex)) ||
-                                        (scanRussia && russianRules.matchesClass(clazzName))
-                                }
+                        val matched = it.getInputStream(packageEntry).buffered().use { input ->
+                            val dexFile = DexBackedDexFile.fromInputStream(null, input)
+                            dexFile.classes.any { clazz ->
+                                scanContext.ensureActive()
+                                val clazzName =
+                                    clazz.type.substring(1, clazz.type.length - 1).replace("/", ".")
+                                        .replace("$", ".")
+                                (chinaCandidate && !hasFirebase && clazzName.matches(chinaAppRegex)) ||
+                                    (scanRussia && russianRules.matchesClass(clazzName))
                             }
+                        }
                         if (matched) {
                             Log.d("PerAppProxyScanner", "Match SDK class in $packageName")
                             return true

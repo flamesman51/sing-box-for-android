@@ -61,11 +61,7 @@ import kotlin.math.max
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QRScanSheet(
-    onDismiss: () -> Unit,
-    onScanResult: (QRScanResult) -> Unit,
-    viewModel: QRScanViewModel = viewModel(),
-) {
+fun QRScanSheet(onDismiss: () -> Unit, onScanResult: (QRScanResult) -> Unit, viewModel: QRScanViewModel = viewModel()) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -78,16 +74,15 @@ fun QRScanSheet(
         )
     }
 
-    val permissionLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.RequestPermission(),
-        ) { isGranted ->
-            if (isGranted) {
-                hasPermission = true
-            } else {
-                onDismiss()
-            }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { isGranted ->
+        if (isGranted) {
+            hasPermission = true
+        } else {
+            onDismiss()
         }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.resetQRSState()
@@ -112,17 +107,15 @@ fun QRScanSheet(
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.9f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.9f),
         ) {
             Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                        .padding(bottom = 16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -186,10 +179,9 @@ fun QRScanSheet(
             }
 
             Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
             ) {
                 if (hasPermission) {
                     CameraPreview(
@@ -202,10 +194,9 @@ fun QRScanSheet(
 
                 if (uiState.isLoading) {
                     Box(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.surface),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surface),
                         contentAlignment = Alignment.Center,
                     ) {
                         CircularProgressIndicator()
@@ -216,10 +207,9 @@ fun QRScanSheet(
                     val (decoded, total) = uiState.qrsProgress!!
                     val progress = if (total > 0) decoded.toFloat() / total.toFloat() / 1.2f else 0f
                     Box(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Box(contentAlignment = Alignment.Center) {
@@ -233,19 +223,17 @@ fun QRScanSheet(
                             if (total > 0) {
                                 Text(
                                     text = "${minOf(99, (progress * 100).toInt())}%",
-                                    style =
-                                        MaterialTheme.typography.titleLarge.copy(
-                                            fontWeight = FontWeight.SemiBold,
-                                        ),
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                    ),
                                     color = Color.White,
                                 )
                             }
                             Text(
                                 text = "QRS",
-                                style =
-                                    MaterialTheme.typography.headlineLarge.copy(
-                                        fontWeight = FontWeight.Bold,
-                                    ),
+                                style = MaterialTheme.typography.headlineLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                ),
                                 color = Color.White,
                                 modifier = Modifier.offset(y = (-88).dp),
                             )
@@ -317,11 +305,7 @@ private fun CameraPreview(
     }
 }
 
-private fun mapCropAreaToPreview(
-    area: QRCodeCropArea,
-    viewWidth: Float,
-    viewHeight: Float,
-): Rect? {
+private fun mapCropAreaToPreview(area: QRCodeCropArea, viewWidth: Float, viewHeight: Float): Rect? {
     if (viewWidth <= 0f || viewHeight <= 0f) return null
 
     val rotation = ((area.rotationDegrees % 360) + 360) % 360

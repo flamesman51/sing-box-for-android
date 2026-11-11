@@ -9,29 +9,19 @@ import kotlinx.coroutines.flow.asSharedFlow
  * These are one-time events that should trigger UI actions.
  */
 sealed class UiEvent {
-    data class ErrorMessage(
-        val message: String,
-    ) : UiEvent()
+    data class ErrorMessage(val message: String) : UiEvent()
 
-    data class OpenUrl(
-        val url: String,
-    ) : UiEvent()
+    data class OpenUrl(val url: String) : UiEvent()
 
-    data class EditProfile(
-        val profileId: Long,
-    ) : UiEvent()
+    data class EditProfile(val profileId: Long) : UiEvent()
 
-    data class Navigate(
-        val route: String,
-    ) : UiEvent()
+    data class Navigate(val route: String) : UiEvent()
 
     object RequestStartService : UiEvent()
 
     object RequestReconnectService : UiEvent()
 
-    data class ApplyServiceChange(
-        val mode: Mode,
-    ) : UiEvent() {
+    data class ApplyServiceChange(val mode: Mode) : UiEvent() {
         enum class Mode {
             Reload,
             Restart,

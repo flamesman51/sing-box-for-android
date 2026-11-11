@@ -25,6 +25,7 @@ class ConfigJsonLanguage(
     languageSpec: TsLanguageSpec,
     themeDescription: TsThemeBuilder.() -> Unit,
 ) : TsLanguage(languageSpec, false, themeDescription) {
+
     @Volatile
     private var forceNextCompletion = false
 
@@ -33,44 +34,25 @@ class ConfigJsonLanguage(
 
     private val bracePairGuard =
         object : SymbolPairMatch.SymbolPair.SymbolPairEx {
-            override fun shouldReplace(
-                editor: CodeEditor,
-                currentLine: ContentLine,
-                leftColumn: Int,
-            ): Boolean =
-                !insideStringLiteral(currentLine, leftColumn) &&
-                    JsonDocumentScanner.balance(editor.text.toString()).orphanClosingBraces == 0
+            override fun shouldReplace(editor: CodeEditor, currentLine: ContentLine, leftColumn: Int): Boolean = !insideStringLiteral(currentLine, leftColumn) &&
+                JsonDocumentScanner.balance(editor.text.toString()).orphanClosingBraces == 0
         }
 
     private val bracketPairGuard =
         object : SymbolPairMatch.SymbolPair.SymbolPairEx {
-            override fun shouldReplace(
-                editor: CodeEditor,
-                currentLine: ContentLine,
-                leftColumn: Int,
-            ): Boolean =
-                !insideStringLiteral(currentLine, leftColumn) &&
-                    JsonDocumentScanner.balance(editor.text.toString()).orphanClosingBrackets == 0
+            override fun shouldReplace(editor: CodeEditor, currentLine: ContentLine, leftColumn: Int): Boolean = !insideStringLiteral(currentLine, leftColumn) &&
+                JsonDocumentScanner.balance(editor.text.toString()).orphanClosingBrackets == 0
         }
 
     private val quotePairGuard =
         object : SymbolPairMatch.SymbolPair.SymbolPairEx {
-            override fun shouldReplace(
-                editor: CodeEditor,
-                currentLine: ContentLine,
-                leftColumn: Int,
-            ): Boolean =
-                !insideStringLiteral(currentLine, leftColumn) &&
-                    JsonDocumentScanner.balance(editor.text.toString()).quoteCount % 2 == 0
+            override fun shouldReplace(editor: CodeEditor, currentLine: ContentLine, leftColumn: Int): Boolean = !insideStringLiteral(currentLine, leftColumn) &&
+                JsonDocumentScanner.balance(editor.text.toString()).quoteCount % 2 == 0
         }
 
     private val objectPairWithComma =
         object : SymbolPairMatch.SymbolPair.SymbolPairEx {
-            override fun shouldReplace(
-                editor: CodeEditor,
-                currentLine: ContentLine,
-                leftColumn: Int,
-            ): Boolean {
+            override fun shouldReplace(editor: CodeEditor, currentLine: ContentLine, leftColumn: Int): Boolean {
                 if (insideStringLiteral(currentLine, leftColumn)) return false
                 val text = editor.text.toString()
                 if (JsonDocumentScanner.balance(text).orphanClosingBraces > 0) return false
@@ -95,11 +77,7 @@ class ConfigJsonLanguage(
 
     override fun getNewlineHandlers(): Array<NewlineHandler> = newlineHandlers
 
-    override fun getIndentAdvance(
-        content: ContentReference,
-        line: Int,
-        column: Int,
-    ): Int {
+    override fun getIndentAdvance(content: ContentReference, line: Int, column: Int): Int {
         val beforeCursor = content.getLine(line).substring(0, column).trimEnd()
         return if (beforeCursor.endsWith("{") || beforeCursor.endsWith("[")) JSON_INDENT_WIDTH else 0
     }
@@ -189,11 +167,8 @@ class ConfigJsonLanguage(
     }
 
     private inner class BracketNewlineHandler : NewlineHandler {
-        override fun matchesRequirement(
-            text: Content,
-            position: CharPosition,
-            style: Styles?,
-        ): Boolean {
+
+        override fun matchesRequirement(text: Content, position: CharPosition, style: Styles?): Boolean {
             if (position.column == 0) return false
             val line = text.getLineString(position.line)
             val beforeCursor = line.substring(0, position.column).trimEnd()
@@ -206,12 +181,7 @@ class ConfigJsonLanguage(
             }
         }
 
-        override fun handleNewline(
-            text: Content,
-            position: CharPosition,
-            style: Styles?,
-            tabSize: Int,
-        ): NewlineHandleResult {
+        override fun handleNewline(text: Content, position: CharPosition, style: Styles?, tabSize: Int): NewlineHandleResult {
             val line = text.getLineString(position.line)
             var indentEnd = 0
             while (indentEnd < position.column && (line[indentEnd] == ' ' || line[indentEnd] == '\t')) {
@@ -232,18 +202,14 @@ private class ConfigKeyCompletionItem(
     private val quoteOpen: Boolean,
     private val enclosingOpenIndex: Int,
 ) : CompletionItem(suggestion.name, suggestion.description) {
+
     init {
         prefixLength = replaceLength
         kind = CompletionItemKind.Property
         icon = SimpleCompletionIconDrawer.draw(CompletionItemKind.Property)
     }
 
-    override fun performCompletion(
-        editor: CodeEditor,
-        text: Content,
-        line: Int,
-        column: Int,
-    ) {
+    override fun performCompletion(editor: CodeEditor, text: Content, line: Int, column: Int) {
         var cursorIndex = text.getCharIndex(line, column)
         if (insertLeadingComma(text, cursorIndex - prefixLength)) {
             cursorIndex++
@@ -315,10 +281,7 @@ private class ConfigKeyCompletionItem(
     private fun isKeyChar(character: Char): Boolean = character.isLetterOrDigit() || character == '_' || character == '-' || character == '$' || character == '.'
 }
 
-private fun nextSiblingKeyFollows(
-    text: Content,
-    index: Int,
-): Boolean {
+private fun nextSiblingKeyFollows(text: Content, index: Int): Boolean {
     val scan = JsonDocumentScanner.nextMeaningfulIndex(text, index)
     return scan >= 0 && text[scan] == '"'
 }
@@ -327,6 +290,7 @@ private class ConfigArrayExampleCompletionItem(
     suggestion: ValueSuggestion,
     replaceLength: Int,
 ) : CompletionItem(suggestion.label, "example") {
+
     private val elements = suggestion.arrayElements.orEmpty()
 
     init {
@@ -335,12 +299,7 @@ private class ConfigArrayExampleCompletionItem(
         icon = SimpleCompletionIconDrawer.draw(CompletionItemKind.Snippet)
     }
 
-    override fun performCompletion(
-        editor: CodeEditor,
-        text: Content,
-        line: Int,
-        column: Int,
-    ) {
+    override fun performCompletion(editor: CodeEditor, text: Content, line: Int, column: Int) {
         var cursorIndex = text.getCharIndex(line, column)
         if (insertLeadingComma(text, cursorIndex - prefixLength)) {
             cursorIndex++
@@ -362,13 +321,14 @@ private class ConfigValueCompletionItem(
     replaceLength: Int,
     quoteOpen: Boolean,
 ) : CompletionItem(
-        suggestion.label,
-        when (suggestion.kind) {
-            ValueSuggestionKind.EXAMPLE -> "example"
-            ValueSuggestionKind.REFERENCE -> suggestion.description
-            else -> null
-        },
-    ) {
+    suggestion.label,
+    when (suggestion.kind) {
+        ValueSuggestionKind.EXAMPLE -> "example"
+        ValueSuggestionKind.REFERENCE -> suggestion.description
+        else -> null
+    },
+) {
+
     private val commitText = if (suggestion.isString) "\"${suggestion.label}\"" else suggestion.label
     private val absorbClosingQuote = quoteOpen && suggestion.isString
 
@@ -378,12 +338,7 @@ private class ConfigValueCompletionItem(
         icon = SimpleCompletionIconDrawer.draw(kind!!)
     }
 
-    override fun performCompletion(
-        editor: CodeEditor,
-        text: Content,
-        line: Int,
-        column: Int,
-    ) {
+    override fun performCompletion(editor: CodeEditor, text: Content, line: Int, column: Int) {
         var cursorIndex = text.getCharIndex(line, column)
         if (insertLeadingComma(text, cursorIndex - prefixLength)) {
             cursorIndex++
@@ -405,29 +360,25 @@ private class ConfigFormCompletionItem(
     private val enclosingIsArray: Boolean,
     private val enclosingOpenIndex: Int,
 ) : CompletionItem(
-        when (formKind) {
-            ValueSuggestionKind.ARRAY_FORM -> "[]"
-            ValueSuggestionKind.OBJECT_FORM -> "{}"
-            else -> "\"\""
-        },
-        when (formKind) {
-            ValueSuggestionKind.ARRAY_FORM -> "array"
-            ValueSuggestionKind.OBJECT_FORM -> "object"
-            else -> "string"
-        },
-    ) {
+    when (formKind) {
+        ValueSuggestionKind.ARRAY_FORM -> "[]"
+        ValueSuggestionKind.OBJECT_FORM -> "{}"
+        else -> "\"\""
+    },
+    when (formKind) {
+        ValueSuggestionKind.ARRAY_FORM -> "array"
+        ValueSuggestionKind.OBJECT_FORM -> "object"
+        else -> "string"
+    },
+) {
+
     init {
         prefixLength = replaceLength
         kind = CompletionItemKind.Snippet
         icon = SimpleCompletionIconDrawer.draw(CompletionItemKind.Snippet)
     }
 
-    override fun performCompletion(
-        editor: CodeEditor,
-        text: Content,
-        line: Int,
-        column: Int,
-    ) {
+    override fun performCompletion(editor: CodeEditor, text: Content, line: Int, column: Int) {
         var cursorIndex = text.getCharIndex(line, column)
         if (insertLeadingComma(text, cursorIndex - prefixLength)) {
             cursorIndex++
@@ -455,19 +406,12 @@ private class ConfigFormCompletionItem(
     }
 }
 
-private fun expandedPair(
-    open: Char,
-    close: Char,
-    baseIndent: String,
-): String {
+private fun expandedPair(open: Char, close: Char, baseIndent: String): String {
     val innerIndent = baseIndent + " ".repeat(JSON_INDENT_WIDTH)
     return "$open\n$innerIndent\n$baseIndent$close"
 }
 
-private fun lineIndentAt(
-    text: Content,
-    index: Int,
-): String {
+private fun lineIndentAt(text: Content, index: Int): String {
     val lineText = text.getLineString(text.indexer.getCharPosition(index).line)
     var indentEnd = 0
     while (indentEnd < lineText.length && (lineText[indentEnd] == ' ' || lineText[indentEnd] == '\t')) {
@@ -476,10 +420,7 @@ private fun lineIndentAt(
     return lineText.substring(0, indentEnd)
 }
 
-private fun expandSingleLineContainer(
-    text: Content,
-    openIndex: Int,
-): String? {
+private fun expandSingleLineContainer(text: Content, openIndex: Int): String? {
     if (openIndex < 0 || openIndex >= text.length) return null
     val open = text[openIndex]
     if (open != '{' && open != '[') return null
@@ -493,10 +434,7 @@ private fun expandSingleLineContainer(
     return "\n" + indent + " ".repeat(JSON_INDENT_WIDTH)
 }
 
-private fun precedingValueEndIndex(
-    text: Content,
-    start: Int,
-): Int {
+private fun precedingValueEndIndex(text: Content, start: Int): Int {
     val scan = JsonDocumentScanner.lastMeaningfulIndexBefore(text, start)
     if (scan < 0) return -1
     val character = text[scan]
@@ -506,10 +444,7 @@ private fun precedingValueEndIndex(
     return if (afterValueEnd) scan + 1 else -1
 }
 
-private fun insertLeadingComma(
-    text: Content,
-    start: Int,
-): Boolean {
+private fun insertLeadingComma(text: Content, start: Int): Boolean {
     val commaIndex = precedingValueEndIndex(text, start)
     if (commaIndex < 0) return false
     val position = text.indexer.getCharPosition(commaIndex)
@@ -517,11 +452,7 @@ private fun insertLeadingComma(
     return true
 }
 
-internal fun siblingCommaInsertIndex(
-    content: Content,
-    cursorIndex: Int,
-    typed: Char,
-): Int {
+internal fun siblingCommaInsertIndex(content: Content, cursorIndex: Int, typed: Char): Int {
     val valueStart =
         typed == '{' || typed == '[' || typed == '"' || typed == '-' ||
             typed == 't' || typed == 'f' || typed == 'n' || typed.isDigit()
@@ -534,30 +465,18 @@ internal fun siblingCommaInsertIndex(
     return commaIndex
 }
 
-private fun replaceRange(
-    text: Content,
-    start: Int,
-    end: Int,
-    replacement: String,
-) {
+private fun replaceRange(text: Content, start: Int, end: Int, replacement: String) {
     val startPosition = text.indexer.getCharPosition(start)
     val endPosition = text.indexer.getCharPosition(end)
     text.replace(startPosition.line, startPosition.column, endPosition.line, endPosition.column, replacement)
 }
 
-private fun selectIndex(
-    editor: CodeEditor,
-    text: Content,
-    index: Int,
-) {
+private fun selectIndex(editor: CodeEditor, text: Content, index: Int) {
     val position = text.indexer.getCharPosition(index)
     editor.setSelection(position.line, position.column)
 }
 
-private fun insideStringLiteral(
-    line: CharSequence,
-    column: Int,
-): Boolean {
+private fun insideStringLiteral(line: CharSequence, column: Int): Boolean {
     var inString = false
     var index = 0
     while (index < column) {
@@ -586,10 +505,7 @@ private fun insideStringLiteral(
     return inString
 }
 
-private fun nextCharBeginsArrayValue(
-    text: CharSequence,
-    index: Int,
-): Boolean {
+private fun nextCharBeginsArrayValue(text: CharSequence, index: Int): Boolean {
     val scan = JsonDocumentScanner.nextMeaningfulIndex(text, index)
     if (scan < 0) return false
     return when (text[scan]) {

@@ -97,15 +97,14 @@ fun TailscaleTerminalConfigScreen(navController: NavController) {
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    top = scaffoldPadding.calculateTopPadding() + 8.dp,
-                    bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
-                ),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .verticalScroll(rememberScrollState())
+            .padding(
+                top = scaffoldPadding.calculateTopPadding() + 8.dp,
+                bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
+            ),
     ) {
         SchemeSection(
             title = stringResource(R.string.tailscale_terminal_light_config),
@@ -150,14 +149,12 @@ fun TailscaleTerminalConfigScreen(navController: NavController) {
             modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
         )
         Card(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             Column {
                 ListItem(
@@ -168,39 +165,37 @@ fun TailscaleTerminalConfigScreen(navController: NavController) {
                             onCheckedChange = null,
                         )
                     },
-                    modifier =
-                        Modifier
-                            .clip(
-                                if (fontFollowTheme) {
-                                    RoundedCornerShape(12.dp)
-                                } else {
-                                    RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                                },
-                            ).clickable {
-                                fontFollowTheme = !fontFollowTheme
-                                Settings.tailscaleSSHFontFollowTheme = fontFollowTheme
+                    modifier = Modifier
+                        .clip(
+                            if (fontFollowTheme) {
+                                RoundedCornerShape(12.dp)
+                            } else {
+                                RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
                             },
+                        )
+                        .clickable {
+                            fontFollowTheme = !fontFollowTheme
+                            Settings.tailscaleSSHFontFollowTheme = fontFollowTheme
+                        },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 )
                 if (!fontFollowTheme) {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.tailscale_terminal_font)) },
                         trailingContent = {
-                            val fontDisplayName =
-                                when {
-                                    customFontPath.isNotBlank() -> java.io.File(customFontPath).nameWithoutExtension
-                                    fontFamily.isNotBlank() -> fontFamily
-                                    else -> stringResource(R.string.tailscale_terminal_font_follow_theme)
-                                }
+                            val fontDisplayName = when {
+                                customFontPath.isNotBlank() -> java.io.File(customFontPath).nameWithoutExtension
+                                fontFamily.isNotBlank() -> fontFamily
+                                else -> stringResource(R.string.tailscale_terminal_font_follow_theme)
+                            }
                             Text(
                                 fontDisplayName,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         },
-                        modifier =
-                            Modifier.clickable {
-                                navController.navigate("settings/tailscale/font_picker")
-                            },
+                        modifier = Modifier.clickable {
+                            navController.navigate("settings/tailscale/font_picker")
+                        },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
                     ListItem(
@@ -256,9 +251,8 @@ fun TailscaleTerminalConfigScreen(navController: NavController) {
                                 }
                             }
                         },
-                        modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)),
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
                 }
@@ -285,14 +279,12 @@ private fun SchemeSection(
         modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
     )
     Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
     ) {
         Column {
             ListItem(
@@ -303,26 +295,22 @@ private fun SchemeSection(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 },
-                modifier =
-                    Modifier
-                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                        .clickable(enabled = !customEnabled, onClick = onThemeClick),
-                colors =
-                    ListItemDefaults.colors(
-                        containerColor = Color.Transparent,
-                        headlineColor =
-                            if (customEnabled) {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
-                        trailingIconColor =
-                            if (customEnabled) {
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                    ),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                    .clickable(enabled = !customEnabled, onClick = onThemeClick),
+                colors = ListItemDefaults.colors(
+                    containerColor = Color.Transparent,
+                    headlineColor = if (customEnabled) {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                    trailingIconColor = if (customEnabled) {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                ),
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.tailscale_terminal_custom_config)) },
@@ -332,24 +320,23 @@ private fun SchemeSection(
                         onCheckedChange = null,
                     )
                 },
-                modifier =
-                    Modifier
-                        .clip(
-                            if (customEnabled) {
-                                RoundedCornerShape(0.dp)
-                            } else {
-                                RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
-                            },
-                        ).clickable { onCustomEnabledChange(!customEnabled) },
+                modifier = Modifier
+                    .clip(
+                        if (customEnabled) {
+                            RoundedCornerShape(0.dp)
+                        } else {
+                            RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+                        },
+                    )
+                    .clickable { onCustomEnabledChange(!customEnabled) },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
             if (customEnabled) {
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.tailscale_terminal_edit_custom_config)) },
-                    modifier =
-                        Modifier
-                            .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                            .clickable(onClick = onEditCustomClick),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                        .clickable(onClick = onEditCustomClick),
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 )
             }

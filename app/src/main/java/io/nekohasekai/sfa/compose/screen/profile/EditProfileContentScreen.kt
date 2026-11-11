@@ -130,12 +130,11 @@ fun EditProfileContentScreen(
     // Handle save success message
     LaunchedEffect(uiState.showSaveSuccessMessage) {
         if (uiState.showSaveSuccessMessage) {
-            Toast
-                .makeText(
-                    context,
-                    context.getString(R.string.success_configuration_saved),
-                    Toast.LENGTH_SHORT,
-                ).show()
+            Toast.makeText(
+                context,
+                context.getString(R.string.success_configuration_saved),
+                Toast.LENGTH_SHORT,
+            ).show()
             viewModel.clearSaveSuccessMessage()
         }
     }
@@ -189,17 +188,17 @@ fun EditProfileContentScreen(
                     Icon(
                         imageVector = if (uiState.showSearchBar) Icons.Default.ExpandLess else Icons.Default.Search,
                         contentDescription =
-                            if (uiState.showSearchBar) {
-                                stringResource(R.string.content_description_collapse_search)
-                            } else {
-                                stringResource(R.string.search)
-                            },
+                        if (uiState.showSearchBar) {
+                            stringResource(R.string.content_description_collapse_search)
+                        } else {
+                            stringResource(R.string.search)
+                        },
                         tint =
-                            if (uiState.showSearchBar) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
+                        if (uiState.showSearchBar) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
                     )
                 }
 
@@ -213,19 +212,19 @@ fun EditProfileContentScreen(
                             imageVector = Icons.Default.Save,
                             contentDescription = stringResource(R.string.save),
                             tint =
-                                if (uiState.hasUnsavedChanges) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                                },
+                            if (uiState.hasUnsavedChanges) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            },
                         )
                     }
                 }
             },
             colors =
-                TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
+            TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
         )
     }
 
@@ -233,92 +232,90 @@ fun EditProfileContentScreen(
 
     Column(
         modifier =
-            modifier
-                .fillMaxSize()
-                .padding(scaffoldPadding)
-                .onPreviewKeyEvent { event ->
-                    if (event.type == KeyEventType.KeyDown) {
-                        // Support both Ctrl (Windows/Linux) and Cmd (macOS)
-                        val modifierPressed = event.isCtrlPressed || event.isMetaPressed
+        modifier
+            .fillMaxSize()
+            .padding(scaffoldPadding)
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown) {
+                    // Support both Ctrl (Windows/Linux) and Cmd (macOS)
+                    val modifierPressed = event.isCtrlPressed || event.isMetaPressed
 
-                        when {
-                            // Ctrl/Cmd+Z - Undo
-                            modifierPressed && event.key == Key.Z && !event.isShiftPressed && !uiState.isReadOnly -> {
-                                viewModel.undo()
-                                true
-                            }
-                            // Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y - Redo
-                            (
-                                (modifierPressed && event.isShiftPressed && event.key == Key.Z) ||
-                                    (modifierPressed && event.key == Key.Y)
-                            ) &&
-                                !uiState.isReadOnly -> {
-                                viewModel.redo()
-                                true
-                            }
-                            // Ctrl/Cmd+S - Save
-                            modifierPressed && event.key == Key.S && !uiState.isReadOnly -> {
-                                if (uiState.hasUnsavedChanges && !uiState.isLoading) {
-                                    viewModel.saveConfiguration()
-                                }
-                                true
-                            }
-                            // Ctrl/Cmd+F - Search
-                            modifierPressed && event.key == Key.F -> {
-                                viewModel.toggleSearchBar()
-                                true
-                            }
-                            // Ctrl/Cmd+A - Select All
-                            modifierPressed && event.key == Key.A -> {
-                                viewModel.selectAll()
-                                true
-                            }
-                            // Ctrl/Cmd+X - Cut (only in edit mode)
-                            modifierPressed && event.key == Key.X && !uiState.isReadOnly -> {
-                                viewModel.cut()
-                                true
-                            }
-                            // Ctrl/Cmd+C - Copy
-                            modifierPressed && event.key == Key.C -> {
-                                viewModel.copy()
-                                true
-                            }
-                            // Ctrl/Cmd+V - Paste (only in edit mode)
-                            modifierPressed && event.key == Key.V && !uiState.isReadOnly -> {
-                                viewModel.paste()
-                                true
-                            }
-                            // Escape - Close search bar if open
-                            event.key == Key.Escape && uiState.showSearchBar -> {
-                                viewModel.toggleSearchBar()
-                                true
-                            }
-                            // F3 or Ctrl/Cmd+G - Find next (when search is active)
-                            (event.key == Key.F3 || (modifierPressed && event.key == Key.G && !event.isShiftPressed)) &&
-                                uiState.searchQuery.isNotEmpty() -> {
-                                viewModel.findNext()
-                                viewModel.focusEditor()
-                                true
-                            }
-                            // Shift+F3 or Ctrl/Cmd+Shift+G - Find previous (when search is active)
-                            (
-                                (event.isShiftPressed && event.key == Key.F3) ||
-                                    (modifierPressed && event.isShiftPressed && event.key == Key.G)
-                            ) &&
-                                uiState.searchQuery.isNotEmpty() -> {
-                                viewModel.findPrevious()
-                                viewModel.focusEditor()
-                                true
-                            }
-
-                            else -> {
-                                false
-                            }
+                    when {
+                        // Ctrl/Cmd+Z - Undo
+                        modifierPressed && event.key == Key.Z && !event.isShiftPressed && !uiState.isReadOnly -> {
+                            viewModel.undo()
+                            true
                         }
-                    } else {
-                        false
+                        // Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y - Redo
+                        (
+                            (modifierPressed && event.isShiftPressed && event.key == Key.Z) ||
+                                (modifierPressed && event.key == Key.Y)
+                            ) &&
+                            !uiState.isReadOnly -> {
+                            viewModel.redo()
+                            true
+                        }
+                        // Ctrl/Cmd+S - Save
+                        modifierPressed && event.key == Key.S && !uiState.isReadOnly -> {
+                            if (uiState.hasUnsavedChanges && !uiState.isLoading) {
+                                viewModel.saveConfiguration()
+                            }
+                            true
+                        }
+                        // Ctrl/Cmd+F - Search
+                        modifierPressed && event.key == Key.F -> {
+                            viewModel.toggleSearchBar()
+                            true
+                        }
+                        // Ctrl/Cmd+A - Select All
+                        modifierPressed && event.key == Key.A -> {
+                            viewModel.selectAll()
+                            true
+                        }
+                        // Ctrl/Cmd+X - Cut (only in edit mode)
+                        modifierPressed && event.key == Key.X && !uiState.isReadOnly -> {
+                            viewModel.cut()
+                            true
+                        }
+                        // Ctrl/Cmd+C - Copy
+                        modifierPressed && event.key == Key.C -> {
+                            viewModel.copy()
+                            true
+                        }
+                        // Ctrl/Cmd+V - Paste (only in edit mode)
+                        modifierPressed && event.key == Key.V && !uiState.isReadOnly -> {
+                            viewModel.paste()
+                            true
+                        }
+                        // Escape - Close search bar if open
+                        event.key == Key.Escape && uiState.showSearchBar -> {
+                            viewModel.toggleSearchBar()
+                            true
+                        }
+                        // F3 or Ctrl/Cmd+G - Find next (when search is active)
+                        (event.key == Key.F3 || (modifierPressed && event.key == Key.G && !event.isShiftPressed)) &&
+                            uiState.searchQuery.isNotEmpty() -> {
+                            viewModel.findNext()
+                            viewModel.focusEditor()
+                            true
+                        }
+                        // Shift+F3 or Ctrl/Cmd+Shift+G - Find previous (when search is active)
+                        (
+                            (event.isShiftPressed && event.key == Key.F3) ||
+                                (modifierPressed && event.isShiftPressed && event.key == Key.G)
+                            ) &&
+                            uiState.searchQuery.isNotEmpty() -> {
+                            viewModel.findPrevious()
+                            viewModel.focusEditor()
+                            true
+                        }
+
+                        else -> false
                     }
-                },
+                } else {
+                    false
+                }
+            },
     ) {
         // Search bar (appears at top when activated)
         AnimatedVisibility(
@@ -333,33 +330,33 @@ fun EditProfileContentScreen(
             ) {
                 Row(
                     modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     OutlinedTextField(
                         value = uiState.searchQuery,
                         onValueChange = { viewModel.updateSearchQuery(it) },
                         modifier =
-                            Modifier
-                                .weight(1f)
-                                .focusRequester(searchFocusRequester)
-                                .onPreviewKeyEvent { event ->
-                                    if (event.key == Key.Enter && event.type == KeyEventType.KeyDown) {
-                                        coroutineScope.launch {
-                                            // Clear focus from search field first
-                                            focusManager.clearFocus()
-                                            // Small delay to let UI update
-                                            delay(100)
-                                            // Then focus editor with current search result selection
-                                            viewModel.focusEditorWithCurrentSearchResult()
-                                        }
-                                        true
-                                    } else {
-                                        false
+                        Modifier
+                            .weight(1f)
+                            .focusRequester(searchFocusRequester)
+                            .onPreviewKeyEvent { event ->
+                                if (event.key == Key.Enter && event.type == KeyEventType.KeyDown) {
+                                    coroutineScope.launch {
+                                        // Clear focus from search field first
+                                        focusManager.clearFocus()
+                                        // Small delay to let UI update
+                                        delay(100)
+                                        // Then focus editor with current search result selection
+                                        viewModel.focusEditorWithCurrentSearchResult()
                                     }
-                                },
+                                    true
+                                } else {
+                                    false
+                                }
+                            },
                         label = { Text(stringResource(R.string.search)) },
                         placeholder = { Text(stringResource(R.string.search_placeholder)) },
                         singleLine = true,
@@ -377,11 +374,11 @@ fun EditProfileContentScreen(
                                 ) {
                                     Text(
                                         text =
-                                            if (uiState.searchResultCount > 0) {
-                                                "${uiState.currentSearchIndex}/${uiState.searchResultCount}"
-                                            } else {
-                                                "0/0"
-                                            },
+                                        if (uiState.searchResultCount > 0) {
+                                            "${uiState.currentSearchIndex}/${uiState.searchResultCount}"
+                                        } else {
+                                            "0/0"
+                                        },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(end = 4.dp),
@@ -443,11 +440,11 @@ fun EditProfileContentScreen(
         // Editor in a Box with floating elements
         Box(
             modifier =
-                Modifier
-                    .fillMaxSize()
-                    .clipToBounds()
-                    .weight(1f)
-                    .imePadding(),
+            Modifier
+                .fillMaxSize()
+                .clipToBounds()
+                .weight(1f)
+                .imePadding(),
         ) {
             // Editor
             val colorScheme = MaterialTheme.colorScheme
@@ -478,10 +475,10 @@ fun EditProfileContentScreen(
                 },
                 update = { viewModel.applyEditorColors(editorColors) },
                 modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
-                        .padding(bottom = with(LocalDensity.current) { bottomBarHeight.toDp() }),
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(bottom = with(LocalDensity.current) { bottomBarHeight.toDp() }),
             )
 
             LaunchedEffect(uiState.isReadOnly) {
@@ -496,9 +493,9 @@ fun EditProfileContentScreen(
             if (uiState.isLoading) {
                 LinearProgressIndicator(
                     modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.TopCenter),
+                    Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter),
                 )
             }
 
@@ -506,10 +503,10 @@ fun EditProfileContentScreen(
             if (!uiState.isReadOnly) {
                 Column(
                     modifier =
-                        Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .onSizeChanged { bottomBarHeight = it.height },
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .onSizeChanged { bottomBarHeight = it.height },
                 ) {
                     // Configuration error banner (appears above the symbol bar)
                     AnimatedVisibility(
@@ -519,10 +516,10 @@ fun EditProfileContentScreen(
                     ) {
                         Surface(
                             modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 8.dp)
-                                    .padding(bottom = 2.dp),
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp)
+                                .padding(bottom = 2.dp),
                             shape = RoundedCornerShape(12.dp),
                             tonalElevation = 6.dp,
                             shadowElevation = 4.dp,
@@ -530,9 +527,9 @@ fun EditProfileContentScreen(
                         ) {
                             Row(
                                 modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
                                 // Match symbol bar padding
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
@@ -568,9 +565,9 @@ fun EditProfileContentScreen(
                     // Symbol input bar
                     Surface(
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 8.dp),
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(12.dp),
                         tonalElevation = 6.dp,
                         shadowElevation = 4.dp,
@@ -578,10 +575,10 @@ fun EditProfileContentScreen(
                     ) {
                         Row(
                             modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .horizontalScroll(rememberScrollState())
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                            Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState())
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             // Undo button with text
@@ -595,22 +592,22 @@ fun EditProfileContentScreen(
                                     contentDescription = null,
                                     modifier = Modifier.size(18.dp),
                                     tint =
-                                        if (uiState.canUndo) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                                        },
+                                    if (uiState.canUndo) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                    },
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = stringResource(R.string.menu_undo),
                                     style = MaterialTheme.typography.labelLarge,
                                     color =
-                                        if (uiState.canUndo) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                                        },
+                                    if (uiState.canUndo) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                    },
                                 )
                             }
 
@@ -625,22 +622,22 @@ fun EditProfileContentScreen(
                                     contentDescription = null,
                                     modifier = Modifier.size(18.dp),
                                     tint =
-                                        if (uiState.canRedo) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                                        },
+                                    if (uiState.canRedo) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                    },
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = stringResource(R.string.menu_redo),
                                     style = MaterialTheme.typography.labelLarge,
                                     color =
-                                        if (uiState.canRedo) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                                        },
+                                    if (uiState.canRedo) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                    },
                                 )
                             }
 
@@ -665,9 +662,9 @@ fun EditProfileContentScreen(
 
                             VerticalDivider(
                                 modifier =
-                                    Modifier
-                                        .height(24.dp)
-                                        .padding(horizontal = 8.dp),
+                                Modifier
+                                    .height(24.dp)
+                                    .padding(horizontal = 8.dp),
                             )
 
                             // Symbols ranked by frequency of use in JSON
@@ -676,10 +673,10 @@ fun EditProfileContentScreen(
                             TextButton(
                                 onClick = { viewModel.insertSymbol("\"") },
                                 modifier =
-                                    Modifier
-                                        .padding(0.dp)
-                                        .height(36.dp)
-                                        .width(36.dp),
+                                Modifier
+                                    .padding(0.dp)
+                                    .height(36.dp)
+                                    .width(36.dp),
                                 shape = RoundedCornerShape(4.dp),
                                 contentPadding = PaddingValues(0.dp),
                             ) {
@@ -694,10 +691,10 @@ fun EditProfileContentScreen(
                             TextButton(
                                 onClick = { viewModel.insertSymbol(":") },
                                 modifier =
-                                    Modifier
-                                        .padding(0.dp)
-                                        .height(36.dp)
-                                        .width(36.dp),
+                                Modifier
+                                    .padding(0.dp)
+                                    .height(36.dp)
+                                    .width(36.dp),
                                 shape = RoundedCornerShape(4.dp),
                                 contentPadding = PaddingValues(0.dp),
                             ) {
@@ -712,10 +709,10 @@ fun EditProfileContentScreen(
                             TextButton(
                                 onClick = { viewModel.insertSymbol(",") },
                                 modifier =
-                                    Modifier
-                                        .padding(0.dp)
-                                        .height(36.dp)
-                                        .width(36.dp),
+                                Modifier
+                                    .padding(0.dp)
+                                    .height(36.dp)
+                                    .width(36.dp),
                                 shape = RoundedCornerShape(4.dp),
                                 contentPadding = PaddingValues(0.dp),
                             ) {
@@ -733,10 +730,10 @@ fun EditProfileContentScreen(
                             TextButton(
                                 onClick = { viewModel.insertSymbol("{") },
                                 modifier =
-                                    Modifier
-                                        .padding(0.dp)
-                                        .height(36.dp)
-                                        .width(36.dp),
+                                Modifier
+                                    .padding(0.dp)
+                                    .height(36.dp)
+                                    .width(36.dp),
                                 shape = RoundedCornerShape(4.dp),
                                 contentPadding = PaddingValues(0.dp),
                             ) {
@@ -751,10 +748,10 @@ fun EditProfileContentScreen(
                             TextButton(
                                 onClick = { viewModel.insertSymbol("}") },
                                 modifier =
-                                    Modifier
-                                        .padding(0.dp)
-                                        .height(36.dp)
-                                        .width(36.dp),
+                                Modifier
+                                    .padding(0.dp)
+                                    .height(36.dp)
+                                    .width(36.dp),
                                 shape = RoundedCornerShape(4.dp),
                                 contentPadding = PaddingValues(0.dp),
                             ) {
@@ -772,10 +769,10 @@ fun EditProfileContentScreen(
                             TextButton(
                                 onClick = { viewModel.insertSymbol("[") },
                                 modifier =
-                                    Modifier
-                                        .padding(0.dp)
-                                        .height(36.dp)
-                                        .width(36.dp),
+                                Modifier
+                                    .padding(0.dp)
+                                    .height(36.dp)
+                                    .width(36.dp),
                                 shape = RoundedCornerShape(4.dp),
                                 contentPadding = PaddingValues(0.dp),
                             ) {
@@ -790,10 +787,10 @@ fun EditProfileContentScreen(
                             TextButton(
                                 onClick = { viewModel.insertSymbol("]") },
                                 modifier =
-                                    Modifier
-                                        .padding(0.dp)
-                                        .height(36.dp)
-                                        .width(36.dp),
+                                Modifier
+                                    .padding(0.dp)
+                                    .height(36.dp)
+                                    .width(36.dp),
                                 shape = RoundedCornerShape(4.dp),
                                 contentPadding = PaddingValues(0.dp),
                             ) {
@@ -812,9 +809,9 @@ fun EditProfileContentScreen(
                                 TextButton(
                                     onClick = { viewModel.insertSymbol(text) },
                                     modifier =
-                                        Modifier
-                                            .padding(0.dp)
-                                            .height(36.dp),
+                                    Modifier
+                                        .padding(0.dp)
+                                        .height(36.dp),
                                     shape = RoundedCornerShape(4.dp),
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                                 ) {
@@ -834,10 +831,10 @@ fun EditProfileContentScreen(
                                 TextButton(
                                     onClick = { viewModel.insertSymbol(symbol) },
                                     modifier =
-                                        Modifier
-                                            .padding(0.dp)
-                                            .height(36.dp)
-                                            .width(36.dp),
+                                    Modifier
+                                        .padding(0.dp)
+                                        .height(36.dp)
+                                        .width(36.dp),
                                     shape = RoundedCornerShape(4.dp),
                                     contentPadding = PaddingValues(0.dp),
                                 ) {

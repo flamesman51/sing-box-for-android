@@ -227,21 +227,19 @@ fun AppSettingsScreen(
         }
         if (silentInstallEnabled) {
             scope.launch {
-                val success =
-                    withContext(Dispatchers.IO) {
-                        Vendor.verifySilentInstallMethod(silentInstallMethod)
-                    }
+                val success = withContext(Dispatchers.IO) {
+                    Vendor.verifySilentInstallMethod(silentInstallMethod)
+                }
                 isMethodAvailable = success
-                silentInstallError =
-                    if (success) {
-                        null
-                    } else {
-                        when (silentInstallMethod) {
-                            "PACKAGE_INSTALLER" -> context.getString(R.string.package_installer_not_available)
-                            "SHIZUKU" -> context.getString(R.string.shizuku_not_available)
-                            else -> context.getString(R.string.silent_install_verify_failed, silentInstallMethod)
-                        }
+                silentInstallError = if (success) {
+                    null
+                } else {
+                    when (silentInstallMethod) {
+                        "PACKAGE_INSTALLER" -> context.getString(R.string.package_installer_not_available)
+                        "SHIZUKU" -> context.getString(R.string.shizuku_not_available)
+                        else -> context.getString(R.string.silent_install_verify_failed, silentInstallMethod)
                     }
+                }
             }
         }
     }
@@ -383,22 +381,20 @@ fun AppSettingsScreen(
                 Settings.silentInstallMethod = method
                 isVerifyingMethod = true
                 scope.launch {
-                    val success =
-                        withContext(Dispatchers.IO) {
-                            Vendor.verifySilentInstallMethod(method)
-                        }
+                    val success = withContext(Dispatchers.IO) {
+                        Vendor.verifySilentInstallMethod(method)
+                    }
                     isVerifyingMethod = false
                     isMethodAvailable = success
-                    silentInstallError =
-                        if (success) {
-                            null
-                        } else {
-                            when (method) {
-                                "PACKAGE_INSTALLER" -> context.getString(R.string.package_installer_not_available)
-                                "SHIZUKU" -> context.getString(R.string.shizuku_not_available)
-                                else -> context.getString(R.string.silent_install_verify_failed, method)
-                            }
+                    silentInstallError = if (success) {
+                        null
+                    } else {
+                        when (method) {
+                            "PACKAGE_INSTALLER" -> context.getString(R.string.package_installer_not_available)
+                            "SHIZUKU" -> context.getString(R.string.shizuku_not_available)
+                            else -> context.getString(R.string.silent_install_verify_failed, method)
                         }
+                    }
                 }
             },
             onDismiss = { showInstallMethodMenu = false },
@@ -457,18 +453,17 @@ fun AppSettingsScreen(
             onUpdate = {
                 showDownloadDialog = true
                 downloadError = null
-                downloadJob =
-                    scope.launch {
-                        try {
-                            withContext(Dispatchers.IO) {
-                                Vendor.downloadAndInstall(context, updateInfo!!.downloadUrl)
-                            }
-                            showDownloadDialog = false
-                        } catch (e: Exception) {
-                            Log.e("AppSettingsScreen", "Error downloading update", e)
-                            downloadError = e.message
+                downloadJob = scope.launch {
+                    try {
+                        withContext(Dispatchers.IO) {
+                            Vendor.downloadAndInstall(context, updateInfo!!.downloadUrl)
                         }
+                        showDownloadDialog = false
+                    } catch (e: Exception) {
+                        Log.e("AppSettingsScreen", "Error downloading update", e)
+                        downloadError = e.message
                     }
+                }
             },
         )
     }
@@ -479,12 +474,11 @@ fun AppSettingsScreen(
             availableLocales = availableLocales,
             onLocaleSelected = { tag ->
                 currentLocaleTag = tag
-                val localeList =
-                    if (tag.isEmpty()) {
-                        LocaleListCompat.getEmptyLocaleList()
-                    } else {
-                        LocaleListCompat.forLanguageTags(tag)
-                    }
+                val localeList = if (tag.isEmpty()) {
+                    LocaleListCompat.getEmptyLocaleList()
+                } else {
+                    LocaleListCompat.forLanguageTags(tag)
+                }
                 AppCompatDelegate.setApplicationLocales(localeList)
                 showLanguageDialog = false
             },
@@ -496,25 +490,25 @@ fun AppSettingsScreen(
 
     Column(
         modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    top = scaffoldPadding.calculateTopPadding() + 8.dp,
-                    bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
-                ),
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .verticalScroll(rememberScrollState())
+            .padding(
+                top = scaffoldPadding.calculateTopPadding() + 8.dp,
+                bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
+            ),
     ) {
         // Info Card
         Card(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             Column {
                 Box {
@@ -544,16 +538,16 @@ fun AppSettingsScreen(
                             }
                         },
                         modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                                .combinedClickable(
-                                    onClick = {},
-                                    onLongClick = { showVersionMenu = true },
-                                ),
-                        colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
+                        Modifier
+                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                            .combinedClickable(
+                                onClick = {},
+                                onLongClick = { showVersionMenu = true },
                             ),
+                        colors =
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                     )
                     Box(modifier = Modifier.align(Alignment.BottomEnd)) {
                         DropdownMenu(
@@ -570,12 +564,11 @@ fun AppSettingsScreen(
                                 },
                                 onClick = {
                                     clipboardText = BuildConfig.VERSION_NAME
-                                    Toast
-                                        .makeText(
-                                            context,
-                                            R.string.copied_to_clipboard,
-                                            Toast.LENGTH_SHORT,
-                                        ).show()
+                                    Toast.makeText(
+                                        context,
+                                        R.string.copied_to_clipboard,
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
                                     showVersionMenu = false
                                 },
                             )
@@ -591,13 +584,12 @@ fun AppSettingsScreen(
                         )
                     },
                     supportingContent = {
-                        val displayName =
-                            if (currentLocaleTag.isEmpty()) {
-                                stringResource(R.string.system_default)
-                            } else {
-                                val locale = Locale.forLanguageTag(currentLocaleTag)
-                                locale.getDisplayName(locale).replaceFirstChar { it.uppercase(locale) }
-                            }
+                        val displayName = if (currentLocaleTag.isEmpty()) {
+                            stringResource(R.string.system_default)
+                        } else {
+                            val locale = Locale.forLanguageTag(currentLocaleTag)
+                            locale.getDisplayName(locale).replaceFirstChar { it.uppercase(locale) }
+                        }
                         Text(displayName, style = MaterialTheme.typography.bodyMedium)
                     },
                     leadingContent = {
@@ -608,12 +600,12 @@ fun AppSettingsScreen(
                         )
                     },
                     modifier =
-                        Modifier
-                            .clickable { showLanguageDialog = true },
+                    Modifier
+                        .clickable { showLanguageDialog = true },
                     colors =
-                        ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        ),
+                    ListItemDefaults.colors(
+                        containerColor = Color.Transparent,
+                    ),
                 )
 
                 ListItem(
@@ -636,18 +628,18 @@ fun AppSettingsScreen(
                         )
                     },
                     modifier =
-                        Modifier
-                            .clip(
-                                if (cacheSize > 0L) {
-                                    RoundedCornerShape(0.dp)
-                                } else {
-                                    RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
-                                },
-                            ),
-                    colors =
-                        ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
+                    Modifier
+                        .clip(
+                            if (cacheSize > 0L) {
+                                RoundedCornerShape(0.dp)
+                            } else {
+                                RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+                            },
                         ),
+                    colors =
+                    ListItemDefaults.colors(
+                        containerColor = Color.Transparent,
+                    ),
                 )
 
                 if (cacheSize > 0L) {
@@ -666,21 +658,21 @@ fun AppSettingsScreen(
                             )
                         },
                         modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                                .clickable {
-                                    scope.launch(Dispatchers.IO) {
-                                        context.cacheDir?.listFiles()?.forEach { it.deleteRecursively() }
-                                        withContext(Dispatchers.Main) {
-                                            cacheSize = 0L
-                                            cacheSizeText = Formatter.formatFileSize(context, 0L)
-                                        }
+                        Modifier
+                            .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                            .clickable {
+                                scope.launch(Dispatchers.IO) {
+                                    context.cacheDir?.listFiles()?.forEach { it.deleteRecursively() }
+                                    withContext(Dispatchers.Main) {
+                                        cacheSize = 0L
+                                        cacheSizeText = Formatter.formatFileSize(context, 0L)
                                     }
-                                },
+                                }
+                            },
                         colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                     )
                 }
             }
@@ -697,13 +689,13 @@ fun AppSettingsScreen(
 
         Card(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             ListItem(
                 headlineContent = {
@@ -720,13 +712,13 @@ fun AppSettingsScreen(
                     )
                 },
                 modifier =
-                    Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { navController.navigate("settings/tailscale/terminal_config") },
+                Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { navController.navigate("settings/tailscale/terminal_config") },
                 colors =
-                    ListItemDefaults.colors(
-                        containerColor = Color.Transparent,
-                    ),
+                ListItemDefaults.colors(
+                    containerColor = Color.Transparent,
+                ),
             )
         }
 
@@ -741,13 +733,13 @@ fun AppSettingsScreen(
 
         Card(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             Column {
                 ListItem(
@@ -771,13 +763,13 @@ fun AppSettingsScreen(
                         )
                     },
                     modifier =
-                        Modifier
-                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                            .clickable { showDisableNotificationDialog = true },
+                    Modifier
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                        .clickable { showDisableNotificationDialog = true },
                     colors =
-                        ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        ),
+                    ListItemDefaults.colors(
+                        containerColor = Color.Transparent,
+                    ),
                 )
                 ListItem(
                     headlineContent = {
@@ -808,12 +800,12 @@ fun AppSettingsScreen(
                         )
                     },
                     modifier =
-                        Modifier
-                            .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)),
+                    Modifier
+                        .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)),
                     colors =
-                        ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        ),
+                    ListItemDefaults.colors(
+                        containerColor = Color.Transparent,
+                    ),
                 )
             }
         }
@@ -829,13 +821,13 @@ fun AppSettingsScreen(
 
         Card(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             Column {
                 val isFDroid = UpdateSource.fromString(currentSource) == UpdateSource.FDROID
@@ -882,18 +874,11 @@ fun AppSettingsScreen(
                 fun updateItemModifier(): Modifier {
                     val index = updateItemIndex++
                     return when {
-                        updateItemCount == 1 -> {
-                            Modifier.clip(RoundedCornerShape(12.dp))
-                        }
-                        index == 0 -> {
-                            Modifier.clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                        }
-                        index == updateItemCount - 1 -> {
+                        updateItemCount == 1 -> Modifier.clip(RoundedCornerShape(12.dp))
+                        index == 0 -> Modifier.clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                        index == updateItemCount - 1 ->
                             Modifier.clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                        }
-                        else -> {
-                            Modifier
-                        }
+                        else -> Modifier
                     }
                 }
 
@@ -906,12 +891,11 @@ fun AppSettingsScreen(
                             )
                         },
                         supportingContent = {
-                            val sourceName =
-                                when (UpdateSource.fromString(currentSource)) {
-                                    UpdateSource.SERVER -> stringResource(R.string.update_source_server)
-                                    UpdateSource.GITHUB -> stringResource(R.string.update_source_github)
-                                    UpdateSource.FDROID -> stringResource(R.string.update_source_fdroid)
-                                }
+                            val sourceName = when (UpdateSource.fromString(currentSource)) {
+                                UpdateSource.SERVER -> stringResource(R.string.update_source_server)
+                                UpdateSource.GITHUB -> stringResource(R.string.update_source_github)
+                                UpdateSource.FDROID -> stringResource(R.string.update_source_fdroid)
+                            }
                             Text(sourceName, style = MaterialTheme.typography.bodyMedium)
                         },
                         leadingContent = {
@@ -922,12 +906,12 @@ fun AppSettingsScreen(
                             )
                         },
                         modifier =
-                            updateItemModifier()
-                                .clickable { showSourceDialog = true },
+                        updateItemModifier()
+                            .clickable { showSourceDialog = true },
                         colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                     )
                 }
 
@@ -967,15 +951,14 @@ fun AppSettingsScreen(
                             )
                         },
                         supportingContent = {
-                            val trackName =
-                                if (isFDroid) {
-                                    stringResource(R.string.update_track_stable)
-                                } else {
-                                    when (UpdateTrack.fromString(currentTrack)) {
-                                        UpdateTrack.STABLE -> stringResource(R.string.update_track_stable)
-                                        UpdateTrack.BETA -> stringResource(R.string.update_track_beta)
-                                    }
+                            val trackName = if (isFDroid) {
+                                stringResource(R.string.update_track_stable)
+                            } else {
+                                when (UpdateTrack.fromString(currentTrack)) {
+                                    UpdateTrack.STABLE -> stringResource(R.string.update_track_stable)
+                                    UpdateTrack.BETA -> stringResource(R.string.update_track_beta)
                                 }
+                            }
                             Text(trackName, style = MaterialTheme.typography.bodyMedium)
                         },
                         leadingContent = {
@@ -986,13 +969,13 @@ fun AppSettingsScreen(
                             )
                         },
                         modifier =
-                            updateItemModifier().let {
-                                if (isFDroid) it.alpha(0.38f) else it.clickable { showTrackDialog = true }
-                            },
+                        updateItemModifier().let {
+                            if (isFDroid) it.alpha(0.38f) else it.clickable { showTrackDialog = true }
+                        },
                         colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                     )
                 }
 
@@ -1019,12 +1002,12 @@ fun AppSettingsScreen(
                             )
                         },
                         modifier =
-                            updateItemModifier()
-                                .clickable { showGitHubTokenDialog = true },
+                        updateItemModifier()
+                            .clickable { showGitHubTokenDialog = true },
                         colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                     )
                 }
 
@@ -1038,29 +1021,28 @@ fun AppSettingsScreen(
                         },
                         supportingContent = {
                             val mirrorUrl = Settings.fdroidMirrorUrl
-                            val mirrorName =
-                                remember(mirrorUrl) {
-                                    val iter = Libbox.getFDroidMirrors()
-                                    var name: String? = null
-                                    while (iter.hasNext()) {
-                                        val m = iter.next()
-                                        if (m.url == mirrorUrl) {
-                                            name = m.name
+                            val mirrorName = remember(mirrorUrl) {
+                                val iter = Libbox.getFDroidMirrors()
+                                var name: String? = null
+                                while (iter.hasNext()) {
+                                    val m = iter.next()
+                                    if (m.url == mirrorUrl) {
+                                        name = m.name
+                                        break
+                                    }
+                                }
+                                if (name == null) {
+                                    val customMirrors = Settings.fdroidCustomMirrors
+                                    for (entry in customMirrors) {
+                                        val parts = entry.split("|", limit = 2)
+                                        if (parts.size == 2 && parts[1] == mirrorUrl) {
+                                            name = parts[0]
                                             break
                                         }
                                     }
-                                    if (name == null) {
-                                        val customMirrors = Settings.fdroidCustomMirrors
-                                        for (entry in customMirrors) {
-                                            val parts = entry.split("|", limit = 2)
-                                            if (parts.size == 2 && parts[1] == mirrorUrl) {
-                                                name = parts[0]
-                                                break
-                                            }
-                                        }
-                                    }
-                                    name ?: mirrorUrl
                                 }
+                                name ?: mirrorUrl
+                            }
                             Text(
                                 mirrorName,
                                 style = MaterialTheme.typography.bodyMedium,
@@ -1074,12 +1056,12 @@ fun AppSettingsScreen(
                             )
                         },
                         modifier =
-                            updateItemModifier()
-                                .clickable { navController.navigate("settings/fdroid_mirror") },
+                        updateItemModifier()
+                            .clickable { navController.navigate("settings/fdroid_mirror") },
                         colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                     )
                 }
 
@@ -1110,9 +1092,9 @@ fun AppSettingsScreen(
                     },
                     modifier = updateItemModifier(),
                     colors =
-                        ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        ),
+                    ListItemDefaults.colors(
+                        containerColor = Color.Transparent,
+                    ),
                 )
 
                 if (Vendor.hasCustomUpdate && !isServer) {
@@ -1152,22 +1134,20 @@ fun AppSettingsScreen(
                                         if (checked) {
                                             isVerifyingMethod = true
                                             scope.launch {
-                                                val success =
-                                                    withContext(Dispatchers.IO) {
-                                                        Vendor.verifySilentInstallMethod(silentInstallMethod)
-                                                    }
+                                                val success = withContext(Dispatchers.IO) {
+                                                    Vendor.verifySilentInstallMethod(silentInstallMethod)
+                                                }
                                                 isVerifyingMethod = false
                                                 isMethodAvailable = success
-                                                silentInstallError =
-                                                    if (success) {
-                                                        null
-                                                    } else {
-                                                        when (silentInstallMethod) {
-                                                            "PACKAGE_INSTALLER" -> context.getString(R.string.package_installer_not_available)
-                                                            "SHIZUKU" -> context.getString(R.string.shizuku_not_available)
-                                                            else -> context.getString(R.string.silent_install_verify_failed, silentInstallMethod)
-                                                        }
+                                                silentInstallError = if (success) {
+                                                    null
+                                                } else {
+                                                    when (silentInstallMethod) {
+                                                        "PACKAGE_INSTALLER" -> context.getString(R.string.package_installer_not_available)
+                                                        "SHIZUKU" -> context.getString(R.string.shizuku_not_available)
+                                                        else -> context.getString(R.string.silent_install_verify_failed, silentInstallMethod)
                                                     }
+                                                }
                                             }
                                         } else {
                                             silentInstallError = null
@@ -1178,9 +1158,9 @@ fun AppSettingsScreen(
                         },
                         modifier = updateItemModifier(),
                         colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                     )
 
                     if (silentInstallEnabled) {
@@ -1214,12 +1194,12 @@ fun AppSettingsScreen(
                                 )
                             },
                             modifier =
-                                updateItemModifier()
-                                    .let { if (!xposedActivated) it.clickable { showInstallMethodMenu = true } else it },
+                            updateItemModifier()
+                                .let { if (!xposedActivated) it.clickable { showInstallMethodMenu = true } else it },
                             colors =
-                                ListItemDefaults.colors(
-                                    containerColor = Color.Transparent,
-                                ),
+                            ListItemDefaults.colors(
+                                containerColor = Color.Transparent,
+                            ),
                         )
 
                         if (silentInstallMethod == "SHIZUKU" && !isMethodAvailable) {
@@ -1245,15 +1225,15 @@ fun AppSettingsScreen(
                                     )
                                 },
                                 modifier =
-                                    updateItemModifier()
-                                        .clickable {
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://shizuku.rikka.app/"))
-                                            context.startActivity(intent)
-                                        },
+                                updateItemModifier()
+                                    .clickable {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://shizuku.rikka.app/"))
+                                        context.startActivity(intent)
+                                    },
                                 colors =
-                                    ListItemDefaults.colors(
-                                        containerColor = Color.Transparent,
-                                    ),
+                                ListItemDefaults.colors(
+                                    containerColor = Color.Transparent,
+                                ),
                             )
                         }
 
@@ -1280,19 +1260,18 @@ fun AppSettingsScreen(
                                     )
                                 },
                                 modifier =
-                                    updateItemModifier()
-                                        .clickable {
-                                            val intent =
-                                                Intent(
-                                                    AndroidSettings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                                                    Uri.parse("package:${context.packageName}"),
-                                                )
-                                            context.startActivity(intent)
-                                        },
+                                updateItemModifier()
+                                    .clickable {
+                                        val intent = Intent(
+                                            AndroidSettings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                                            Uri.parse("package:${context.packageName}"),
+                                        )
+                                        context.startActivity(intent)
+                                    },
                                 colors =
-                                    ListItemDefaults.colors(
-                                        containerColor = Color.Transparent,
-                                    ),
+                                ListItemDefaults.colors(
+                                    containerColor = Color.Transparent,
+                                ),
                             )
                         }
                     }
@@ -1336,9 +1315,9 @@ fun AppSettingsScreen(
                         },
                         modifier = updateItemModifier(),
                         colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                     )
                 }
             }
@@ -1356,13 +1335,13 @@ fun AppSettingsScreen(
 
         Card(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             Column {
                 ListItem(
@@ -1388,41 +1367,42 @@ fun AppSettingsScreen(
                         }
                     },
                     modifier =
-                        Modifier
-                            .clip(
-                                if (hasUpdate) {
-                                    RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                                } else {
-                                    RoundedCornerShape(12.dp)
-                                },
-                            ).clickable(enabled = !isChecking) {
-                                scope.launch {
-                                    UpdateState.isChecking.value = true
-                                    withContext(Dispatchers.IO) {
-                                        try {
-                                            val result = Vendor.checkUpdateAsync()
-                                            UpdateState.setUpdate(result)
-                                            if (result == null) {
-                                                showErrorDialog = context.getString(R.string.no_updates_available)
-                                            } else {
-                                                showUpdateAvailableDialog = true
-                                            }
-                                        } catch (_: UpdateCheckException.TrackNotSupported) {
-                                            UpdateState.setUpdate(null)
-                                            showErrorDialog = context.getString(R.string.update_track_not_supported)
-                                        } catch (e: Exception) {
-                                            Log.e("AppSettingsScreen", "checkUpdateAsync failed", e)
-                                            UpdateState.setUpdate(null)
-                                            showErrorDialog = e.message
-                                        }
-                                    }
-                                    UpdateState.isChecking.value = false
-                                }
+                    Modifier
+                        .clip(
+                            if (hasUpdate) {
+                                RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                            } else {
+                                RoundedCornerShape(12.dp)
                             },
+                        )
+                        .clickable(enabled = !isChecking) {
+                            scope.launch {
+                                UpdateState.isChecking.value = true
+                                withContext(Dispatchers.IO) {
+                                    try {
+                                        val result = Vendor.checkUpdateAsync()
+                                        UpdateState.setUpdate(result)
+                                        if (result == null) {
+                                            showErrorDialog = context.getString(R.string.no_updates_available)
+                                        } else {
+                                            showUpdateAvailableDialog = true
+                                        }
+                                    } catch (_: UpdateCheckException.TrackNotSupported) {
+                                        UpdateState.setUpdate(null)
+                                        showErrorDialog = context.getString(R.string.update_track_not_supported)
+                                    } catch (e: Exception) {
+                                        Log.e("AppSettingsScreen", "checkUpdateAsync failed", e)
+                                        UpdateState.setUpdate(null)
+                                        showErrorDialog = e.message
+                                    }
+                                }
+                                UpdateState.isChecking.value = false
+                            }
+                        },
                     colors =
-                        ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        ),
+                    ListItemDefaults.colors(
+                        containerColor = Color.Transparent,
+                    ),
                 )
 
                 if (hasUpdate && updateInfo != null) {
@@ -1447,15 +1427,15 @@ fun AppSettingsScreen(
                             )
                         },
                         modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                                .clickable {
-                                    showUpdateAvailableDialog = true
-                                },
+                        Modifier
+                            .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                            .clickable {
+                                showUpdateAvailableDialog = true
+                            },
                         colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                     )
                 }
             }
@@ -1469,17 +1449,15 @@ private fun UpdateSourceDialog(
     onSourceSelected: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val sources =
-        Vendor.updateSources.map { source ->
-            source.name.lowercase(Locale.ROOT) to
-                stringResource(
-                    when (source) {
-                        UpdateSource.SERVER -> R.string.update_source_server
-                        UpdateSource.GITHUB -> R.string.update_source_github
-                        UpdateSource.FDROID -> R.string.update_source_fdroid
-                    },
-                )
-        }
+    val sources = Vendor.updateSources.map { source ->
+        source.name.lowercase(Locale.ROOT) to stringResource(
+            when (source) {
+                UpdateSource.SERVER -> R.string.update_source_server
+                UpdateSource.GITHUB -> R.string.update_source_github
+                UpdateSource.FDROID -> R.string.update_source_fdroid
+            },
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1489,11 +1467,11 @@ private fun UpdateSourceDialog(
                 sources.forEach { (value, label) ->
                     Row(
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { onSourceSelected(value) }
-                                .padding(vertical = 8.dp),
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onSourceSelected(value) }
+                            .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(
@@ -1523,11 +1501,10 @@ private fun UpdateTrackDialog(
     onTrackSelected: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val tracks =
-        listOf(
-            "stable" to stringResource(R.string.update_track_stable),
-            "beta" to stringResource(R.string.update_track_beta),
-        )
+    val tracks = listOf(
+        "stable" to stringResource(R.string.update_track_stable),
+        "beta" to stringResource(R.string.update_track_beta),
+    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1537,11 +1514,11 @@ private fun UpdateTrackDialog(
                 tracks.forEach { (value, label) ->
                     Row(
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { onTrackSelected(value) }
-                                .padding(vertical = 8.dp),
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onTrackSelected(value) }
+                            .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(
@@ -1622,11 +1599,11 @@ private fun LanguageDialog(
             Column {
                 Row(
                     modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onLocaleSelected("") }
-                            .padding(vertical = 8.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onLocaleSelected("") }
+                        .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     RadioButton(
@@ -1643,11 +1620,11 @@ private fun LanguageDialog(
                     val tag = locale.toLanguageTag()
                     Row(
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { onLocaleSelected(tag) }
-                                .padding(vertical = 8.dp),
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onLocaleSelected(tag) }
+                            .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(
@@ -1692,21 +1669,19 @@ private fun getSupportedLocales(context: Context): List<Locale> {
 private fun parseLocalesConfig(context: Context): List<Locale> {
     val locales = mutableListOf<Locale>()
     try {
-        val resId =
-            context.resources.getIdentifier(
-                "_generated_res_locale_config",
-                "xml",
-                context.packageName,
-            )
+        val resId = context.resources.getIdentifier(
+            "_generated_res_locale_config",
+            "xml",
+            context.packageName,
+        )
         if (resId == 0) return emptyList()
         val parser = context.resources.getXml(resId)
         while (parser.next() != XmlPullParser.END_DOCUMENT) {
             if (parser.eventType == XmlPullParser.START_TAG && parser.name == "locale") {
-                val name =
-                    parser.getAttributeValue(
-                        "http://schemas.android.com/apk/res/android",
-                        "name",
-                    )
+                val name = parser.getAttributeValue(
+                    "http://schemas.android.com/apk/res/android",
+                    "name",
+                )
                 if (name != null) {
                     locales.add(Locale.forLanguageTag(name))
                 }
@@ -1723,14 +1698,13 @@ private fun InstallMethodDialog(
     onMethodSelected: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val methods =
-        buildList {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                add("PACKAGE_INSTALLER" to stringResource(R.string.install_method_package_installer))
-            }
-            add("SHIZUKU" to stringResource(R.string.install_method_shizuku))
-            add("ROOT" to stringResource(R.string.install_method_root))
+    val methods = buildList {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            add("PACKAGE_INSTALLER" to stringResource(R.string.install_method_package_installer))
         }
+        add("SHIZUKU" to stringResource(R.string.install_method_shizuku))
+        add("ROOT" to stringResource(R.string.install_method_root))
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1740,11 +1714,11 @@ private fun InstallMethodDialog(
                 methods.forEach { (value, label) ->
                     Row(
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { onMethodSelected(value) }
-                                .padding(vertical = 8.dp),
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onMethodSelected(value) }
+                            .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(

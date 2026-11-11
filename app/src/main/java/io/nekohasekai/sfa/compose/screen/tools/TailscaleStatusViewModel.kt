@@ -87,29 +87,25 @@ class TailscaleStatusViewModel : BaseViewModel<TailscaleStatusState, Nothing>() 
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val session =
-                    CommandTarget
-                        .standaloneClient()
-                        .subscribeTailscaleStatus(
-                            object : TailscaleStatusHandler {
-                                override fun onStatusUpdate(status: TailscaleStatusUpdate) {
-                                    val endpoints = convertUpdate(status)
-                                    viewModelScope.launch {
-                                        if (!currentState.isSubscribed) return@launch
-                                        updateState { copy(endpoints = endpoints, hasUpdate = true) }
-                                    }
-                                }
+                val session = CommandTarget.standaloneClient()
+                    .subscribeTailscaleStatus(object : TailscaleStatusHandler {
+                        override fun onStatusUpdate(status: TailscaleStatusUpdate) {
+                            val endpoints = convertUpdate(status)
+                            viewModelScope.launch {
+                                if (!currentState.isSubscribed) return@launch
+                                updateState { copy(endpoints = endpoints, hasUpdate = true) }
+                            }
+                        }
 
-                                override fun onError(message: String) {
-                                    statusSubscription.discard(token)
-                                    viewModelScope.launch {
-                                        if (!currentState.isSubscribed) return@launch
-                                        updateState { copy(endpoints = emptyList(), isSubscribed = false, hasUpdate = false) }
-                                        sendErrorMessage(message)
-                                    }
-                                }
-                            },
-                        )
+                        override fun onError(message: String) {
+                            statusSubscription.discard(token)
+                            viewModelScope.launch {
+                                if (!currentState.isSubscribed) return@launch
+                                updateState { copy(endpoints = emptyList(), isSubscribed = false, hasUpdate = false) }
+                                sendErrorMessage(message)
+                            }
+                        }
+                    })
                 statusSubscription.store(token, session)
             } catch (_: Exception) {
                 viewModelScope.launch {
@@ -124,10 +120,7 @@ class TailscaleStatusViewModel : BaseViewModel<TailscaleStatusState, Nothing>() 
         updateState { copy(endpoints = emptyList(), isSubscribed = false, hasUpdate = false) }
     }
 
-    fun setExitNode(
-        endpointTag: String,
-        stableID: String,
-    ) {
+    fun setExitNode(endpointTag: String, stableID: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 CommandTarget.standaloneClient().setTailscaleExitNode(endpointTag, stableID)
@@ -149,10 +142,7 @@ class TailscaleStatusViewModel : BaseViewModel<TailscaleStatusState, Nothing>() 
 
     fun endpoint(tag: String): TailscaleEndpointData? = currentState.endpoints.firstOrNull { it.endpointTag == tag }
 
-    fun peer(
-        endpointTag: String,
-        peerId: String,
-    ): TailscalePeerData? {
+    fun peer(endpointTag: String, peerId: String): TailscalePeerData? {
         val ep = endpoint(endpointTag) ?: return null
         if (ep.selfPeer?.id == peerId) return ep.selfPeer
         for (group in ep.userGroups) {

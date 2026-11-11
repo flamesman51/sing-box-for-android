@@ -10,14 +10,13 @@ class GitHubUpdateCheckerTest {
     @Test
     fun prefersOtherArm64OverUniversalAndUnrelatedVariants() {
         val arm64 = asset("SFA-1.14.3-smart.1-arm64-v8a.apk")
-        val assets =
-            listOf(
-                asset("SFA-1.14.3-smart.1-play-arm64-v8a.apk"),
-                asset("SFA-1.14.3-smart.1-legacy-android-5-arm64-v8a.apk"),
-                asset("SFA-1.14.3-smart.1-x86_64.apk"),
-                asset("SFA-1.14.3-smart.1-universal.apk"),
-                arm64,
-            )
+        val assets = listOf(
+            asset("SFA-1.14.3-smart.1-play-arm64-v8a.apk"),
+            asset("SFA-1.14.3-smart.1-legacy-android-5-arm64-v8a.apk"),
+            asset("SFA-1.14.3-smart.1-x86_64.apk"),
+            asset("SFA-1.14.3-smart.1-universal.apk"),
+            arm64,
+        )
         assertEquals(arm64, GitHubUpdateChecker.selectApkAsset(assets, arrayOf("arm64-v8a", "armeabi-v7a")))
     }
 

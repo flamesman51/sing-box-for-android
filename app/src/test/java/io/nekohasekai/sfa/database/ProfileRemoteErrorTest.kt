@@ -7,17 +7,15 @@ import org.junit.Test
 class ProfileRemoteErrorTest {
     @Test
     fun lateFailurePreservesCurrentEditsAndIgnoresDeletedOrRetargetedProfiles() {
-        val current =
-            Profile(
-                id = 1,
-                name = "Edited name",
-                typed =
-                    TypedProfile().apply {
-                        type = TypedProfile.Type.Remote
-                        remoteURL = "https://feed.example/profile"
-                        autoUpdateInterval = 30
-                    },
-            )
+        val current = Profile(
+            id = 1,
+            name = "Edited name",
+            typed = TypedProfile().apply {
+                type = TypedProfile.Type.Remote
+                remoteURL = "https://feed.example/profile"
+                autoUpdateInterval = 30
+            },
+        )
         val dao = MemoryProfiles(current)
 
         dao.updateRemoteError(1, "https://feed.example/profile", "Fetch failed")
@@ -32,9 +30,7 @@ class ProfileRemoteErrorTest {
         assertNull(dao.updateRemoteError(1, "https://feed.example/replacement", "Deleted failure"))
     }
 
-    private class MemoryProfiles(
-        profile: Profile,
-    ) : Profile.Dao {
+    private class MemoryProfiles(profile: Profile) : Profile.Dao {
         private val profiles = mutableMapOf(profile.id to profile)
 
         override fun insert(profile: Profile): Long {

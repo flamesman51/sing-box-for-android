@@ -97,16 +97,15 @@ fun GroupsCard(
     asSheet: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val actualViewModel: GroupsViewModel =
-        viewModel ?: viewModel(
-            factory =
-                object : ViewModelProvider.Factory {
-                    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                        @Suppress("UNCHECKED_CAST")
-                        return GroupsViewModel(commandClient) as T
-                    }
-                },
-        )
+    val actualViewModel: GroupsViewModel = viewModel ?: viewModel(
+        factory =
+        object : ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return GroupsViewModel(commandClient) as T
+            }
+        },
+    )
     val snackbarHostState = remember { SnackbarHostState() }
     val uiState by actualViewModel.uiState.collectAsState()
 
@@ -120,17 +119,17 @@ fun GroupsCard(
                         IconButton(onClick = { actualViewModel.toggleAllGroups() }) {
                             Icon(
                                 imageVector =
-                                    if (allCollapsed) {
-                                        Icons.Default.UnfoldMore
-                                    } else {
-                                        Icons.Default.UnfoldLess
-                                    },
+                                if (allCollapsed) {
+                                    Icons.Default.UnfoldMore
+                                } else {
+                                    Icons.Default.UnfoldLess
+                                },
                                 contentDescription =
-                                    if (allCollapsed) {
-                                        stringResource(R.string.expand_all)
-                                    } else {
-                                        stringResource(R.string.collapse_all)
-                                    },
+                                if (allCollapsed) {
+                                    stringResource(R.string.expand_all)
+                                } else {
+                                    stringResource(R.string.collapse_all)
+                                },
                             )
                         }
                     }
@@ -230,18 +229,18 @@ private fun GroupsCardContent(
 
     LazyColumnCompat(
         modifier =
-            modifier
-                .fillMaxSize()
-                .then(scrollModifier)
-                .padding(scaffoldPadding),
+        modifier
+            .fillMaxSize()
+            .then(scrollModifier)
+            .padding(scaffoldPadding),
         state = lazyListState,
         contentPadding =
-            PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                top = 8.dp,
-                bottom = 16.dp,
-            ),
+        PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = 8.dp,
+            bottom = 16.dp,
+        ),
         overscrollEffect = overscrollEffect,
     ) {
         if (listHeaderContent != null) {
@@ -255,9 +254,9 @@ private fun GroupsCardContent(
                 item(key = "groups_loading") {
                     Box(
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .height(200.dp),
+                        Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         CircularProgressIndicator()
@@ -361,13 +360,12 @@ private data class UrlTestPalette(
     val bad: Color,
     val neutral: Color,
 ) {
-    fun forDelay(delay: Int): Color =
-        when {
-            delay <= 0 -> neutral
-            delay < 800 -> good
-            delay < 1500 -> medium
-            else -> bad
-        }
+    fun forDelay(delay: Int): Color = when {
+        delay <= 0 -> neutral
+        delay < 800 -> good
+        delay < 1500 -> medium
+        else -> bad
+    }
 }
 
 @Composable
@@ -407,8 +405,8 @@ private fun GroupHeader(
     Surface(
         onClick = onToggleExpanded,
         modifier =
-            modifier
-                .fillMaxWidth(),
+        modifier
+            .fillMaxWidth(),
         shape = GroupCardTopShape,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
@@ -481,15 +479,15 @@ private fun GroupHeader(
             Icon(
                 imageVector = Icons.Default.ExpandMore,
                 contentDescription =
-                    if (isExpanded) {
-                        stringResource(R.string.collapse)
-                    } else {
-                        stringResource(R.string.expand)
-                    },
+                if (isExpanded) {
+                    stringResource(R.string.collapse)
+                } else {
+                    stringResource(R.string.expand)
+                },
                 modifier =
-                    Modifier
-                        .size(24.dp)
-                        .graphicsLayer { rotationZ = rotationAngle },
+                Modifier
+                    .size(24.dp)
+                    .graphicsLayer { rotationZ = rotationAngle },
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -505,18 +503,18 @@ private fun GroupDotsGrid(
 ) {
     Surface(
         modifier =
-            modifier
-                .padding(bottom = 12.dp)
-                .fillMaxWidth(),
+        modifier
+            .padding(bottom = 12.dp)
+            .fillMaxWidth(),
         shape = GroupCardBottomShape,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         BoxWithConstraints(
             modifier =
-                Modifier
-                    .clickable(onClick = onClick)
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 16.dp),
+            Modifier
+                .clickable(onClick = onClick)
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 16.dp),
         ) {
             val dotSize = 11.dp
             val dotSpacing = 4.dp
@@ -525,9 +523,9 @@ private fun GroupDotsGrid(
             val gridHeight = dotSize * rows + dotSpacing * maxOf(0, rows - 1)
             Canvas(
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(gridHeight),
+                Modifier
+                    .fillMaxWidth()
+                    .height(gridHeight),
             ) {
                 val dotSizePx = dotSize.toPx()
                 val dotSpacingPx = dotSpacing.toPx()
@@ -568,20 +566,20 @@ private fun GroupItemRow(
 ) {
     Surface(
         modifier =
-            modifier
-                .padding(bottom = if (isLast) 12.dp else 0.dp)
-                .fillMaxWidth(),
+        modifier
+            .padding(bottom = if (isLast) 12.dp else 0.dp)
+            .fillMaxWidth(),
         shape = if (isLast) GroupCardBottomShape else RectangleShape,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         Row(
             modifier =
-                Modifier.padding(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 5.dp,
-                    bottom = if (isLast) 16.dp else 5.dp,
-                ),
+            Modifier.padding(
+                start = 16.dp,
+                end = 16.dp,
+                top = 5.dp,
+                bottom = if (isLast) 16.dp else 5.dp,
+            ),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             row.forEach { item ->
@@ -618,20 +616,20 @@ private fun ProxyChip(
     Box(modifier = modifier) {
         Surface(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clip(chipShape)
-                    .combinedClickable(
-                        onClick = { if (isSelectable) onClick() },
-                        onLongClick = { showContextMenu = true },
-                    ),
+            Modifier
+                .fillMaxWidth()
+                .clip(chipShape)
+                .combinedClickable(
+                    onClick = { if (isSelectable) onClick() },
+                    onLongClick = { showContextMenu = true },
+                ),
             shape = chipShape,
             color =
-                if (isSelected) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surface
-                },
+            if (isSelected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -642,11 +640,11 @@ private fun ProxyChip(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color =
-                        if (isSelected) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        },
+                    if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -659,11 +657,11 @@ private fun ProxyChip(
                         text = item.displayType,
                         style = MaterialTheme.typography.labelSmall,
                         color =
-                            if (isSelected) {
-                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
+                        if (isSelected) {
+                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     )
                     if (item.urlTestDelay > 0) {
                         Text(
@@ -700,26 +698,18 @@ private fun ProxyChip(
 }
 
 @Composable
-private fun rememberBounceBlockingNestedScrollConnection(lazyListState: LazyListState): NestedScrollConnection =
-    remember(lazyListState) {
-        object : NestedScrollConnection {
-            override fun onPostScroll(
-                consumed: Offset,
-                available: Offset,
-                source: NestedScrollSource,
-            ): Offset {
-                // Only block upward scroll (y < 0) at bottom to prevent sheet expansion
-                // Allow downward scroll (y > 0) at top to let sheet collapse
-                return if (available.y < 0) available else Offset.Zero
-            }
+private fun rememberBounceBlockingNestedScrollConnection(lazyListState: LazyListState): NestedScrollConnection = remember(lazyListState) {
+    object : NestedScrollConnection {
+        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+            // Only block upward scroll (y < 0) at bottom to prevent sheet expansion
+            // Allow downward scroll (y > 0) at top to let sheet collapse
+            return if (available.y < 0) available else Offset.Zero
+        }
 
-            override suspend fun onPostFling(
-                consumed: Velocity,
-                available: Velocity,
-            ): Velocity {
-                // Only block upward fling (y < 0) to prevent sheet expansion
-                // Allow downward fling (y > 0) to let sheet collapse
-                return if (available.y < 0) available else Velocity.Zero
-            }
+        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+            // Only block upward fling (y < 0) to prevent sheet expansion
+            // Allow downward fling (y > 0) to let sheet collapse
+            return if (available.y < 0) available else Velocity.Zero
         }
     }
+}

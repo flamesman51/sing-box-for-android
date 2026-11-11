@@ -17,9 +17,8 @@ data class UpdateInfo(
     fun toJson(): String = Json.encodeToString(this)
 
     companion object {
-        fun fromJson(json: String): UpdateInfo? =
-            runCatching {
-                Json.decodeFromString<UpdateInfo>(json)
-            }.getOrNull()
+        fun fromJson(json: String): UpdateInfo? = runCatching {
+            Json.decodeFromString<UpdateInfo>(json)
+        }.getOrNull()
     }
 }

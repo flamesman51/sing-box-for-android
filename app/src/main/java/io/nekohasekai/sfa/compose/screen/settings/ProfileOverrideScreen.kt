@@ -151,12 +151,11 @@ fun ProfileOverrideScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, showModeSelector) {
         if (!showModeSelector) return@DisposableEffect onDispose { }
-        val observer =
-            LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_RESUME) {
-                    PackageQueryManager.refreshShizukuState()
-                }
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                PackageQueryManager.refreshShizukuState()
             }
+        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
@@ -199,25 +198,25 @@ fun ProfileOverrideScreen(
 
     Column(
         modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    top = scaffoldPadding.calculateTopPadding() + 8.dp,
-                    bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
-                ),
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .verticalScroll(rememberScrollState())
+            .padding(
+                top = scaffoldPadding.calculateTopPadding() + 8.dp,
+                bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
+            ),
     ) {
         // Card 1: Auto Redirect
         Card(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             ListItem(
                 headlineContent = {
@@ -255,12 +254,11 @@ fun ProfileOverrideScreen(
                                         }
                                         notifyApplyChange(UiEvent.ApplyServiceChange.Mode.Reload)
                                     } else {
-                                        Toast
-                                            .makeText(
-                                                context,
-                                                context.getString(R.string.root_access_required),
-                                                Toast.LENGTH_LONG,
-                                            ).show()
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(R.string.root_access_required),
+                                            Toast.LENGTH_LONG,
+                                        ).show()
                                     }
                                 }
                             } else if (!checked) {
@@ -277,19 +275,18 @@ fun ProfileOverrideScreen(
                 },
                 modifier = Modifier.clip(RoundedCornerShape(12.dp)),
                 colors =
-                    ListItemDefaults.colors(
-                        containerColor = Color.Transparent,
-                    ),
+                ListItemDefaults.colors(
+                    containerColor = Color.Transparent,
+                ),
             )
         }
 
         // Section: Per-App Proxy
-        val canUsePerAppProxy =
-            if (showModeSelector) {
-                if (useRootMode) true else isShizukuAvailable
-            } else {
-                true
-            }
+        val canUsePerAppProxy = if (showModeSelector) {
+            if (useRootMode) true else isShizukuAvailable
+        } else {
+            true
+        }
 
         Text(
             text = stringResource(R.string.per_app_proxy),
@@ -300,13 +297,13 @@ fun ProfileOverrideScreen(
 
         Card(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             Column {
                 // Mode selector (only when privileged query is needed)
@@ -318,58 +315,52 @@ fun ProfileOverrideScreen(
                             Text(
                                 stringResource(R.string.per_app_proxy_package_query_mode),
                                 style = MaterialTheme.typography.bodyLarge,
-                                color =
-                                    if (modeEnabled) {
-                                        Color.Unspecified
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = disabledAlpha)
-                                    },
+                                color = if (modeEnabled) {
+                                    Color.Unspecified
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = disabledAlpha)
+                                },
                             )
                         },
                         supportingContent = {
                             Text(
                                 if (useRootMode) "ROOT" else "Shizuku",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color =
-                                    if (modeEnabled) {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = disabledAlpha)
-                                    },
+                                color = if (modeEnabled) {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = disabledAlpha)
+                                },
                             )
                         },
                         leadingContent = {
                             Icon(
                                 imageVector = Icons.Outlined.Tune,
                                 contentDescription = null,
-                                tint =
-                                    if (modeEnabled) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = disabledAlpha)
-                                    },
+                                tint = if (modeEnabled) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = disabledAlpha)
+                                },
                             )
                         },
                         trailingContent = {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                                 contentDescription = null,
-                                tint =
-                                    if (modeEnabled) {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = disabledAlpha)
-                                    },
+                                tint = if (modeEnabled) {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = disabledAlpha)
+                                },
                             )
                         },
-                        modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                                .clickable(enabled = modeEnabled) { showModeDialog = true },
-                        colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                            .clickable(enabled = modeEnabled) { showModeDialog = true },
+                        colors = ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                     )
                 }
 
@@ -416,19 +407,19 @@ fun ProfileOverrideScreen(
                         )
                     },
                     modifier =
-                        Modifier.clip(
-                            if (showModeSelector) {
-                                RoundedCornerShape(0.dp)
-                            } else if (perAppProxyEnabled && canUsePerAppProxy) {
-                                RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                            } else {
-                                RoundedCornerShape(12.dp)
-                            },
-                        ),
+                    Modifier.clip(
+                        if (showModeSelector) {
+                            RoundedCornerShape(0.dp)
+                        } else if (perAppProxyEnabled && canUsePerAppProxy) {
+                            RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                        } else {
+                            RoundedCornerShape(12.dp)
+                        },
+                    ),
                     colors =
-                        ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        ),
+                    ListItemDefaults.colors(
+                        containerColor = Color.Transparent,
+                    ),
                 )
 
                 if (perAppProxyEnabled && canUsePerAppProxy) {
@@ -440,59 +431,55 @@ fun ProfileOverrideScreen(
                             Text(
                                 stringResource(R.string.per_app_proxy_manage),
                                 style = MaterialTheme.typography.bodyLarge,
-                                color =
-                                    if (manageEnabled) {
-                                        Color.Unspecified
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = disabledAlpha)
-                                    },
+                                color = if (manageEnabled) {
+                                    Color.Unspecified
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = disabledAlpha)
+                                },
                             )
                         },
-                        supportingContent =
-                            if (managedModeEnabled) {
-                                {
-                                    Text(
-                                        stringResource(R.string.smart_managed_manual_hint),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(top = 4.dp),
-                                    )
-                                }
-                            } else {
-                                null
-                            },
+                        supportingContent = if (managedModeEnabled) {
+                            {
+                                Text(
+                                    stringResource(R.string.smart_managed_manual_hint),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            }
+                        } else {
+                            null
+                        },
                         leadingContent = {
                             Icon(
                                 imageVector = Icons.Outlined.AppShortcut,
                                 contentDescription = null,
-                                tint =
-                                    if (manageEnabled) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = disabledAlpha)
-                                    },
+                                tint = if (manageEnabled) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = disabledAlpha)
+                                },
                             )
                         },
                         trailingContent = {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                                 contentDescription = null,
-                                tint =
-                                    if (manageEnabled) {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = disabledAlpha)
-                                    },
+                                tint = if (manageEnabled) {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = disabledAlpha)
+                                },
                             )
                         },
                         modifier =
-                            Modifier.clickable(enabled = manageEnabled) {
-                                navController.navigate("settings/profile_override/manage")
-                            },
+                        Modifier.clickable(enabled = manageEnabled) {
+                            navController.navigate("settings/profile_override/manage")
+                        },
                         colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                     )
 
                     ListItem(
@@ -520,10 +507,9 @@ fun ProfileOverrideScreen(
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
                     MultiChoiceSegmentedButtonRow(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(start = 56.dp, end = 16.dp, bottom = 12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 56.dp, end = 16.dp, bottom = 12.dp),
                     ) {
                         AppScanRegion.entries.forEachIndexed { index, region ->
                             val selected = region in managedRegions
@@ -534,13 +520,12 @@ fun ProfileOverrideScreen(
                                 onCheckedChange = {
                                     ManagedAppScan.select(if (selected) managedRegions - region else managedRegions + region)
                                 },
-                                label =
-                                    stringResource(
-                                        when (region) {
-                                            AppScanRegion.China -> R.string.per_app_proxy_region_china
-                                            AppScanRegion.Russia -> R.string.per_app_proxy_region_russia
-                                        },
-                                    ),
+                                label = stringResource(
+                                    when (region) {
+                                        AppScanRegion.China -> R.string.per_app_proxy_region_china
+                                        AppScanRegion.Russia -> R.string.per_app_proxy_region_russia
+                                    },
+                                ),
                             )
                         }
                     }
@@ -548,28 +533,24 @@ fun ProfileOverrideScreen(
                         modifier = Modifier.padding(start = 56.dp, end = 16.dp, bottom = 12.dp),
                     ) {
                         when (managedScan.status) {
-                            ManagedScanStatus.Off -> {
+                            ManagedScanStatus.Off -> Text(
+                                stringResource(R.string.smart_managed_off),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            ManagedScanStatus.Scanning -> Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(12.dp),
+                                    strokeWidth = 1.5.dp,
+                                )
                                 Text(
-                                    stringResource(R.string.smart_managed_off),
+                                    stringResource(R.string.smart_managed_scanning),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                            }
-                            ManagedScanStatus.Scanning -> {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(12.dp),
-                                        strokeWidth = 1.5.dp,
-                                    )
-                                    Text(
-                                        stringResource(R.string.smart_managed_scanning),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
                             }
                             ManagedScanStatus.Applied -> {
                                 Text(
@@ -711,12 +692,11 @@ fun ProfileOverrideScreen(
                                     }
                                 } else {
                                     showRootDialog = false
-                                    Toast
-                                        .makeText(
-                                            context,
-                                            R.string.root_access_denied,
-                                            Toast.LENGTH_LONG,
-                                        ).show()
+                                    Toast.makeText(
+                                        context,
+                                        R.string.root_access_denied,
+                                        Toast.LENGTH_LONG,
+                                    ).show()
                                 }
                             }
                         },
@@ -751,30 +731,28 @@ fun ProfileOverrideScreen(
                                     onClick = null,
                                 )
                             },
-                            modifier =
-                                Modifier.clickable {
-                                    packageQueryMode = Settings.PACKAGE_QUERY_MODE_SHIZUKU
-                                    PackageQueryManager.setQueryMode(Settings.PACKAGE_QUERY_MODE_SHIZUKU)
+                            modifier = Modifier.clickable {
+                                packageQueryMode = Settings.PACKAGE_QUERY_MODE_SHIZUKU
+                                PackageQueryManager.setQueryMode(Settings.PACKAGE_QUERY_MODE_SHIZUKU)
+                                scope.launch(Dispatchers.IO) {
+                                    Settings.perAppProxyPackageQueryMode = Settings.PACKAGE_QUERY_MODE_SHIZUKU
+                                }
+                                if (
+                                    perAppProxyEnabled &&
+                                    isShizukuStateInitialized &&
+                                    !PackageQueryManager.isShizukuAvailable()
+                                ) {
+                                    perAppProxyEnabled = false
                                     scope.launch(Dispatchers.IO) {
-                                        Settings.perAppProxyPackageQueryMode = Settings.PACKAGE_QUERY_MODE_SHIZUKU
+                                        Settings.perAppProxyEnabled = false
                                     }
-                                    if (
-                                        perAppProxyEnabled &&
-                                        isShizukuStateInitialized &&
-                                        !PackageQueryManager.isShizukuAvailable()
-                                    ) {
-                                        perAppProxyEnabled = false
-                                        scope.launch(Dispatchers.IO) {
-                                            Settings.perAppProxyEnabled = false
-                                        }
-                                    }
-                                    notifyApplyChange(UiEvent.ApplyServiceChange.Mode.Reload)
-                                    showModeDialog = false
-                                },
-                            colors =
-                                ListItemDefaults.colors(
-                                    containerColor = Color.Transparent,
-                                ),
+                                }
+                                notifyApplyChange(UiEvent.ApplyServiceChange.Mode.Reload)
+                                showModeDialog = false
+                            },
+                            colors = ListItemDefaults.colors(
+                                containerColor = Color.Transparent,
+                            ),
                         )
                         ListItem(
                             headlineContent = { Text("ROOT") },
@@ -784,20 +762,18 @@ fun ProfileOverrideScreen(
                                     onClick = null,
                                 )
                             },
-                            modifier =
-                                Modifier.clickable {
-                                    packageQueryMode = Settings.PACKAGE_QUERY_MODE_ROOT
-                                    PackageQueryManager.setQueryMode(Settings.PACKAGE_QUERY_MODE_ROOT)
-                                    scope.launch(Dispatchers.IO) {
-                                        Settings.perAppProxyPackageQueryMode = Settings.PACKAGE_QUERY_MODE_ROOT
-                                    }
-                                    notifyApplyChange(UiEvent.ApplyServiceChange.Mode.Reload)
-                                    showModeDialog = false
-                                },
-                            colors =
-                                ListItemDefaults.colors(
-                                    containerColor = Color.Transparent,
-                                ),
+                            modifier = Modifier.clickable {
+                                packageQueryMode = Settings.PACKAGE_QUERY_MODE_ROOT
+                                PackageQueryManager.setQueryMode(Settings.PACKAGE_QUERY_MODE_ROOT)
+                                scope.launch(Dispatchers.IO) {
+                                    Settings.perAppProxyPackageQueryMode = Settings.PACKAGE_QUERY_MODE_ROOT
+                                }
+                                notifyApplyChange(UiEvent.ApplyServiceChange.Mode.Reload)
+                                showModeDialog = false
+                            },
+                            colors = ListItemDefaults.colors(
+                                containerColor = Color.Transparent,
+                            ),
                         )
                     }
                 },

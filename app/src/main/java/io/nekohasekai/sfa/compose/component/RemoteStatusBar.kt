@@ -62,19 +62,19 @@ fun RemoteStatusBar(
         ) {
             Row(
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text =
-                        if (isConnected) {
-                            serverName
-                        } else {
-                            stringResource(R.string.remote_connecting)
-                        },
+                    if (isConnected) {
+                        serverName
+                    } else {
+                        stringResource(R.string.remote_connecting)
+                    },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -85,11 +85,11 @@ fun RemoteStatusBar(
                 if (isConnected) {
                     Row(
                         modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer)
-                                .clickable(onClick = onConnectionsClick)
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                        Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.secondaryContainer)
+                            .clickable(onClick = onConnectionsClick)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                     ) {
@@ -111,11 +111,11 @@ fun RemoteStatusBar(
                     if (hasGroups) {
                         Row(
                             modifier =
-                                Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(MaterialTheme.colorScheme.secondaryContainer)
-                                    .clickable(onClick = onGroupsClick)
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                            Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                                .clickable(onClick = onGroupsClick)
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center,
                         ) {
@@ -138,11 +138,11 @@ fun RemoteStatusBar(
 
                 Row(
                     modifier =
-                        Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                            .clickable(onClick = onDisconnectClick)
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .clickable(onClick = onDisconnectClick)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {

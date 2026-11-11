@@ -219,8 +219,9 @@ universal APK contains arm64-only libbox.
 ## Formatting
 
 The root `.editorconfig` is the single source of ktlint settings for Spotless
-and the ktlint 1.8.0 CLI. With JDK 21, run `./gradlew spotlessApply` to format
-sources, then `./gradlew spotlessCheck :app:testOtherDebugUnitTest`.
+and the ktlint 1.8.0 CLI, preserving the `intellij_idea` code style.
+With JDK 21, run `./gradlew spotlessApply` to format sources, then
+`./gradlew spotlessCheck :app:testOtherDebugUnitTest`.
 From the repository root, `ktlint --relative 'app/src/**/*.kt'` checks the same
 Kotlin rules without additional configuration.
 

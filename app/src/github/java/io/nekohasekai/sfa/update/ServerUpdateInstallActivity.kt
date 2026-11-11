@@ -70,12 +70,7 @@ class ServerUpdateInstallModel : ViewModel() {
         permissionExplanation = !granted
     }
 
-    fun recordResult(
-        sessionId: Int,
-        ready: ReadyServerUpdate?,
-        status: Int,
-        confirmation: Intent?,
-    ): Boolean {
+    fun recordResult(sessionId: Int, ready: ReadyServerUpdate?, status: Int, confirmation: Intent?): Boolean {
         if (sessionId < 0 || this.sessionId != sessionId || this.ready != ready) return false
         resultStatus = status
         this.confirmation = if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) confirmation else null
@@ -94,32 +89,28 @@ class ServerUpdateInstallModel : ViewModel() {
         super.onCleared()
     }
 
-    fun install(
-        context: Context,
-        identity: ReadyServerUpdate,
-    ) {
+    fun install(context: Context, identity: ReadyServerUpdate) {
         if (preparing || (committed && !resumeSession)) return
         preparing = true
         resumeSession = false
         val signal = InstallCancellation().also { cancellation = it }
-        preparationJob =
-            viewModelScope.launch {
-                try {
-                    runInterruptible(Dispatchers.IO) {
-                        SystemPackageInstaller.installServer(context, identity, sessionId, signal) { sessionId = it }
-                    }
-                    committed = true
-                } catch (exception: CancellationException) {
-                    throw exception
-                } catch (exception: Exception) {
-                    DiagnosticsJournal.record("update_failed", mapOf("stage" to "install") + DiagnosticsProjection.failure(exception))
-                    Log.e("ServerUpdateInstall", "Failed to prepare update session", exception)
-                    error = R.string.server_update_install_failed
-                } finally {
-                    preparing = false
-                    ServerUpdateNotifier.refresh(context)
+        preparationJob = viewModelScope.launch {
+            try {
+                runInterruptible(Dispatchers.IO) {
+                    SystemPackageInstaller.installServer(context, identity, sessionId, signal) { sessionId = it }
                 }
+                committed = true
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                DiagnosticsJournal.record("update_failed", mapOf("stage" to "install") + DiagnosticsProjection.failure(exception))
+                Log.e("ServerUpdateInstall", "Failed to prepare update session", exception)
+                error = R.string.server_update_install_failed
+            } finally {
+                preparing = false
+                ServerUpdateNotifier.refresh(context)
             }
+        }
     }
 }
 
@@ -128,12 +119,7 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
         private var visible = WeakReference<ServerUpdateInstallActivity>(null)
         private var coordinator = WeakReference<ServerUpdateInstallModel>(null)
 
-        fun deliverResult(
-            sessionId: Int,
-            ready: ReadyServerUpdate?,
-            status: Int,
-            confirmation: Intent?,
-        ): Boolean {
+        fun deliverResult(sessionId: Int, ready: ReadyServerUpdate?, status: Int, confirmation: Intent?): Boolean {
             val model = coordinator.get() ?: return false
             if (!model.recordResult(sessionId, ready, status, confirmation)) return false
             val activity = visible.get() ?: return false
@@ -150,15 +136,13 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
     private lateinit var model: ServerUpdateInstallModel
     private var checkingConfirmation = false
     private var stateInitialized = false
-    private val permissionLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            model.permissionResult(canInstallPackages())
-            continueCoordinator()
-        }
-    private val confirmationLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            finish()
-        }
+    private val permissionLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        model.permissionResult(canInstallPackages())
+        continueCoordinator()
+    }
+    private val confirmationLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        finish()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -186,20 +170,15 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
                         if (model.waitingForPermission) model.permissionResult(canInstallPackages())
                         continueCoordinator()
                     }
-                    Lifecycle.Event.ON_PAUSE -> {
-                        if (visible.get() === this) visible.clear()
-                    }
-                    else -> {
-                        Unit
-                    }
+                    Lifecycle.Event.ON_PAUSE -> if (visible.get() === this) visible.clear()
+                    else -> Unit
                 }
             },
         )
         lifecycleScope.launch {
             try {
                 withContext(Dispatchers.IO) {
-                    io.nekohasekai.sfa.database.Settings.dataStore
-                        .initialize()
+                    io.nekohasekai.sfa.database.Settings.dataStore.initialize()
                     ServerUpdates.initialize()
                 }
                 stateInitialized = true
@@ -318,9 +297,7 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
         val status = model.resultStatus
         model.resultStatus = null
         when (status) {
-            null -> {
-                Unit
-            }
+            null -> Unit
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
                 if (model.confirmation == null) model.error = R.string.server_update_confirmation_unavailable
             }
@@ -328,9 +305,7 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
                 finish()
                 return
             }
-            else -> {
-                model.error = R.string.server_update_install_failed
-            }
+            else -> model.error = R.string.server_update_install_failed
         }
         if (model.error != null) return
         if (model.confirmation != null) launchConfirmation() else continueInstall()
@@ -359,27 +334,25 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
 
     private fun launchConfirmation() {
         if (!stateInitialized || checkingConfirmation || model.confirmationLaunched) return
-        val confirmation =
-            model.confirmation ?: run {
-                model.error = R.string.server_update_confirmation_unavailable
-                return
-            }
+        val confirmation = model.confirmation ?: run {
+            model.error = R.string.server_update_confirmation_unavailable
+            return
+        }
         checkingConfirmation = true
         lifecycleScope.launch {
             try {
                 val ready = model.ready
-                val valid =
-                    withContext(Dispatchers.IO) {
-                        val session = packageManager.packageInstaller.getSessionInfo(model.sessionId)
-                        session?.installerPackageName == packageName &&
-                            (
-                                ready == null ||
-                                    (
-                                        ServerUpdateChecker.verifiedReadyApk(this@ServerUpdateInstallActivity)?.absolutePath == ready.path &&
-                                            ServerUpdates.state.value.ready == ready
+                val valid = withContext(Dispatchers.IO) {
+                    val session = packageManager.packageInstaller.getSessionInfo(model.sessionId)
+                    session?.installerPackageName == packageName &&
+                        (
+                            ready == null ||
+                                (
+                                    ServerUpdateChecker.verifiedReadyApk(this@ServerUpdateInstallActivity)?.absolutePath == ready.path &&
+                                        ServerUpdates.state.value.ready == ready
                                     )
                             )
-                    }
+                }
                 if (!valid) {
                     model.confirmation = null
                     ServerUpdateNotifier.cancelConfirmation(this@ServerUpdateInstallActivity, model.sessionId)
@@ -404,19 +377,17 @@ class ServerUpdateInstallActivity : AppCompatActivity() {
         }
     }
 
-    private fun Intent.confirmationIntent(key: String): Intent? =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            getParcelableExtra(key, Intent::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            getParcelableExtra(key)
-        }
+    private fun Intent.confirmationIntent(key: String): Intent? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        getParcelableExtra(key, Intent::class.java)
+    } else {
+        @Suppress("DEPRECATION")
+        getParcelableExtra(key)
+    }
 
-    private fun Bundle.confirmationIntent(key: String): Intent? =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            getParcelable(key, Intent::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            getParcelable(key)
-        }
+    private fun Bundle.confirmationIntent(key: String): Intent? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        getParcelable(key, Intent::class.java)
+    } else {
+        @Suppress("DEPRECATION")
+        getParcelable(key)
+    }
 }

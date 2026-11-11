@@ -93,13 +93,12 @@ fun TailscaleSSHPromptScreen(
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .verticalScroll(rememberScrollState())
-                .padding(scaffoldPadding)
-                .padding(vertical = 8.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .verticalScroll(rememberScrollState())
+            .padding(scaffoldPadding)
+            .padding(vertical = 8.dp),
     ) {
         Text(
             text = stringResource(R.string.tailscale_ssh_options),
@@ -108,14 +107,12 @@ fun TailscaleSSHPromptScreen(
             modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
         )
         Card(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 OutlinedTextField(
@@ -123,12 +120,11 @@ fun TailscaleSSHPromptScreen(
                     onValueChange = { username = it },
                     label = { Text(stringResource(R.string.tailscale_ssh_username)) },
                     singleLine = true,
-                    keyboardOptions =
-                        KeyboardOptions(
-                            capitalization = KeyboardCapitalization.None,
-                            autoCorrectEnabled = false,
-                            imeAction = ImeAction.Next,
-                        ),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        autoCorrectEnabled = false,
+                        imeAction = ImeAction.Next,
+                    ),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -137,12 +133,11 @@ fun TailscaleSSHPromptScreen(
                     onValueChange = { terminalType = it },
                     label = { Text(stringResource(R.string.tailscale_ssh_terminal_type)) },
                     singleLine = true,
-                    keyboardOptions =
-                        KeyboardOptions(
-                            capitalization = KeyboardCapitalization.None,
-                            autoCorrectEnabled = false,
-                            imeAction = ImeAction.Done,
-                        ),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        autoCorrectEnabled = false,
+                        imeAction = ImeAction.Done,
+                    ),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -165,14 +160,12 @@ fun TailscaleSSHPromptScreen(
             modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
         )
         Card(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             ListItem(
                 headlineContent = { Text(stringResource(R.string.tailscale_ssh_remember_options)) },
@@ -247,10 +240,9 @@ fun TailscaleSSHPromptScreen(
                 }
             },
             enabled = username.trim().isNotEmpty(),
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
         ) {
             Text(stringResource(R.string.tailscale_ssh_connect_button))
         }

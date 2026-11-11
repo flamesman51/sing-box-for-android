@@ -28,10 +28,7 @@ class TailscalePingViewModel : BaseViewModel<TailscalePingState, Nothing>() {
 
     override fun createInitialState() = TailscalePingState()
 
-    fun startPing(
-        endpointTag: String,
-        peerIP: String,
-    ) {
+    fun startPing(endpointTag: String, peerIP: String) {
         updateState {
             copy(
                 isRunning = true,
@@ -44,8 +41,7 @@ class TailscalePingViewModel : BaseViewModel<TailscalePingState, Nothing>() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 pingSession =
-                    CommandTarget
-                        .standaloneClient()
+                    CommandTarget.standaloneClient()
                         .startTailscalePing(
                             endpointTag,
                             peerIP,

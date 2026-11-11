@@ -54,10 +54,7 @@ class UsbDeviceBridge private constructor(
         }
     }
 
-    private fun buildDescriptor(
-        serverTag: String,
-        configuration: UsbConfiguration?,
-    ): USBDeviceDescriptor {
+    private fun buildDescriptor(serverTag: String, configuration: UsbConfiguration?): USBDeviceDescriptor {
         val raw = connection.rawDescriptors
         val (busNum, devNum) = parseBusDevice(device.deviceName)
         val descriptor = Libbox.newUSBDeviceDescriptor(serverTag, deviceId)
@@ -86,25 +83,20 @@ class UsbDeviceBridge private constructor(
         return descriptor
     }
 
-    private fun serialNumber(): String =
-        try {
-            device.serialNumber ?: ""
-        } catch (_: SecurityException) {
-            ""
-        }
+    private fun serialNumber(): String = try {
+        device.serialNumber ?: ""
+    } catch (_: SecurityException) {
+        ""
+    }
 
     fun submit(request: USBURBRequest) {
         if (closed) return
         val endpointNumber = request.endpoint and 0x0f
-        executors
-            .getOrPut(endpointNumber) { Executors.newSingleThreadExecutor() }
+        executors.getOrPut(endpointNumber) { Executors.newSingleThreadExecutor() }
             .execute { execute(request, endpointNumber) }
     }
 
-    private fun execute(
-        request: USBURBRequest,
-        endpointNumber: Int,
-    ) {
+    private fun execute(request: USBURBRequest, endpointNumber: Int) {
         if (closed) return
         val response = Libbox.newUSBURBResponse(deviceId, request.seq)
         try {
@@ -119,10 +111,7 @@ class UsbDeviceBridge private constructor(
         if (!closed) send(response)
     }
 
-    private fun executeControl(
-        request: USBURBRequest,
-        response: USBURBResponse,
-    ) {
+    private fun executeControl(request: USBURBRequest, response: USBURBResponse) {
         val setup = UsbSetup(request.setup)
         if (!setup.directionIn && setup.isStandard && handleManagedControl(setup)) {
             response.setStatus(URB_OK)
@@ -176,11 +165,7 @@ class UsbDeviceBridge private constructor(
         return false
     }
 
-    private fun executeBulk(
-        request: USBURBRequest,
-        endpointNumber: Int,
-        response: USBURBResponse,
-    ) {
+    private fun executeBulk(request: USBURBRequest, endpointNumber: Int, response: USBURBResponse) {
         val direction = if (request.directionIn) USB_DIR_IN else 0
         val endpoint = endpoints[endpointNumber or direction]
         if (endpoint == null) {
@@ -198,11 +183,7 @@ class UsbDeviceBridge private constructor(
         }
     }
 
-    private fun applyResult(
-        response: USBURBResponse,
-        transferred: Int,
-        inData: ByteArray?,
-    ) {
+    private fun applyResult(response: USBURBResponse, transferred: Int, inData: ByteArray?) {
         if (transferred < 0) {
             response.setStatus(URB_EPROTO)
             return
@@ -222,10 +203,7 @@ class UsbDeviceBridge private constructor(
         return null
     }
 
-    private fun findInterface(
-        interfaceNumber: Int,
-        altSetting: Int,
-    ): UsbInterface? {
+    private fun findInterface(interfaceNumber: Int, altSetting: Int): UsbInterface? {
         for (index in 0 until device.interfaceCount) {
             val iface = device.getInterface(index)
             if (iface.id == interfaceNumber && iface.alternateSetting == altSetting) return iface
@@ -281,20 +259,16 @@ class UsbDeviceBridge private constructor(
             return busNum to devNum
         }
 
-        private fun readWord(
-            raw: ByteArray?,
-            offset: Int,
-        ): Int {
+        private fun readWord(raw: ByteArray?, offset: Int): Int {
             if (raw == null || raw.size < offset + 2) return 0
             return (raw[offset].toInt() and 0xff) or ((raw[offset + 1].toInt() and 0xff) shl 8)
         }
 
-        private fun inferSpeed(bcdUSB: Int): Int =
-            when {
-                (bcdUSB shr 8) and 0xff >= 3 -> 5
-                (bcdUSB shr 8) and 0xff >= 2 -> 3
-                else -> 2
-            }
+        private fun inferSpeed(bcdUSB: Int): Int = when {
+            (bcdUSB shr 8) and 0xff >= 3 -> 5
+            (bcdUSB shr 8) and 0xff >= 2 -> 3
+            else -> 2
+        }
 
         private const val CONTROL_TIMEOUT_MS = 5000
 

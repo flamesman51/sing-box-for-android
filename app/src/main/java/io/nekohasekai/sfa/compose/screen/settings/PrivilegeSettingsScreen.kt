@@ -85,10 +85,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PrivilegeSettingsScreen(
-    navController: NavController,
-    serviceStatus: Status = Status.Stopped,
-) {
+fun PrivilegeSettingsScreen(navController: NavController, serviceStatus: Status = Status.Stopped) {
     OverrideTopBar {
         TopAppBar(
             title = { Text(stringResource(R.string.privilege_settings)) },
@@ -125,27 +122,26 @@ fun PrivilegeSettingsScreen(
     var messageDialogTitle by remember { mutableStateOf("") }
     var messageDialogMessage by remember { mutableStateOf("") }
 
-    val saveFileLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.CreateDocument("application/zip"),
-        ) { uri ->
-            val file = exportedFile
-            if (uri != null && file != null) {
-                scope.launch(Dispatchers.IO) {
-                    try {
-                        context.contentResolver.openOutputStream(uri)?.use { output ->
-                            FileInputStream(file).use { input ->
-                                input.copyTo(output)
-                            }
+    val saveFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/zip"),
+    ) { uri ->
+        val file = exportedFile
+        if (uri != null && file != null) {
+            scope.launch(Dispatchers.IO) {
+                try {
+                    context.contentResolver.openOutputStream(uri)?.use { output ->
+                        FileInputStream(file).use { input ->
+                            input.copyTo(output)
                         }
-                    } catch (e: Throwable) {
-                        android.util.Log.e("PrivilegeSettings", "Failed to save file", e)
                     }
+                } catch (e: Throwable) {
+                    android.util.Log.e("PrivilegeSettings", "Failed to save file", e)
                 }
             }
-            showExportSuccessDialog = false
-            exportedFile = null
         }
+        showExportSuccessDialog = false
+        exportedFile = null
+    }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
         HookStatusClient.refresh()
@@ -184,14 +180,13 @@ fun PrivilegeSettingsScreen(
                 TextButton(
                     onClick = {
                         val trimmed = interfacePrefixInput.trim()
-                        val filtered =
-                            buildString(trimmed.length) {
-                                for (ch in trimmed) {
-                                    if (ch.isLetterOrDigit() || ch == '_') {
-                                        append(ch)
-                                    }
+                        val filtered = buildString(trimmed.length) {
+                            for (ch in trimmed) {
+                                if (ch.isLetterOrDigit() || ch == '_') {
+                                    append(ch)
                                 }
                             }
+                        }
                         val normalized = if (filtered.isEmpty()) "en" else filtered
                         interfacePrefix = normalized
                         Settings.privilegeSettingsInterfacePrefix = normalized
@@ -279,18 +274,16 @@ fun PrivilegeSettingsScreen(
                 TextButton(
                     onClick = {
                         val file = exportedFile ?: return@TextButton
-                        val uri =
-                            FileProvider.getUriForFile(
-                                context,
-                                "${context.packageName}.cache",
-                                file,
-                            )
-                        val intent =
-                            Intent(Intent.ACTION_SEND).apply {
-                                type = "application/zip"
-                                putExtra(Intent.EXTRA_STREAM, uri)
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            }
+                        val uri = FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.cache",
+                            file,
+                        )
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "application/zip"
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
                         context.startActivity(Intent.createChooser(intent, null))
                         showExportSuccessDialog = false
                         exportedFile = null
@@ -315,15 +308,14 @@ fun PrivilegeSettingsScreen(
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    top = scaffoldPadding.calculateTopPadding() + 8.dp,
-                    bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
-                ),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .verticalScroll(rememberScrollState())
+            .padding(
+                top = scaffoldPadding.calculateTopPadding() + 8.dp,
+                bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
+            ),
     ) {
         val isLsposedActivated = systemHookStatus?.active == true
         val showLogs = isLsposedActivated && !hasPendingChange
@@ -370,14 +362,12 @@ fun PrivilegeSettingsScreen(
         )
 
         Card(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -405,10 +395,9 @@ fun PrivilegeSettingsScreen(
                         )
                     },
                     modifier = Modifier.clip(statusShape),
-                    colors =
-                        ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        ),
+                    colors = ListItemDefaults.colors(
+                        containerColor = Color.Transparent,
+                    ),
                 )
                 if (showLogs) {
                     ListItem(
@@ -433,15 +422,14 @@ fun PrivilegeSettingsScreen(
                             )
                         },
                         modifier =
-                            Modifier
-                                .clip(logItemShape)
-                                .clickable {
-                                    navController.navigate("settings/privilege/logs")
-                                },
-                        colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
+                        Modifier
+                            .clip(logItemShape)
+                            .clickable {
+                                navController.navigate("settings/privilege/logs")
+                            },
+                        colors = ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                     )
                 }
                 if (showExportDebug) {
@@ -460,48 +448,45 @@ fun PrivilegeSettingsScreen(
                             )
                         },
                         modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                                .clickable {
-                                    val exportBase = File(context.cacheDir, "debug")
-                                    if (!exportBase.exists()) {
-                                        exportBase.mkdirs()
+                        Modifier
+                            .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                            .clickable {
+                                val exportBase = File(context.cacheDir, "debug")
+                                if (!exportBase.exists()) {
+                                    exportBase.mkdirs()
+                                }
+                                val timestamp =
+                                    SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+                                val outZip = File(exportBase, "sing-box-lsposed-debug-$timestamp.zip")
+                                exportCancelled = false
+                                exportError = null
+                                showExportProgressDialog = true
+                                scope.launch {
+                                    val result = withContext(Dispatchers.IO) {
+                                        PrivilegeSettingsClient.exportDebugInfo(outZip.absolutePath)
                                     }
-                                    val timestamp =
-                                        SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-                                    val outZip = File(exportBase, "sing-box-lsposed-debug-$timestamp.zip")
-                                    exportCancelled = false
-                                    exportError = null
-                                    showExportProgressDialog = true
-                                    scope.launch {
-                                        val result =
-                                            withContext(Dispatchers.IO) {
-                                                PrivilegeSettingsClient.exportDebugInfo(outZip.absolutePath)
-                                            }
-                                        if (exportCancelled) {
-                                            outZip.delete()
-                                            return@launch
-                                        }
-                                        showExportProgressDialog = false
-                                        val failure = result.error
-                                        if (failure == null) {
-                                            exportedFile = outZip
-                                            showExportSuccessDialog = true
-                                        } else {
-                                            messageDialogTitle = context.getString(R.string.error_title)
-                                            messageDialogMessage =
-                                                context.getString(
-                                                    R.string.privilege_settings_export_debug_failed,
-                                                    failure,
-                                                )
-                                            showMessageDialog = true
-                                        }
+                                    if (exportCancelled) {
+                                        outZip.delete()
+                                        return@launch
                                     }
-                                },
-                        colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
+                                    showExportProgressDialog = false
+                                    val failure = result.error
+                                    if (failure == null) {
+                                        exportedFile = outZip
+                                        showExportSuccessDialog = true
+                                    } else {
+                                        messageDialogTitle = context.getString(R.string.error_title)
+                                        messageDialogMessage = context.getString(
+                                            R.string.privilege_settings_export_debug_failed,
+                                            failure,
+                                        )
+                                        showMessageDialog = true
+                                    }
+                                }
+                            },
+                        colors = ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                     )
                 }
                 if (hasPendingChange) {
@@ -520,50 +505,47 @@ fun PrivilegeSettingsScreen(
                             )
                         },
                         modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                                .clickable {
-                                    scope.launch {
-                                        val failure =
-                                            withContext(Dispatchers.IO) {
-                                                runCatching {
-                                                    val process =
-                                                        Runtime.getRuntime().exec(
-                                                            arrayOf(
-                                                                "su",
-                                                                "-c",
-                                                                "/system/bin/svc power reboot || /system/bin/reboot",
-                                                            ),
-                                                        )
-                                                    val error = process.errorStream.bufferedReader().use { it.readText().trim() }
-                                                    process.inputStream.close()
-                                                    process.outputStream.close()
-                                                    process.errorStream.close()
-                                                    val code = process.waitFor()
-                                                    if (code == 0) {
-                                                        null
-                                                    } else {
-                                                        error.ifBlank { "exit=$code" }
-                                                    }
-                                                }.getOrElse { it.message ?: "unknown" }
+                        Modifier
+                            .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                            .clickable {
+                                scope.launch {
+                                    val failure = withContext(Dispatchers.IO) {
+                                        runCatching {
+                                            val process = Runtime.getRuntime().exec(
+                                                arrayOf(
+                                                    "su",
+                                                    "-c",
+                                                    "/system/bin/svc power reboot || /system/bin/reboot",
+                                                ),
+                                            )
+                                            val error = process.errorStream.bufferedReader().use { it.readText().trim() }
+                                            process.inputStream.close()
+                                            process.outputStream.close()
+                                            process.errorStream.close()
+                                            val code = process.waitFor()
+                                            if (code == 0) {
+                                                null
+                                            } else {
+                                                error.ifBlank { "exit=$code" }
                                             }
-                                        if (failure != null) {
-                                            val message =
-                                                if (failure == "unknown" || failure.startsWith("exit=")) {
-                                                    context.getString(R.string.root_access_required)
-                                                } else {
-                                                    context.getString(R.string.privilege_module_restart_failed, failure)
-                                                }
-                                            messageDialogTitle = context.getString(R.string.error_title)
-                                            messageDialogMessage = message
-                                            showMessageDialog = true
-                                        }
+                                        }.getOrElse { it.message ?: "unknown" }
                                     }
-                                },
-                        colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
+                                    if (failure != null) {
+                                        val message =
+                                            if (failure == "unknown" || failure.startsWith("exit=")) {
+                                                context.getString(R.string.root_access_required)
+                                            } else {
+                                                context.getString(R.string.privilege_module_restart_failed, failure)
+                                            }
+                                        messageDialogTitle = context.getString(R.string.error_title)
+                                        messageDialogMessage = message
+                                        showMessageDialog = true
+                                    }
+                                }
+                            },
+                        colors = ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                     )
                 }
             }
@@ -580,14 +562,12 @@ fun PrivilegeSettingsScreen(
         val hasManageItem = privilegeSettingsEnabled
 
         Card(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -643,20 +623,18 @@ fun PrivilegeSettingsScreen(
                             enabled = privilegeControlsEnabled,
                         )
                     },
-                    modifier =
-                        Modifier
-                            .alpha(if (privilegeControlsEnabled) 1f else disabledAlpha)
-                            .clip(
-                                if (hasManageItem) {
-                                    RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                                } else {
-                                    RoundedCornerShape(12.dp)
-                                },
-                            ),
-                    colors =
-                        ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
+                    modifier = Modifier
+                        .alpha(if (privilegeControlsEnabled) 1f else disabledAlpha)
+                        .clip(
+                            if (hasManageItem) {
+                                RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                            } else {
+                                RoundedCornerShape(12.dp)
+                            },
                         ),
+                    colors = ListItemDefaults.colors(
+                        containerColor = Color.Transparent,
+                    ),
                 )
 
                 val manageEnabled = privilegeControlsEnabled && privilegeSettingsEnabled
@@ -682,17 +660,15 @@ fun PrivilegeSettingsScreen(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         },
-                        modifier =
-                            Modifier
-                                .alpha(if (manageEnabled) 1f else disabledAlpha)
-                                .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                                .clickable(enabled = manageEnabled) {
-                                    navController.navigate("settings/privilege/manage")
-                                },
-                        colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
+                        modifier = Modifier
+                            .alpha(if (manageEnabled) 1f else disabledAlpha)
+                            .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                            .clickable(enabled = manageEnabled) {
+                                navController.navigate("settings/privilege/manage")
+                            },
+                        colors = ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                     )
                 }
             }
@@ -706,14 +682,12 @@ fun PrivilegeSettingsScreen(
         )
 
         Card(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -757,20 +731,18 @@ fun PrivilegeSettingsScreen(
                             enabled = renameControlsEnabled,
                         )
                     },
-                    modifier =
-                        Modifier
-                            .alpha(if (renameControlsEnabled) 1f else disabledAlpha)
-                            .clip(
-                                if (interfaceRenameEnabled) {
-                                    RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                                } else {
-                                    RoundedCornerShape(12.dp)
-                                },
-                            ),
-                    colors =
-                        ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
+                    modifier = Modifier
+                        .alpha(if (renameControlsEnabled) 1f else disabledAlpha)
+                        .clip(
+                            if (interfaceRenameEnabled) {
+                                RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                            } else {
+                                RoundedCornerShape(12.dp)
+                            },
                         ),
+                    colors = ListItemDefaults.colors(
+                        containerColor = Color.Transparent,
+                    ),
                 )
 
                 if (interfaceRenameEnabled) {
@@ -803,18 +775,16 @@ fun PrivilegeSettingsScreen(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         },
-                        modifier =
-                            Modifier
-                                .alpha(if (prefixEnabled) 1f else disabledAlpha)
-                                .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                                .clickable(enabled = prefixEnabled) {
-                                    interfacePrefixInput = interfacePrefix
-                                    showInterfacePrefixDialog = true
-                                },
-                        colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
+                        modifier = Modifier
+                            .alpha(if (prefixEnabled) 1f else disabledAlpha)
+                            .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                            .clickable(enabled = prefixEnabled) {
+                                interfacePrefixInput = interfacePrefix
+                                showInterfacePrefixDialog = true
+                            },
+                        colors = ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                     )
                 }
             }
@@ -828,14 +798,12 @@ fun PrivilegeSettingsScreen(
         )
 
         Card(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -862,27 +830,24 @@ fun PrivilegeSettingsScreen(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     },
-                    modifier =
-                        Modifier
-                            .alpha(if (testEnabled) 1f else 0.38f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable(enabled = testEnabled) {
-                                showTestDialog = true
-                                isTestRunning = true
-                                testResult = null
-                                scope.launch {
-                                    val result =
-                                        withContext(Dispatchers.IO) {
-                                            VpnDetectionTest.runDetection(context)
-                                        }
-                                    testResult = result
-                                    isTestRunning = false
+                    modifier = Modifier
+                        .alpha(if (testEnabled) 1f else 0.38f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(enabled = testEnabled) {
+                            showTestDialog = true
+                            isTestRunning = true
+                            testResult = null
+                            scope.launch {
+                                val result = withContext(Dispatchers.IO) {
+                                    VpnDetectionTest.runDetection(context)
                                 }
-                            },
-                    colors =
-                        ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        ),
+                                testResult = result
+                                isTestRunning = false
+                            }
+                        },
+                    colors = ListItemDefaults.colors(
+                        containerColor = Color.Transparent,
+                    ),
                 )
             }
         }
@@ -890,11 +855,7 @@ fun PrivilegeSettingsScreen(
 }
 
 @Composable
-private fun SelfTestDialog(
-    isRunning: Boolean,
-    result: DetectionResult?,
-    onDismiss: () -> Unit,
-) {
+private fun SelfTestDialog(isRunning: Boolean, result: DetectionResult?, onDismiss: () -> Unit) {
     val notDetectedText = stringResource(R.string.privilege_settings_hide_test_not_detected)
 
     AlertDialog(
@@ -905,10 +866,9 @@ private fun SelfTestDialog(
         text = {
             if (isRunning) {
                 Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 24.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -919,16 +879,14 @@ private fun SelfTestDialog(
                     )
                 }
             } else if (result != null) {
-                val frameworkInterfacesText =
-                    result.frameworkInterfaces
-                        .takeIf { it.isNotEmpty() }
-                        ?.joinToString(", ")
+                val frameworkInterfacesText = result.frameworkInterfaces
+                    .takeIf { it.isNotEmpty() }
+                    ?.joinToString(", ")
                 val frameworkProxyText = result.httpProxy?.takeIf { it.isNotBlank() }
                 val frameworkExtraLines = listOfNotNull(frameworkInterfacesText, frameworkProxyText)
-                val nativeInterfacesText =
-                    result.nativeInterfaces
-                        .takeIf { it.isNotEmpty() }
-                        ?.joinToString(", ")
+                val nativeInterfacesText = result.nativeInterfaces
+                    .takeIf { it.isNotEmpty() }
+                    ?.joinToString(", ")
                 val nativeExtraLines = listOfNotNull(nativeInterfacesText)
                 Column(
                     modifier = Modifier.fillMaxWidth(),

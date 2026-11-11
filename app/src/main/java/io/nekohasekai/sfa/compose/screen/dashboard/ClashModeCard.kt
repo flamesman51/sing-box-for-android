@@ -43,20 +43,15 @@ import io.nekohasekai.sfa.utils.fittingSegmentWidths
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ClashModeCard(
-    modes: List<String>,
-    selectedMode: String,
-    onModeSelected: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun ClashModeCard(modes: List<String>, selectedMode: String, onModeSelected: (String) -> Unit, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -84,14 +79,13 @@ fun ClashModeCard(
                 val textStyle = MaterialTheme.typography.labelLarge
                 val density = LocalDensity.current
 
-                val segmentWidths =
-                    remember(modes, textStyle, density, maxWidth) {
-                        fittingSegmentWidths(
-                            labelWidths = modes.map { mode -> textMeasurer.measure(mode, textStyle).size.width },
-                            density = density.density,
-                            availableWidth = with(density) { maxWidth.toPx() },
-                        )
-                    }
+                val segmentWidths = remember(modes, textStyle, density, maxWidth) {
+                    fittingSegmentWidths(
+                        labelWidths = modes.map { mode -> textMeasurer.measure(mode, textStyle).size.width },
+                        density = density.density,
+                        availableWidth = with(density) { maxWidth.toPx() },
+                    )
+                }
 
                 if (segmentWidths == null) {
                     ModeDropdown(
@@ -125,30 +119,25 @@ fun ClashModeCard(
 }
 
 @Composable
-private fun ModeDropdown(
-    modes: List<String>,
-    selectedMode: String,
-    onModeSelected: (String) -> Unit,
-) {
+private fun ModeDropdown(modes: List<String>, selectedMode: String, onModeSelected: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxWidth()) {
         Surface(
             onClick = { expanded = true },
             shape = RoundedCornerShape(12.dp),
-            color =
-                if (isSystemInDarkTheme()) {
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                } else {
-                    MaterialTheme.colorScheme.surfaceDim
-                },
+            color = if (isSystemInDarkTheme()) {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            } else {
+                MaterialTheme.colorScheme.surfaceDim
+            },
             modifier = Modifier.fillMaxWidth(),
         ) {
             Row(
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(

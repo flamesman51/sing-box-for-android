@@ -118,16 +118,11 @@ class SmartPolicyStateTest {
         }
     }
 
-    private fun state(
-        status: Status,
-        snapshot: List<SmartStatus>?,
-    ) = smartPolicyApplyState(status, "abc", snapshot, remote = false)
+    private fun state(status: Status, snapshot: List<SmartStatus>?) = smartPolicyApplyState(status, "abc", snapshot, remote = false)
 
     private fun group(hash: String?): SmartStatus {
-        val fixture =
-            requireNotNull(javaClass.getResourceAsStream("/smart/status.json"))
-                .bufferedReader()
-                .use { it.readText() }
+        val fixture = requireNotNull(javaClass.getResourceAsStream("/smart/status.json"))
+            .bufferedReader().use { it.readText() }
         return SmartJson.status(fixture).copy(
             preference = hash?.let { SmartPreference("profile", "phone", false, "override", it, kotlinx.serialization.json.JsonObject(emptyMap())) },
         )

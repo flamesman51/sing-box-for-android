@@ -20,18 +20,14 @@ object AppLifecycleObserver : DefaultLifecycleObserver {
     private val _isScreenOn = MutableStateFlow(true)
     val isScreenOn: StateFlow<Boolean> = _isScreenOn.asStateFlow()
 
-    private val screenReceiver =
-        object : BroadcastReceiver() {
-            override fun onReceive(
-                context: Context,
-                intent: Intent,
-            ) {
-                when (intent.action) {
-                    Intent.ACTION_SCREEN_ON -> _isScreenOn.value = true
-                    Intent.ACTION_SCREEN_OFF -> _isScreenOn.value = false
-                }
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_SCREEN_ON -> _isScreenOn.value = true
+                Intent.ACTION_SCREEN_OFF -> _isScreenOn.value = false
             }
         }
+    }
 
     fun register(context: Context) {
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)

@@ -26,12 +26,8 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 sealed class QRScanResult {
-    data class RemoteProfile(
-        val uri: Uri,
-    ) : QRScanResult()
-    data class QRSData(
-        val data: ByteArray,
-    ) : QRScanResult() {
+    data class RemoteProfile(val uri: Uri) : QRScanResult()
+    data class QRSData(val data: ByteArray) : QRScanResult() {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
@@ -58,9 +54,7 @@ data class QRScanUiState(
     val maxZoomRatio: Float = 1f,
 )
 
-class QRScanViewModel(
-    application: Application,
-) : AndroidViewModel(application) {
+class QRScanViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         private const val TAG = "QRScanViewModel"
     }
@@ -79,12 +73,11 @@ class QRScanViewModel(
     private val showingError = AtomicBoolean(false)
     private val qrsLock = Any()
 
-    private val vendorAnalyzer: ImageAnalysis.Analyzer? =
-        Vendor.createQRCodeAnalyzer(
-            onSuccess = { rawValue -> handleScanSuccess(rawValue) },
-            onFailure = { exception -> handleScanFailure(exception) },
-            onCropArea = ::updateCropArea,
-        )
+    private val vendorAnalyzer: ImageAnalysis.Analyzer? = Vendor.createQRCodeAnalyzer(
+        onSuccess = { rawValue -> handleScanSuccess(rawValue) },
+        onFailure = { exception -> handleScanFailure(exception) },
+        onCropArea = ::updateCropArea,
+    )
 
     init {
         _uiState.update {
@@ -150,40 +143,32 @@ class QRScanViewModel(
         }
     }
 
-    fun startCamera(
-        lifecycleOwner: LifecycleOwner,
-        previewView: PreviewView,
-    ) {
+    fun startCamera(lifecycleOwner: LifecycleOwner, previewView: PreviewView) {
         val context = getApplication<Application>()
-        val cameraProviderFuture =
-            try {
-                ProcessCameraProvider.getInstance(context)
-            } catch (e: Exception) {
-                _uiState.update { it.copy(errorMessage = e.message, isLoading = false) }
-                return
-            }
+        val cameraProviderFuture = try {
+            ProcessCameraProvider.getInstance(context)
+        } catch (e: Exception) {
+            _uiState.update { it.copy(errorMessage = e.message, isLoading = false) }
+            return
+        }
 
         cameraProviderFuture.addListener({
             try {
                 cameraProvider = cameraProviderFuture.get()
 
-                cameraPreview =
-                    Preview.Builder().build().also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
-                    }
+                cameraPreview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(previewView.surfaceProvider)
+                }
 
-                imageAnalysis =
-                    ImageAnalysis
-                        .Builder()
-                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                        .build()
+                imageAnalysis = ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
 
-                imageAnalyzer =
-                    if (_uiState.value.useVendorAnalyzer && vendorAnalyzer != null) {
-                        vendorAnalyzer
-                    } else {
-                        ZxingQRCodeAnalyzer(onSuccess, onFailure, onCropArea = ::updateCropArea)
-                    }
+                imageAnalyzer = if (_uiState.value.useVendorAnalyzer && vendorAnalyzer != null) {
+                    vendorAnalyzer
+                } else {
+                    ZxingQRCodeAnalyzer(onSuccess, onFailure, onCropArea = ::updateCropArea)
+                }
                 imageAnalysis?.setAnalyzer(analysisExecutor, imageAnalyzer!!)
 
                 bindCamera(lifecycleOwner)
@@ -200,27 +185,20 @@ class QRScanViewModel(
 
         provider.unbindAll()
 
-        val cameraSelector =
-            if (_uiState.value.useFrontCamera) {
-                CameraSelector.DEFAULT_FRONT_CAMERA
-            } else {
-                CameraSelector.DEFAULT_BACK_CAMERA
-            }
+        val cameraSelector = if (_uiState.value.useFrontCamera) {
+            CameraSelector.DEFAULT_FRONT_CAMERA
+        } else {
+            CameraSelector.DEFAULT_BACK_CAMERA
+        }
 
         try {
-            camera =
-                provider.bindToLifecycle(
-                    lifecycleOwner,
-                    cameraSelector,
-                    preview,
-                    analysis,
-                )
-            val maxZoom =
-                camera
-                    ?.cameraInfo
-                    ?.zoomState
-                    ?.value
-                    ?.maxZoomRatio ?: 1f
+            camera = provider.bindToLifecycle(
+                lifecycleOwner,
+                cameraSelector,
+                preview,
+                analysis,
+            )
+            val maxZoom = camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 1f
             _uiState.update { it.copy(maxZoomRatio = maxZoom, zoomRatio = 1f) }
         } catch (e: Exception) {
             _uiState.update { it.copy(errorMessage = e.message, isLoading = false) }
@@ -258,12 +236,11 @@ class QRScanViewModel(
         updateCropArea(null)
 
         imageAnalysis?.clearAnalyzer()
-        imageAnalyzer =
-            if (newState) {
-                vendorAnalyzer
-            } else {
-                ZxingQRCodeAnalyzer(onSuccess, onFailure, onCropArea = ::updateCropArea)
-            }
+        imageAnalyzer = if (newState) {
+            vendorAnalyzer
+        } else {
+            ZxingQRCodeAnalyzer(onSuccess, onFailure, onCropArea = ::updateCropArea)
+        }
         imageAnalysis?.setAnalyzer(analysisExecutor, imageAnalyzer!!)
     }
 
@@ -279,23 +256,19 @@ class QRScanViewModel(
     }
 
     private fun extractQRSPayload(content: String): ByteArray? {
-        val base64Data =
-            when {
-                content.startsWith("http") && content.contains("#") -> {
-                    content.substring(content.indexOf('#') + 1)
-                }
-                else -> {
-                    content
-                }
+        val base64Data = when {
+            content.startsWith("http") && content.contains("#") -> {
+                content.substring(content.indexOf('#') + 1)
             }
+            else -> content
+        }
 
-        val decoded =
-            try {
-                Base64.decode(base64Data, Base64.DEFAULT)
-            } catch (e: Exception) {
-                Log.d(TAG, "Base64 decode failed: ${e.message}")
-                return null
-            }
+        val decoded = try {
+            Base64.decode(base64Data, Base64.DEFAULT)
+        } catch (e: Exception) {
+            Log.d(TAG, "Base64 decode failed: ${e.message}")
+            return null
+        }
 
         Log.d(TAG, "Decoded size: ${decoded.size}")
         if (decoded.size < 20) {
@@ -327,64 +300,60 @@ class QRScanViewModel(
         return decoded
     }
 
-    private fun handleQRSFrame(payload: ByteArray) =
-        synchronized(qrsLock) {
-            Log.d(TAG, "Processing QRS frame")
-            if (qrsDecoder == null) {
-                qrsDecoder = QRSDecoder()
-                _uiState.update { it.copy(qrsMode = true) }
-                (imageAnalyzer as? ZxingQRCodeAnalyzer)?.qrsMode = true
-                Log.d(TAG, "Created new QRSDecoder, entered QRS mode")
-            }
-
-            val progress = qrsDecoder!!.processFrame(payload)
-            Log.d(TAG, "processFrame result: $progress")
-            if (progress == null) {
-                Log.d(TAG, "processFrame returned null!")
-                return@synchronized
-            }
-
-            _uiState.update {
-                it.copy(qrsProgress = Pair(progress.decodedBlocks, progress.totalBlocks))
-            }
-
-            if (progress.isComplete) {
-                if (progress.error != null) {
-                    Log.e(TAG, "QRS complete with error: ${progress.error}, retrying...")
-                    resetQRSState()
-                } else if (progress.data != null) {
-                    imageAnalysis?.clearAnalyzer()
-                    Log.d(TAG, "QRS complete! Data size: ${progress.data.size}")
-                    importQRSProfile(progress.data)
-                }
-            }
+    private fun handleQRSFrame(payload: ByteArray) = synchronized(qrsLock) {
+        Log.d(TAG, "Processing QRS frame")
+        if (qrsDecoder == null) {
+            qrsDecoder = QRSDecoder()
+            _uiState.update { it.copy(qrsMode = true) }
+            (imageAnalyzer as? ZxingQRCodeAnalyzer)?.qrsMode = true
+            Log.d(TAG, "Created new QRSDecoder, entered QRS mode")
         }
 
-    fun resetQRSState() =
-        synchronized(qrsLock) {
-            qrsDecoder?.reset()
-            qrsDecoder = null
-            (imageAnalyzer as? ZxingQRCodeAnalyzer)?.qrsMode = false
-            _uiState.update { it.copy(qrsMode = false, qrsProgress = null) }
+        val progress = qrsDecoder!!.processFrame(payload)
+        Log.d(TAG, "processFrame result: $progress")
+        if (progress == null) {
+            Log.d(TAG, "processFrame returned null!")
+            return@synchronized
         }
+
+        _uiState.update {
+            it.copy(qrsProgress = Pair(progress.decodedBlocks, progress.totalBlocks))
+        }
+
+        if (progress.isComplete) {
+            if (progress.error != null) {
+                Log.e(TAG, "QRS complete with error: ${progress.error}, retrying...")
+                resetQRSState()
+            } else if (progress.data != null) {
+                imageAnalysis?.clearAnalyzer()
+                Log.d(TAG, "QRS complete! Data size: ${progress.data.size}")
+                importQRSProfile(progress.data)
+            }
+        }
+    }
+
+    fun resetQRSState() = synchronized(qrsLock) {
+        qrsDecoder?.reset()
+        qrsDecoder = null
+        (imageAnalyzer as? ZxingQRCodeAnalyzer)?.qrsMode = false
+        _uiState.update { it.copy(qrsMode = false, qrsProgress = null) }
+    }
 
     private fun parseQRSFileFormat(data: ByteArray): ByteArray {
         var offset = 0
 
-        val metaLength =
-            ((data[offset].toInt() and 0xFF) shl 24) or
-                ((data[offset + 1].toInt() and 0xFF) shl 16) or
-                ((data[offset + 2].toInt() and 0xFF) shl 8) or
-                (data[offset + 3].toInt() and 0xFF)
+        val metaLength = ((data[offset].toInt() and 0xFF) shl 24) or
+            ((data[offset + 1].toInt() and 0xFF) shl 16) or
+            ((data[offset + 2].toInt() and 0xFF) shl 8) or
+            (data[offset + 3].toInt() and 0xFF)
         offset += 4
 
         offset += metaLength
 
-        val dataLength =
-            ((data[offset].toInt() and 0xFF) shl 24) or
-                ((data[offset + 1].toInt() and 0xFF) shl 16) or
-                ((data[offset + 2].toInt() and 0xFF) shl 8) or
-                (data[offset + 3].toInt() and 0xFF)
+        val dataLength = ((data[offset].toInt() and 0xFF) shl 24) or
+            ((data[offset + 1].toInt() and 0xFF) shl 16) or
+            ((data[offset + 2].toInt() and 0xFF) shl 8) or
+            (data[offset + 3].toInt() and 0xFF)
         offset += 4
 
         return data.copyOfRange(offset, offset + dataLength)
@@ -392,13 +361,12 @@ class QRScanViewModel(
 
     private fun importQRSProfile(data: ByteArray) {
         try {
-            val actualData =
-                try {
-                    parseQRSFileFormat(data)
-                } catch (e: Exception) {
-                    Log.d(TAG, "Not official QRS format, using raw data")
-                    data
-                }
+            val actualData = try {
+                parseQRSFileFormat(data)
+            } catch (e: Exception) {
+                Log.d(TAG, "Not official QRS format, using raw data")
+                data
+            }
             Log.d(TAG, "Decoding profile content, size: ${actualData.size}")
             Libbox.decodeProfileContent(actualData)
             _uiState.update { it.copy(result = QRScanResult.QRSData(actualData)) }

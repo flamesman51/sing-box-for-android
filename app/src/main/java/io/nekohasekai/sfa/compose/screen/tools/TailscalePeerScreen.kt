@@ -122,13 +122,12 @@ fun TailscalePeerScreen(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Box(
-                            modifier =
-                                Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (peer?.online == true) Color(0xFF4CAF50) else Color.Gray,
-                                    ),
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (peer?.online == true) Color(0xFF4CAF50) else Color.Gray,
+                                ),
                         )
                         Text(
                             if (peer?.online == true) {
@@ -160,22 +159,18 @@ fun TailscalePeerScreen(
     var copiedAddress by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    fun sendFiles(
-        uris: List<Uri>,
-        releasePermissions: () -> Unit = {},
-    ) {
+    fun sendFiles(uris: List<Uri>, releasePermissions: () -> Unit = {}) {
         if (uris.isEmpty()) {
             releasePermissions()
             return
         }
         scope.launch {
             try {
-                val files =
-                    try {
-                        withContext(Dispatchers.IO) { TaildropSendManager.openURIs(uris) }
-                    } finally {
-                        releasePermissions()
-                    }
+                val files = try {
+                    withContext(Dispatchers.IO) { TaildropSendManager.openURIs(uris) }
+                } finally {
+                    releasePermissions()
+                }
                 TaildropSendManager.send(endpointTag, peer.stableID, peer.displayName, files)
                 navController.navigate("tools/tailscale/${Uri.encode(endpointTag)}/taildrop")
             } catch (e: Exception) {
@@ -184,22 +179,20 @@ fun TailscalePeerScreen(
         }
     }
 
-    val sendFilesLauncher =
-        rememberLauncherForActivityResult(
-            ActivityResultContracts.OpenMultipleDocuments(),
-        ) { uris ->
-            sendFiles(uris)
-        }
+    val sendFilesLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenMultipleDocuments(),
+    ) { uris ->
+        sendFiles(uris)
+    }
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .verticalScroll(rememberScrollState())
-                .padding(scaffoldPadding)
-                .padding(vertical = 8.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .verticalScroll(rememberScrollState())
+            .padding(scaffoldPadding)
+            .padding(vertical = 8.dp),
     ) {
         // Network section (self peer only): network name + logout
         val networkName = endpoint?.networkName
@@ -207,14 +200,12 @@ fun TailscalePeerScreen(
         if (isSelf && (!networkName.isNullOrEmpty() || showLogout)) {
             SectionHeader(stringResource(R.string.tailscale_network))
             Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                    ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                ),
             ) {
                 Column {
                     if (!networkName.isNullOrEmpty()) {
@@ -246,10 +237,9 @@ fun TailscalePeerScreen(
                                     tint = MaterialTheme.colorScheme.error,
                                 )
                             },
-                            modifier =
-                                Modifier.clickable {
-                                    viewModel.logout(endpointTag)
-                                },
+                            modifier = Modifier.clickable {
+                                viewModel.logout(endpointTag)
+                            },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         )
                     }
@@ -261,14 +251,12 @@ fun TailscalePeerScreen(
         // Tailscale Addresses section
         SectionHeader(stringResource(R.string.tailscale_addresses))
         Card(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            ),
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -293,12 +281,11 @@ fun TailscalePeerScreen(
                 for (ip in peer.tailscaleIPs) {
                     AddressRow(
                         address = ip,
-                        label =
-                            if (ip.contains(":")) {
-                                stringResource(R.string.tailscale_ipv6)
-                            } else {
-                                stringResource(R.string.tailscale_ipv4)
-                            },
+                        label = if (ip.contains(":")) {
+                            stringResource(R.string.tailscale_ipv6)
+                        } else {
+                            stringResource(R.string.tailscale_ipv4)
+                        },
                         copied = copiedAddress,
                         onCopy = { copiedAddress = it },
                     )
@@ -312,10 +299,9 @@ fun TailscalePeerScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
             Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp, vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -333,27 +319,25 @@ fun TailscalePeerScreen(
                         }
                     },
                     shape = RoundedCornerShape(12.dp),
-                    color =
-                        if (isSystemInDarkTheme()) {
-                            lerp(
-                                MaterialTheme.colorScheme.surfaceContainerHighest,
-                                MaterialTheme.colorScheme.surfaceContainerHigh,
-                                0.5f,
-                            )
-                        } else {
-                            MaterialTheme.colorScheme.surfaceDim
-                        },
+                    color = if (isSystemInDarkTheme()) {
+                        lerp(
+                            MaterialTheme.colorScheme.surfaceContainerHighest,
+                            MaterialTheme.colorScheme.surfaceContainerHigh,
+                            0.5f,
+                        )
+                    } else {
+                        MaterialTheme.colorScheme.surfaceDim
+                    },
                     modifier = Modifier.size(width = 44.dp, height = 32.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = if (pingState.isRunning) Icons.Default.Stop else Icons.Default.PlayArrow,
-                            contentDescription =
-                                if (pingState.isRunning) {
-                                    stringResource(R.string.tailscale_ping_stop)
-                                } else {
-                                    stringResource(R.string.tailscale_ping_start)
-                                },
+                            contentDescription = if (pingState.isRunning) {
+                                stringResource(R.string.tailscale_ping_stop)
+                            } else {
+                                stringResource(R.string.tailscale_ping_start)
+                            },
                             modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -361,14 +345,12 @@ fun TailscalePeerScreen(
                 }
             }
             Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                    ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                ),
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -443,21 +425,19 @@ fun TailscalePeerScreen(
                             ) {
                                 LineChart(
                                     data = pingState.latencyHistory,
-                                    lineColor =
-                                        if (pingState.isDirect) {
-                                            Color(0xFF4CAF50)
-                                        } else {
-                                            Color(0xFF2196F3)
-                                        },
+                                    lineColor = if (pingState.isDirect) {
+                                        Color(0xFF4CAF50)
+                                    } else {
+                                        Color(0xFF2196F3)
+                                    },
                                     animate = false,
                                     modifier = Modifier.weight(1f),
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                val maxMs =
+                                val maxMs = (
                                     (
-                                        (
-                                            pingState.latencyHistory.maxOrNull()
-                                                ?: 1f
+                                        pingState.latencyHistory.maxOrNull()
+                                            ?: 1f
                                         ) * 1.2f
                                     ).toInt().coerceAtLeast(1)
                                 Column(
@@ -525,50 +505,47 @@ fun TailscalePeerScreen(
         if (canSendFiles) {
             val activity = LocalActivity.current
             var dropTargeted by remember { mutableStateOf(false) }
-            val dropTarget =
-                remember {
-                    object : DragAndDropTarget {
-                        override fun onEntered(event: DragAndDropEvent) {
-                            dropTargeted = true
-                        }
+            val dropTarget = remember {
+                object : DragAndDropTarget {
+                    override fun onEntered(event: DragAndDropEvent) {
+                        dropTargeted = true
+                    }
 
-                        override fun onExited(event: DragAndDropEvent) {
-                            dropTargeted = false
-                        }
+                    override fun onExited(event: DragAndDropEvent) {
+                        dropTargeted = false
+                    }
 
-                        override fun onEnded(event: DragAndDropEvent) {
-                            dropTargeted = false
-                        }
+                    override fun onEnded(event: DragAndDropEvent) {
+                        dropTargeted = false
+                    }
 
-                        override fun onDrop(event: DragAndDropEvent): Boolean {
-                            dropTargeted = false
-                            val dragEvent = event.toAndroidDragEvent()
-                            val clipData = dragEvent.clipData ?: return false
-                            val uris = (0 until clipData.itemCount).mapNotNull { clipData.getItemAt(it).uri }
-                            if (uris.isEmpty()) {
-                                return false
-                            }
-                            val permissions =
-                                activity?.let {
-                                    ActivityCompat.requestDragAndDropPermissions(it, dragEvent)
-                                }
-                            sendFiles(uris) { permissions?.release() }
-                            return true
+                    override fun onDrop(event: DragAndDropEvent): Boolean {
+                        dropTargeted = false
+                        val dragEvent = event.toAndroidDragEvent()
+                        val clipData = dragEvent.clipData ?: return false
+                        val uris = (0 until clipData.itemCount).mapNotNull { clipData.getItemAt(it).uri }
+                        if (uris.isEmpty()) {
+                            return false
                         }
+                        val permissions = activity?.let {
+                            ActivityCompat.requestDragAndDropPermissions(it, dragEvent)
+                        }
+                        sendFiles(uris) { permissions?.release() }
+                        return true
                     }
                 }
+            }
             Spacer(modifier = Modifier.height(16.dp))
             SectionHeader(stringResource(R.string.taildrop))
             TaildropSendZone(
                 targeted = dropTargeted,
                 onClick = { sendFilesLauncher.launch(arrayOf("*/*")) },
-                modifier =
-                    Modifier.dragAndDropTarget(
-                        shouldStartDragAndDrop = { event ->
-                            event.mimeTypes().isNotEmpty()
-                        },
-                        target = dropTarget,
-                    ),
+                modifier = Modifier.dragAndDropTarget(
+                    shouldStartDragAndDrop = { event ->
+                        event.mimeTypes().isNotEmpty()
+                    },
+                    target = dropTarget,
+                ),
             )
         }
 
@@ -576,14 +553,12 @@ fun TailscalePeerScreen(
         Spacer(modifier = Modifier.height(16.dp))
         SectionHeader(stringResource(R.string.tailscale_details))
         Card(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            ),
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -598,14 +573,12 @@ fun TailscalePeerScreen(
                         )
                     }
                     peer.keyExpiry > 0 -> {
-                        val expiryText =
-                            DateUtils
-                                .getRelativeTimeSpanString(
-                                    peer.keyExpiry * 1000,
-                                    System.currentTimeMillis(),
-                                    DateUtils.MINUTE_IN_MILLIS,
-                                    0,
-                                ).toString()
+                        val expiryText = DateUtils.getRelativeTimeSpanString(
+                            peer.keyExpiry * 1000,
+                            System.currentTimeMillis(),
+                            DateUtils.MINUTE_IN_MILLIS,
+                            0,
+                        ).toString()
                         DetailRow(
                             label = stringResource(R.string.tailscale_key_expiry),
                             value = expiryText,
@@ -626,14 +599,12 @@ fun TailscalePeerScreen(
                     )
                 }
                 if (!peer.online && peer.lastSeen > 0) {
-                    val lastSeenText =
-                        DateUtils
-                            .getRelativeTimeSpanString(
-                                peer.lastSeen * 1000,
-                                System.currentTimeMillis(),
-                                DateUtils.MINUTE_IN_MILLIS,
-                                0,
-                            ).toString()
+                    val lastSeenText = DateUtils.getRelativeTimeSpanString(
+                        peer.lastSeen * 1000,
+                        System.currentTimeMillis(),
+                        DateUtils.MINUTE_IN_MILLIS,
+                        0,
+                    ).toString()
                     DetailRow(
                         label = stringResource(R.string.tailscale_last_seen),
                         value = lastSeenText,
@@ -671,14 +642,12 @@ fun TailscalePeerScreen(
         if (canSSH) {
             Spacer(modifier = Modifier.height(16.dp))
             Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                    ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                ),
             ) {
                 ListItem(
                     headlineContent = {
@@ -702,14 +671,13 @@ fun TailscalePeerScreen(
                             modifier = Modifier.size(16.dp),
                         )
                     },
-                    modifier =
-                        Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                navController.navigate(
-                                    "tools/tailscale/${Uri.encode(endpointTag)}/peer/${Uri.encode(peerId)}/ssh",
-                                )
-                            },
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            navController.navigate(
+                                "tools/tailscale/${Uri.encode(endpointTag)}/peer/${Uri.encode(peerId)}/ssh",
+                            )
+                        },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 )
             }
@@ -737,11 +705,7 @@ private fun SectionHeader(title: String) {
 }
 
 @Composable
-private fun DetailRow(
-    label: String,
-    value: String,
-    valueColor: Color? = null,
-) {
+private fun DetailRow(label: String, value: String, valueColor: Color? = null) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -811,26 +775,25 @@ private fun TaildropSendZone(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val color =
-        if (targeted) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        }
+    val color = if (targeted) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
     Column(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(
-                    if (targeted) {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                    } else {
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                    },
-                ).clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 24.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (targeted) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                },
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {

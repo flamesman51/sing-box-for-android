@@ -56,10 +56,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
 
-class BoxService(
-    private val service: Service,
-    private val platformInterface: PlatformInterface,
-) : CommandServerHandler {
+class BoxService(private val service: Service, private val platformInterface: PlatformInterface) : CommandServerHandler {
     companion object {
         private const val PROFILE_UPDATE_INTERVAL = 15L * 60 * 1000 // 15 minutes in milliseconds
         private const val TAG = "BoxService"
@@ -74,14 +71,13 @@ class BoxService(
             private set
 
         @OptIn(DelicateCoroutinesApi::class)
-        fun start(reason: ServiceStartReason = ServiceStartReason.User) =
-            GlobalScope.launch(Dispatchers.Main.immediate) {
-                Settings.dataStore.initialize()
-                val intent =
-                    Intent(Application.application, Settings.serviceClass())
-                        .putExtra(EXTRA_START_REASON, reason.name)
-                ContextCompat.startForegroundService(Application.application, intent)
-            }
+        fun start(reason: ServiceStartReason = ServiceStartReason.User) = GlobalScope.launch(Dispatchers.Main.immediate) {
+            Settings.dataStore.initialize()
+            val intent =
+                Intent(Application.application, Settings.serviceClass())
+                    .putExtra(EXTRA_START_REASON, reason.name)
+            ContextCompat.startForegroundService(Application.application, intent)
+        }
 
         @OptIn(DelicateCoroutinesApi::class)
         fun stop() {
@@ -97,13 +93,12 @@ class BoxService(
             }
         }
 
-        internal fun startReason(intent: Intent?): ServiceStartReason =
-            when {
-                intent == null -> ServiceStartReason.StickyRestart
-                intent.action == VpnService.SERVICE_INTERFACE -> ServiceStartReason.AlwaysOn
-                intent.getStringExtra(EXTRA_START_REASON) == ServiceStartReason.Boot.name -> ServiceStartReason.Boot
-                else -> ServiceStartReason.User
-            }
+        internal fun startReason(intent: Intent?): ServiceStartReason = when {
+            intent == null -> ServiceStartReason.StickyRestart
+            intent.action == VpnService.SERVICE_INTERFACE -> ServiceStartReason.AlwaysOn
+            intent.getStringExtra(EXTRA_START_REASON) == ServiceStartReason.Boot.name -> ServiceStartReason.Boot
+            else -> ServiceStartReason.User
+        }
     }
 
     var fileDescriptor: ParcelFileDescriptor? = null
@@ -139,10 +134,7 @@ class BoxService(
     private var receiverRegistered = false
     private val receiver =
         object : BroadcastReceiver() {
-            override fun onReceive(
-                context: Context,
-                intent: Intent,
-            ) {
+            override fun onReceive(context: Context, intent: Intent) {
                 when (intent.action) {
                     Action.SERVICE_CLOSE -> {
                         stopService()
@@ -360,13 +352,12 @@ class BoxService(
         if (status.value == Status.Stopping) {
             if (reason != null) {
                 val previousShutdown = shutdownJob
-                shutdownJob =
-                    GlobalScope.launch(Dispatchers.IO) {
-                        Settings.dataStore.initialize()
-                        Settings.shouldRun = ServiceStartPolicy.shouldRunAfterStop(reason)
-                        Settings.dataStore.flush()
-                        previousShutdown?.join()
-                    }
+                shutdownJob = GlobalScope.launch(Dispatchers.IO) {
+                    Settings.dataStore.initialize()
+                    Settings.shouldRun = ServiceStartPolicy.shouldRunAfterStop(reason)
+                    Settings.dataStore.flush()
+                    previousShutdown?.join()
+                }
             }
             return
         }
@@ -380,47 +371,46 @@ class BoxService(
             receiverRegistered = false
         }
         notification.close()
-        shutdownJob =
-            GlobalScope.launch(Dispatchers.IO) {
-                Settings.dataStore.initialize()
-                if (reason != null) {
-                    Settings.shouldRun = ServiceStartPolicy.shouldRunAfterStop(reason)
-                    Settings.dataStore.flush()
+        shutdownJob = GlobalScope.launch(Dispatchers.IO) {
+            Settings.dataStore.initialize()
+            if (reason != null) {
+                Settings.shouldRun = ServiceStartPolicy.shouldRunAfterStop(reason)
+                Settings.dataStore.flush()
+            }
+            try {
+                closeService()
+                startup?.join()
+                closeService()
+                val pfd = fileDescriptor
+                if (pfd != null) {
+                    pfd.close()
+                    fileDescriptor = null
                 }
-                try {
-                    closeService()
-                    startup?.join()
-                    closeService()
-                    val pfd = fileDescriptor
-                    if (pfd != null) {
-                        pfd.close()
-                        fileDescriptor = null
-                    }
-                    DefaultNetworkMonitor.stop()
-                    if (::commandServer.isInitialized) {
-                        commandServer.apply {
-                            close()
+                DefaultNetworkMonitor.stop()
+                if (::commandServer.isInitialized) {
+                    commandServer.apply {
+                        close()
 //                        Seq.destroyRef(refnum)
+                    }
+                }
+                Libbox.discardPowerReportDraft()
+                DiagnosticsReportDiscovery.shared.scheduleRefresh()
+            } finally {
+                withContext(Dispatchers.Main) {
+                    if (alert != null) {
+                        binder.broadcast { callback ->
+                            callback.onServiceAlert(alert.ordinal, message)
                         }
                     }
-                    Libbox.discardPowerReportDraft()
-                    DiagnosticsReportDiscovery.shared.scheduleRefresh()
-                } finally {
-                    withContext(Dispatchers.Main) {
-                        if (alert != null) {
-                            binder.broadcast { callback ->
-                                callback.onServiceAlert(alert.ordinal, message)
-                            }
-                        }
-                        status.value = Status.Stopped
-                        if (stoppingStartId == 0) {
-                            service.stopSelf()
-                        } else {
-                            service.stopSelf(stoppingStartId)
-                        }
+                    status.value = Status.Stopped
+                    if (stoppingStartId == 0) {
+                        service.stopSelf()
+                    } else {
+                        service.stopSelf(stoppingStartId)
                     }
                 }
             }
+        }
     }
 
     private fun closeService() {
@@ -432,11 +422,7 @@ class BoxService(
         }
     }
 
-    private suspend fun stopAndAlert(
-        type: Alert,
-        message: String? = null,
-        error: Throwable? = null,
-    ) {
+    private suspend fun stopAndAlert(type: Alert, message: String? = null, error: Throwable? = null) {
         runCatching {
             val failure = error?.let(DiagnosticsProjection::failure) ?: mapOf("type" to type.name)
             DiagnosticsJournal.record("vpn_start_failed", mapOf("reason" to activeStartReason.name, "failure" to type.name) + failure, profileId = diagnosticsProfileId, profileSource = diagnosticsProfileSource)
@@ -450,10 +436,7 @@ class BoxService(
 
     @OptIn(DelicateCoroutinesApi::class)
     @Suppress("SameReturnValue")
-    internal fun onStartCommand(
-        reason: ServiceStartReason,
-        startId: Int,
-    ): Int {
+    internal fun onStartCommand(reason: ServiceStartReason, startId: Int): Int {
         lastStartId = startId
         val generation = stopGeneration
         runCatching { DiagnosticsJournal.record("vpn_start_request", mapOf("reason" to reason.name, "start_id" to startId, "state" to status.value?.name)) }
@@ -552,16 +535,11 @@ class BoxService(
     internal fun sendNotification(notification: Notification) {
         val channel = "${BuildConfig.APPLICATION_ID}.notification-${notification.typeID}"
         val builder =
-            NotificationCompat
-                .Builder(service, channel)
-                .setShowWhen(false)
-                .setContentTitle(notification.title)
-                .setContentText(notification.body)
-                .setOnlyAlertOnce(true)
-                .setSmallIcon(R.drawable.ic_menu)
+            NotificationCompat.Builder(service, channel).setShowWhen(false)
+                .setContentTitle(notification.title).setContentText(notification.body)
+                .setOnlyAlertOnce(true).setSmallIcon(R.drawable.ic_menu)
                 .setCategory(NotificationCompat.CATEGORY_EVENT)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true)
         if (!notification.subtitle.isNullOrBlank()) {
             builder.setContentInfo(notification.subtitle)
         }
@@ -595,10 +573,7 @@ class BoxService(
         }
     }
 
-    internal fun cancelNotification(
-        identifier: String,
-        typeID: Int,
-    ) {
+    internal fun cancelNotification(identifier: String, typeID: Int) {
         GlobalScope.launch(Dispatchers.Main) {
             Application.notification.cancel(identifier, typeID)
         }

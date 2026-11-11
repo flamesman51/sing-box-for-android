@@ -45,10 +45,7 @@ import io.nekohasekai.sfa.constant.Status
 import io.nekohasekai.sfa.utils.RemoteControlManager
 import kotlinx.coroutines.launch
 
-data class CardRenderItem(
-    val cards: List<CardGroup>,
-    val isRow: Boolean,
-)
+data class CardRenderItem(val cards: List<CardGroup>, val isRow: Boolean)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -142,18 +139,17 @@ fun DashboardScreen(
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
-        val bottomPadding =
-            when {
-                showStartFab -> 88.dp
-                showStatusBar -> 74.dp
-                else -> 0.dp
-            }
+        val bottomPadding = when {
+            showStartFab -> 88.dp
+            showStatusBar -> 74.dp
+            else -> 0.dp
+        }
         LazyColumn(
             modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(scaffoldPadding)
-                    .padding(horizontal = 16.dp),
+            Modifier
+                .fillMaxSize()
+                .padding(scaffoldPadding)
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(bottom = bottomPadding),
         ) {
@@ -163,27 +159,21 @@ fun DashboardScreen(
 
             // Filter cards based on availability
             val actuallyVisibleCards =
-                uiState.visibleCards
-                    .filter { cardGroup ->
-                        when {
-                            // The remote dashboard only renders cards backed by the
-                            // command protocol: profiles and system proxy are
-                            // operations on the local device.
-                            isRemote -> {
-                                cardGroup != CardGroup.Profiles &&
-                                    cardGroup != CardGroup.SystemProxy &&
-                                    serviceRunning &&
-                                    isCardAvailableWhenServiceRunning(cardGroup, uiState)
-                            }
+                uiState.visibleCards.filter { cardGroup ->
+                    when {
+                        // The remote dashboard only renders cards backed by the
+                        // command protocol: profiles and system proxy are
+                        // operations on the local device.
+                        isRemote ->
+                            cardGroup != CardGroup.Profiles &&
+                                cardGroup != CardGroup.SystemProxy &&
+                                serviceRunning &&
+                                isCardAvailableWhenServiceRunning(cardGroup, uiState)
 
-                            cardGroup == CardGroup.Profiles -> {
-                                true
-                            } // Profiles card is always available
-                            else -> {
-                                serviceRunning && isCardAvailableWhenServiceRunning(cardGroup, uiState)
-                            }
-                        }
-                    }.toSet()
+                        cardGroup == CardGroup.Profiles -> true // Profiles card is always available
+                        else -> serviceRunning && isCardAvailableWhenServiceRunning(cardGroup, uiState)
+                    }
+                }.toSet()
 
             // Process cards to group half-width cards together
             val cardRenderItems =
@@ -227,9 +217,9 @@ fun DashboardScreen(
                                 onOpenNewProfile = onOpenNewProfile,
                                 commandClient = viewModel.commandClient,
                                 modifier =
-                                    Modifier
-                                        .weight(1f)
-                                        .fillMaxWidth(),
+                                Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth(),
                             )
                         }
                     }
@@ -315,16 +305,12 @@ fun processCardsForRendering(
  * This function is only relevant when the service is running.
  * Note: Profiles card is always available and should not use this function.
  */
-fun isCardAvailableWhenServiceRunning(
-    cardGroup: CardGroup,
-    uiState: DashboardUiState,
-): Boolean =
-    when (cardGroup) {
-        CardGroup.ClashMode -> uiState.clashModeVisible
-        CardGroup.UploadTraffic -> uiState.trafficVisible
-        CardGroup.DownloadTraffic -> uiState.trafficVisible
-        CardGroup.Debug -> true // Debug info is always available when service is running
-        CardGroup.Connections -> uiState.trafficVisible
-        CardGroup.SystemProxy -> uiState.systemProxyVisible
-        CardGroup.Profiles -> true // This shouldn't be called for Profiles, but return true for safety
-    }
+fun isCardAvailableWhenServiceRunning(cardGroup: CardGroup, uiState: DashboardUiState): Boolean = when (cardGroup) {
+    CardGroup.ClashMode -> uiState.clashModeVisible
+    CardGroup.UploadTraffic -> uiState.trafficVisible
+    CardGroup.DownloadTraffic -> uiState.trafficVisible
+    CardGroup.Debug -> true // Debug info is always available when service is running
+    CardGroup.Connections -> uiState.trafficVisible
+    CardGroup.SystemProxy -> uiState.systemProxyVisible
+    CardGroup.Profiles -> true // This shouldn't be called for Profiles, but return true for safety
+}

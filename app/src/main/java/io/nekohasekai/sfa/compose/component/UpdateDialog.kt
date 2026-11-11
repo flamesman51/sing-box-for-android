@@ -30,11 +30,7 @@ import org.kodein.emoji.EmojiTemplateCatalog
 import org.kodein.emoji.all
 
 @Composable
-fun UpdateAvailableDialog(
-    updateInfo: UpdateInfo,
-    onDismiss: () -> Unit,
-    onUpdate: () -> Unit,
-) {
+fun UpdateAvailableDialog(updateInfo: UpdateInfo, onDismiss: () -> Unit, onUpdate: () -> Unit) {
     val pending = ServerUpdates.state.value.pending
     if (UpdateSource.fromString(Settings.updateSource) == UpdateSource.SERVER ||
         (pending != null && pending.versionCode == updateInfo.versionCode && pending.artifact.url == updateInfo.downloadUrl)
@@ -58,17 +54,15 @@ fun UpdateAvailableDialog(
                 )
 
                 if (!updateInfo.releaseNotes.isNullOrBlank()) {
-                    val processedNotes =
-                        remember(updateInfo.releaseNotes) {
-                            emojiCatalog.replaceShortcodes(updateInfo.releaseNotes)
-                        }
+                    val processedNotes = remember(updateInfo.releaseNotes) {
+                        emojiCatalog.replaceShortcodes(updateInfo.releaseNotes)
+                    }
                     Spacer(modifier = Modifier.height(12.dp))
                     MarkdownText(
                         markdown = processedNotes,
-                        style =
-                            MaterialTheme.typography.bodySmall.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
                     )
                 }
             }
