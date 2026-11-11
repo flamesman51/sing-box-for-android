@@ -16,7 +16,10 @@ object PrivilegeSettingsClient {
     @Volatile
     private var appContext: Context? = null
 
-    data class ExportResult(val outputPath: String?, val error: String?)
+    data class ExportResult(
+        val outputPath: String?,
+        val error: String?,
+    )
 
     fun register(context: Context) {
         appContext = context.applicationContext
@@ -52,14 +55,15 @@ object PrivilegeSettingsClient {
         }
     }
 
-    suspend fun exportDebugInfo(outputPath: String): ExportResult = try {
-        val service = RootClient.bindService()
-        val path = service.exportDebugInfo(outputPath)
-        ExportResult(path, null)
-    } catch (e: Throwable) {
-        Log.e(TAG, "Export debug info failed", e)
-        ExportResult(null, e.message ?: "export failed")
-    }
+    suspend fun exportDebugInfo(outputPath: String): ExportResult =
+        try {
+            val service = RootClient.bindService()
+            val path = service.exportDebugInfo(outputPath)
+            ExportResult(path, null)
+        } catch (e: Throwable) {
+            Log.e(TAG, "Export debug info failed", e)
+            ExportResult(null, e.message ?: "export failed")
+        }
 
     private fun isVersionMismatch(): Boolean {
         val status = HookStatusClient.status.value ?: return false

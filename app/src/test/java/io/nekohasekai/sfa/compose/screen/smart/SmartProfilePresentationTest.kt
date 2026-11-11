@@ -19,7 +19,11 @@ class SmartProfilePresentationTest {
         assertEquals("future-profile", smartRunningProfileName(preference("profile", "future-profile", false)))
     }
 
-    private fun preference(engine: String, base: String, custom: Boolean) = SmartPreference(
+    private fun preference(
+        engine: String,
+        base: String,
+        custom: Boolean,
+    ) = SmartPreference(
         engine = engine,
         base = base,
         custom = custom,

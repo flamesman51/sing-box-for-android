@@ -7,7 +7,6 @@ import io.nekohasekai.sfa.Application
 import java.net.NetworkInterface
 
 object DefaultNetworkMonitor {
-
     var defaultNetwork: Network? = null
     private var listener: InterfaceUpdateListener? = null
 
@@ -16,11 +15,12 @@ object DefaultNetworkMonitor {
             defaultNetwork = it
             checkDefaultInterfaceUpdate(it)
         }
-        defaultNetwork = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Application.connectivity.activeNetwork
-        } else {
-            DefaultNetworkListener.get()
-        }
+        defaultNetwork =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Application.connectivity.activeNetwork
+            } else {
+                DefaultNetworkListener.get()
+            }
     }
 
     suspend fun stop() {

@@ -30,7 +30,9 @@ import org.json.JSONArray
 import org.json.JSONException
 import java.util.Collections
 
-enum class CardGroup(val pairGroup: CardPairGroup? = null) {
+enum class CardGroup(
+    val pairGroup: CardPairGroup? = null,
+) {
     ClashMode,
     UploadTraffic(CardPairGroup.Traffic),
     DownloadTraffic(CardPairGroup.Traffic),
@@ -107,7 +109,10 @@ data class DashboardUiState(
         ),
     val showCardSettingsDialog: Boolean = false,
 ) {
-    data class DeprecatedNote(val message: String, val migrationLink: String?)
+    data class DeprecatedNote(
+        val message: String,
+        val migrationLink: String?,
+    )
 }
 
 // DashboardViewModel now only uses UiEvent for all events
@@ -156,8 +161,9 @@ class DashboardViewModel :
                 _serviceStatus,
             ) { foreground, remoteServer, remoteConnected, status ->
                 SessionTarget(
-                    connect = foreground &&
-                        if (remoteServer != null) remoteConnected else status == Status.Started,
+                    connect =
+                        foreground &&
+                            if (remoteServer != null) remoteConnected else status == Status.Started,
                     remoteServerId = remoteServer?.id,
                 )
             }.distinctUntilChanged().collect { target ->
@@ -170,7 +176,10 @@ class DashboardViewModel :
         }
     }
 
-    private data class SessionTarget(val connect: Boolean, val remoteServerId: Long?)
+    private data class SessionTarget(
+        val connect: Boolean,
+        val remoteServerId: Long?,
+    )
 
     override fun onCleared() {
         super.onCleared()
@@ -238,8 +247,12 @@ class DashboardViewModel :
 
     fun toggleService() {
         when (currentState.serviceStatus) {
-            Status.Starting, Status.Started -> stopService()
-            Status.Stopped -> sendGlobalEvent(UiEvent.RequestStartService)
+            Status.Starting, Status.Started -> {
+                stopService()
+            }
+            Status.Stopped -> {
+                sendGlobalEvent(UiEvent.RequestStartService)
+            }
             else -> { /* Ignore while transitioning */ }
         }
     }
@@ -386,7 +399,10 @@ class DashboardViewModel :
         }
     }
 
-    fun moveProfile(from: Int, to: Int) {
+    fun moveProfile(
+        from: Int,
+        to: Int,
+    ) {
         val currentProfiles = currentState.profiles.toMutableList()
 
         if (from < to) {
@@ -437,11 +453,11 @@ class DashboardViewModel :
                 copy(
                     serviceStatus = status,
                     isStatusVisible =
-                    if (RemoteControlManager.remoteServer.value != null) {
-                        isStatusVisible
-                    } else {
-                        status == Status.Starting || status == Status.Started
-                    },
+                        if (RemoteControlManager.remoteServer.value != null) {
+                            isStatusVisible
+                        } else {
+                            status == Status.Starting || status == Status.Started
+                        },
                 )
             }
             handleServiceStatusChange(status)
@@ -620,7 +636,10 @@ class DashboardViewModel :
         }
     }
 
-    override fun initializeClashMode(modeList: List<String>, currentMode: String) {
+    override fun initializeClashMode(
+        modeList: List<String>,
+        currentMode: String,
+    ) {
         viewModelScope.launch(Dispatchers.Main) {
             updateState {
                 copy(
@@ -705,15 +724,16 @@ class DashboardViewModel :
     }
 
     // Helper functions for serialization
-    private fun getDefaultItemOrder() = listOf(
-        CardGroup.UploadTraffic,
-        CardGroup.DownloadTraffic,
-        CardGroup.Debug,
-        CardGroup.Connections,
-        CardGroup.SystemProxy,
-        CardGroup.ClashMode,
-        CardGroup.Profiles,
-    )
+    private fun getDefaultItemOrder() =
+        listOf(
+            CardGroup.UploadTraffic,
+            CardGroup.DownloadTraffic,
+            CardGroup.Debug,
+            CardGroup.Connections,
+            CardGroup.SystemProxy,
+            CardGroup.ClashMode,
+            CardGroup.Profiles,
+        )
 
     private fun loadItemOrder(): List<CardGroup> {
         val savedOrder = Settings.dashboardItemOrder
@@ -753,7 +773,8 @@ class DashboardViewModel :
     private fun loadDisabledItems(): Set<CardGroup> {
         val savedDisabled = Settings.dashboardDisabledItems
         // Filter out Profiles from disabled items (it cannot be disabled)
-        return savedDisabled.mapNotNull { stringToCardGroup(it) }
+        return savedDisabled
+            .mapNotNull { stringToCardGroup(it) }
             .filter { it != CardGroup.Profiles }
             .toSet()
     }
@@ -768,9 +789,10 @@ class DashboardViewModel :
 
     private fun cardGroupToString(card: CardGroup): String = card.name
 
-    private fun stringToCardGroup(name: String): CardGroup? = try {
-        CardGroup.valueOf(name)
-    } catch (e: IllegalArgumentException) {
-        null
-    }
+    private fun stringToCardGroup(name: String): CardGroup? =
+        try {
+            CardGroup.valueOf(name)
+        } catch (e: IllegalArgumentException) {
+            null
+        }
 }

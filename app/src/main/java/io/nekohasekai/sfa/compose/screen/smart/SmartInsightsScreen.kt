@@ -82,7 +82,11 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SmartInsightsScreen(navController: NavController, group: String, serviceStatus: Status) {
+fun SmartInsightsScreen(
+    navController: NavController,
+    group: String,
+    serviceStatus: Status,
+) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val scope = rememberCoroutineScope()
@@ -111,14 +115,15 @@ fun SmartInsightsScreen(navController: NavController, group: String, serviceStat
                 awaitCancellation()
             }
             val options = CommandClientOptions()
-            val connection = try {
-                remoteServer?.let {
-                    Libbox.newRemoteCommandClient(SmartCommandHandler, options, CommandTarget.libboxOptions(it))
-                } ?: CommandClient(SmartCommandHandler, options)
-            } catch (error: Exception) {
-                pollingError = smartErrorResource(error)
-                awaitCancellation()
-            }
+            val connection =
+                try {
+                    remoteServer?.let {
+                        Libbox.newRemoteCommandClient(SmartCommandHandler, options, CommandTarget.libboxOptions(it))
+                    } ?: CommandClient(SmartCommandHandler, options)
+                } catch (error: Exception) {
+                    pollingError = smartErrorResource(error)
+                    awaitCancellation()
+                }
             client = connection
             launch(Dispatchers.IO) {
                 while (isActive) {
@@ -152,66 +157,71 @@ fun SmartInsightsScreen(navController: NavController, group: String, serviceStat
         }
     }
 
-    val createDocument = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri: Uri? ->
-        val data = exportData
-        exportData = null
-        if (uri != null && data != null) {
-            scope.launch {
-                busy = true
-                try {
-                    withContext(Dispatchers.IO) {
-                        val output = context.contentResolver.openOutputStream(uri, "wt") ?: throw IOException("Cannot open document")
-                        output.bufferedWriter(Charsets.UTF_8).use { it.write(data) }
+    val createDocument =
+        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri: Uri? ->
+            val data = exportData
+            exportData = null
+            if (uri != null && data != null) {
+                scope.launch {
+                    busy = true
+                    try {
+                        withContext(Dispatchers.IO) {
+                            val output = context.contentResolver.openOutputStream(uri, "wt") ?: throw IOException("Cannot open document")
+                            output.bufferedWriter(Charsets.UTF_8).use { it.write(data) }
+                        }
+                        notice = R.string.smart_export_saved
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Exception) {
+                        actionError = context.getString(smartErrorResource(error)) + "\n" + error.localizedMessage.orEmpty()
+                    } finally {
+                        busy = false
                     }
-                    notice = R.string.smart_export_saved
-                } catch (error: CancellationException) {
-                    throw error
-                } catch (error: Exception) {
-                    actionError = context.getString(smartErrorResource(error)) + "\n" + error.localizedMessage.orEmpty()
-                } finally {
-                    busy = false
                 }
             }
         }
-    }
-    val openDocument = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        if (uri != null) {
-            scope.launch {
-                busy = true
-                try {
-                    val data = withContext(Dispatchers.IO) {
-                        val input = context.contentResolver.openInputStream(uri) ?: throw IOException("Cannot open document")
-                        input.use(::readSmartImport)
+    val openDocument =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+            if (uri != null) {
+                scope.launch {
+                    busy = true
+                    try {
+                        val data =
+                            withContext(Dispatchers.IO) {
+                                val input = context.contentResolver.openInputStream(uri) ?: throw IOException("Cannot open document")
+                                input.use(::readSmartImport)
+                            }
+                        val carrier =
+                            status?.network?.carrier ?: if (remoteServer == null) {
+                                runCatching {
+                                    context.getSystemService(TelephonyManager::class.java)?.networkOperatorName
+                                }.getOrNull().orEmpty()
+                            } else {
+                                ""
+                            }
+                        importTrust = SmartJson.importTrust(data, if (remoteServer == null) Build.MODEL else "", carrier)
+                        importData = data
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Exception) {
+                        actionError = context.getString(smartErrorResource(error)) + "\n" + error.localizedMessage.orEmpty()
+                    } finally {
+                        busy = false
                     }
-                    val carrier = status?.network?.carrier ?: if (remoteServer == null) {
-                        runCatching {
-                            context.getSystemService(TelephonyManager::class.java)?.networkOperatorName
-                        }.getOrNull().orEmpty()
-                    } else {
-                        ""
-                    }
-                    importTrust = SmartJson.importTrust(data, if (remoteServer == null) Build.MODEL else "", carrier)
-                    importData = data
-                } catch (error: CancellationException) {
-                    throw error
-                } catch (error: Exception) {
-                    actionError = context.getString(smartErrorResource(error)) + "\n" + error.localizedMessage.orEmpty()
-                } finally {
-                    busy = false
                 }
             }
         }
-    }
 
     fun export(raw: Boolean) {
         val connection = client ?: return
         scope.launch {
             busy = true
             try {
-                exportData = withContext(Dispatchers.IO) {
-                    val data = connection.exportSmartHistory(raw)
-                    if (remoteServer == null) SmartJson.exportWithDevice(data, Build.MODEL, Build.VERSION.RELEASE, BuildConfig.VERSION_NAME) else data
-                }
+                exportData =
+                    withContext(Dispatchers.IO) {
+                        val data = connection.exportSmartHistory(raw)
+                        if (remoteServer == null) SmartJson.exportWithDevice(data, Build.MODEL, Build.VERSION.RELEASE, BuildConfig.VERSION_NAME) else data
+                    }
                 createDocument.launch(if (raw) "smart-history-raw.json" else "smart-history.json")
             } catch (error: CancellationException) {
                 throw error
@@ -282,10 +292,11 @@ fun SmartInsightsScreen(navController: NavController, group: String, serviceStat
     val scaffoldPadding = LocalScaffoldPadding.current
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
-        contentPadding = PaddingValues(
-            top = scaffoldPadding.calculateTopPadding() + 8.dp,
-            bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
-        ),
+        contentPadding =
+            PaddingValues(
+                top = scaffoldPadding.calculateTopPadding() + 8.dp,
+                bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
+            ),
     ) {
         item {
             if (busy || (status == null && pollingError == null)) CircularProgressIndicator()
@@ -410,14 +421,18 @@ fun SmartInsightsScreen(navController: NavController, group: String, serviceStat
 }
 
 @Composable
-internal fun SmartAvailabilityNoticeText(notice: SmartAvailabilityNotice, modifier: Modifier = Modifier) {
+internal fun SmartAvailabilityNoticeText(
+    notice: SmartAvailabilityNotice,
+    modifier: Modifier = Modifier,
+) {
     Text(
-        text = stringResource(
-            when (notice) {
-                SmartAvailabilityNotice.NoServersResponding -> R.string.smart_no_servers_responding
-                SmartAvailabilityNotice.NetworkDown -> R.string.smart_network_down
-            },
-        ),
+        text =
+            stringResource(
+                when (notice) {
+                    SmartAvailabilityNotice.NoServersResponding -> R.string.smart_no_servers_responding
+                    SmartAvailabilityNotice.NetworkDown -> R.string.smart_network_down
+                },
+            ),
         modifier = modifier,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.error,
@@ -425,7 +440,11 @@ internal fun SmartAvailabilityNoticeText(notice: SmartAvailabilityNotice, modifi
 }
 
 @Composable
-internal fun TimelineChart(values: List<Double?>, label: String, fixedMax: Double? = null) {
+internal fun TimelineChart(
+    values: List<Double?>,
+    label: String,
+    fixedMax: Double? = null,
+) {
     val maximum = fixedMax ?: (values.maxOfOrNull { it?.takeIf(Double::isFinite) ?: 0.0 } ?: 1.0).coerceAtLeast(1.0)
     val color = MaterialTheme.colorScheme.primary
     val axis = MaterialTheme.colorScheme.outlineVariant
@@ -448,10 +467,11 @@ internal fun TimelineChart(values: List<Double?>, label: String, fixedMax: Doubl
             if (value == null || !value.isFinite()) {
                 previous = null
             } else {
-                val point = Offset(
-                    index.toFloat() / (values.size - 1).coerceAtLeast(1) * size.width,
-                    size.height * (1 - (value / maximum).coerceIn(0.0, 1.0)).toFloat(),
-                )
+                val point =
+                    Offset(
+                        index.toFloat() / (values.size - 1).coerceAtLeast(1) * size.width,
+                        size.height * (1 - (value / maximum).coerceIn(0.0, 1.0)).toFloat(),
+                    )
                 previous?.let { drawLine(color, it, point, strokeWidth = 2.dp.toPx()) }
                 drawCircle(color, radius = 1.5.dp.toPx(), center = point)
                 previous = point
@@ -461,7 +481,13 @@ internal fun TimelineChart(values: List<Double?>, label: String, fixedMax: Doubl
 }
 
 @Composable
-private fun SmartConfirmDialog(title: String, message: String, enabled: Boolean = true, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+private fun SmartConfirmDialog(
+    title: String,
+    message: String,
+    enabled: Boolean = true,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
@@ -488,13 +514,14 @@ private fun smartErrorResource(error: Exception): Int {
 
 @Composable
 private fun smartLabel(value: String): String {
-    val resource = when (value) {
-        "foreign_redacted_key" -> R.string.smart_foreign_key
-        "unknown_member" -> R.string.smart_unknown_member
-        "stale" -> R.string.smart_stale
-        "invalid" -> R.string.smart_invalid
-        else -> null
-    }
+    val resource =
+        when (value) {
+            "foreign_redacted_key" -> R.string.smart_foreign_key
+            "unknown_member" -> R.string.smart_unknown_member
+            "stale" -> R.string.smart_stale
+            "invalid" -> R.string.smart_invalid
+            else -> null
+        }
     return resource?.let { stringResource(it) } ?: value
 }
 
@@ -503,7 +530,10 @@ internal object SmartCommandHandler : CommandClientHandler {
     override fun connected() {}
     override fun disconnected(message: String?) {}
     override fun clearLogs() {}
-    override fun initializeClashMode(modeList: StringIterator?, currentMode: String?) {}
+    override fun initializeClashMode(
+        modeList: StringIterator?,
+        currentMode: String?,
+    ) {}
     override fun setDefaultLogLevel(level: Int) {}
     override fun updateClashMode(newMode: String?) {}
     override fun writeConnectionEvents(events: ConnectionEvents?) {}

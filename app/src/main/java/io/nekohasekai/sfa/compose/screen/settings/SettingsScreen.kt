@@ -76,25 +76,25 @@ fun SettingsScreen(navController: NavController) {
 
     Column(
         modifier =
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .verticalScroll(rememberScrollState())
-            .padding(
-                top = scaffoldPadding.calculateTopPadding() + 8.dp,
-                bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
-            ),
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    top = scaffoldPadding.calculateTopPadding() + 8.dp,
+                    bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
+                ),
     ) {
         // General Settings Group
         Card(
             modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
             colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ),
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
         ) {
             Column {
                 ListItem(
@@ -117,13 +117,13 @@ fun SettingsScreen(navController: NavController) {
                         }
                     },
                     modifier =
-                    Modifier
-                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                        .clickable { navController.navigate("settings/app") },
+                        Modifier
+                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                            .clickable { navController.navigate("settings/app") },
                     colors =
-                    ListItemDefaults.colors(
-                        containerColor = Color.Transparent,
-                    ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                 )
 
                 ListItem(
@@ -141,12 +141,12 @@ fun SettingsScreen(navController: NavController) {
                         )
                     },
                     modifier =
-                    Modifier
-                        .clickable { navController.navigate("settings/core") },
+                        Modifier
+                            .clickable { navController.navigate("settings/core") },
                     colors =
-                    ListItemDefaults.colors(
-                        containerColor = Color.Transparent,
-                    ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                 )
 
                 ListItem(
@@ -176,9 +176,9 @@ fun SettingsScreen(navController: NavController) {
                     },
                     modifier = Modifier.clickable { navController.navigate("settings/service") },
                     colors =
-                    ListItemDefaults.colors(
-                        containerColor = Color.Transparent,
-                    ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                 )
 
                 ListItem(
@@ -196,12 +196,12 @@ fun SettingsScreen(navController: NavController) {
                         )
                     },
                     modifier =
-                    Modifier
-                        .clickable { navController.navigate("settings/profile_override") },
+                        Modifier
+                            .clickable { navController.navigate("settings/profile_override") },
                     colors =
-                    ListItemDefaults.colors(
-                        containerColor = Color.Transparent,
-                    ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                 )
 
                 ListItem(
@@ -219,12 +219,12 @@ fun SettingsScreen(navController: NavController) {
                         )
                     },
                     modifier =
-                    Modifier
-                        .clickable { navController.navigate("settings/remote_control") },
+                        Modifier
+                            .clickable { navController.navigate("settings/remote_control") },
                     colors =
-                    ListItemDefaults.colors(
-                        containerColor = Color.Transparent,
-                    ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                 )
 
                 ListItem(
@@ -249,13 +249,13 @@ fun SettingsScreen(navController: NavController) {
                         }
                     },
                     modifier =
-                    Modifier
-                        .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                        .clickable { navController.navigate("settings/privilege") },
+                        Modifier
+                            .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                            .clickable { navController.navigate("settings/privilege") },
                     colors =
-                    ListItemDefaults.colors(
-                        containerColor = Color.Transparent,
-                    ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                 )
             }
         }
@@ -270,13 +270,13 @@ fun SettingsScreen(navController: NavController) {
 
         Card(
             modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
             colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ),
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
         ) {
             Column {
                 ListItem(
@@ -301,17 +301,17 @@ fun SettingsScreen(navController: NavController) {
                         )
                     },
                     modifier =
-                    Modifier
-                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                        .clickable {
-                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
-                            intent.data = android.net.Uri.parse("https://sing-box.sagernet.org/")
-                            context.startActivity(intent)
-                        },
+                        Modifier
+                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                            .clickable {
+                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
+                                intent.data = android.net.Uri.parse("https://sing-box.sagernet.org/")
+                                context.startActivity(intent)
+                            },
                     colors =
-                    ListItemDefaults.colors(
-                        containerColor = Color.Transparent,
-                    ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                 )
 
                 ListItem(
@@ -336,17 +336,17 @@ fun SettingsScreen(navController: NavController) {
                         )
                     },
                     modifier =
-                    Modifier
-                        .clickable {
-                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
-                            intent.data =
-                                android.net.Uri.parse("https://github.com/SagerNet/sing-box-for-android")
-                            context.startActivity(intent)
-                        },
+                        Modifier
+                            .clickable {
+                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
+                                intent.data =
+                                    android.net.Uri.parse("https://github.com/SagerNet/sing-box-for-android")
+                                context.startActivity(intent)
+                            },
                     colors =
-                    ListItemDefaults.colors(
-                        containerColor = Color.Transparent,
-                    ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                 )
 
                 ListItem(
@@ -371,17 +371,17 @@ fun SettingsScreen(navController: NavController) {
                         )
                     },
                     modifier =
-                    Modifier
-                        .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                        .clickable {
-                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
-                            intent.data = android.net.Uri.parse("https://sekai.icu/sponsors/")
-                            context.startActivity(intent)
-                        },
+                        Modifier
+                            .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                            .clickable {
+                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
+                                intent.data = android.net.Uri.parse("https://sekai.icu/sponsors/")
+                                context.startActivity(intent)
+                            },
                     colors =
-                    ListItemDefaults.colors(
-                        containerColor = Color.Transparent,
-                    ),
+                        ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                        ),
                 )
             }
         }

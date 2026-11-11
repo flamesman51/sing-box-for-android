@@ -9,12 +9,13 @@ fun checkFDroidUpdate(context: Context): UpdateInfo? {
 
     @Suppress("DEPRECATION")
     val versionCode = context.packageManager.getPackageInfo(packageName, 0).versionCode
-    val result = Libbox.checkFDroidUpdate(
-        Settings.fdroidMirrorUrl,
-        packageName,
-        versionCode,
-        context.cacheDir.absolutePath,
-    ) ?: return null
+    val result =
+        Libbox.checkFDroidUpdate(
+            Settings.fdroidMirrorUrl,
+            packageName,
+            versionCode,
+            context.cacheDir.absolutePath,
+        ) ?: return null
     return UpdateInfo(
         versionCode = result.versionCode,
         versionName = result.versionName,

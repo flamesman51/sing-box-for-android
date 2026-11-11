@@ -9,7 +9,9 @@ import io.nekohasekai.sfa.xposed.HookErrorStore
 import io.nekohasekai.sfa.xposed.VpnSanitizer
 import io.nekohasekai.sfa.xposed.hooks.SafeMethodHook
 
-class HookConnectivityManagerGetNetworkCapabilities(private val helper: ConnectivityServiceHookHelper) {
+class HookConnectivityManagerGetNetworkCapabilities(
+    private val helper: ConnectivityServiceHookHelper,
+) {
     private companion object {
         private const val SOURCE = "HookGetNetworkCapabilities"
     }
@@ -72,13 +74,14 @@ class HookConnectivityManagerGetNetworkCapabilities(private val helper: Connecti
     private fun hookNetworkCapabilitiesRestricted() {
         // Merged into createWithSensitiveInfoSanitizedIfNecessaryWhenParceled since the Android 16
         // QPR2 connectivity module.
-        val method = XposedHelpers.findMethodExactIfExists(
-            helper.cls,
-            "networkCapabilitiesRestrictedForCallerPermissions",
-            NetworkCapabilities::class.java,
-            Int::class.javaPrimitiveType,
-            Int::class.javaPrimitiveType,
-        ) ?: return
+        val method =
+            XposedHelpers.findMethodExactIfExists(
+                helper.cls,
+                "networkCapabilitiesRestrictedForCallerPermissions",
+                NetworkCapabilities::class.java,
+                Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+            ) ?: return
         XposedBridge.hookMethod(
             method,
             object : SafeMethodHook(SOURCE) {
@@ -146,25 +149,26 @@ class HookConnectivityManagerGetNetworkCapabilities(private val helper: Connecti
     private fun hookCreateWithSanitizedInfo() {
         // Renamed from createWithLocationInfoSanitizedIfNecessaryWhenParceled in the Android 16
         // QPR2 connectivity module.
-        val method = XposedHelpers.findMethodExactIfExists(
-            helper.cls,
-            "createWithSensitiveInfoSanitizedIfNecessaryWhenParceled",
-            NetworkCapabilities::class.java,
-            Boolean::class.javaPrimitiveType,
-            Int::class.javaPrimitiveType,
-            Int::class.javaPrimitiveType,
-            String::class.java,
-            String::class.java,
-        ) ?: XposedHelpers.findMethodExact(
-            helper.cls,
-            "createWithLocationInfoSanitizedIfNecessaryWhenParceled",
-            NetworkCapabilities::class.java,
-            Boolean::class.javaPrimitiveType,
-            Int::class.javaPrimitiveType,
-            Int::class.javaPrimitiveType,
-            String::class.java,
-            String::class.java,
-        )
+        val method =
+            XposedHelpers.findMethodExactIfExists(
+                helper.cls,
+                "createWithSensitiveInfoSanitizedIfNecessaryWhenParceled",
+                NetworkCapabilities::class.java,
+                Boolean::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+                String::class.java,
+                String::class.java,
+            ) ?: XposedHelpers.findMethodExact(
+                helper.cls,
+                "createWithLocationInfoSanitizedIfNecessaryWhenParceled",
+                NetworkCapabilities::class.java,
+                Boolean::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+                String::class.java,
+                String::class.java,
+            )
         XposedBridge.hookMethod(
             method,
             object : SafeMethodHook(SOURCE) {

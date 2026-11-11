@@ -5,7 +5,9 @@ import android.os.Binder
 import de.robv.android.xposed.XposedHelpers
 import io.nekohasekai.sfa.xposed.hooks.SafeMethodHook
 
-class HookConnectivityManagerGetNetworkForType(private val helper: ConnectivityServiceHookHelper) {
+class HookConnectivityManagerGetNetworkForType(
+    private val helper: ConnectivityServiceHookHelper,
+) {
     private companion object {
         private const val SOURCE = "HookConnectivityManagerGetNetworkForType"
     }

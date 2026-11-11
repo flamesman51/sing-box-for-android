@@ -163,9 +163,10 @@ fun CrashReportListScreen(navController: NavController) {
 
     if (isLoading) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center,
         ) {
             CircularProgressIndicator()
@@ -174,12 +175,13 @@ fun CrashReportListScreen(navController: NavController) {
         val scaffoldPadding = LocalScaffoldPadding.current
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .verticalScroll(rememberScrollState())
-                .padding(scaffoldPadding)
-                .padding(vertical = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .verticalScroll(rememberScrollState())
+                    .padding(scaffoldPadding)
+                    .padding(vertical = 8.dp),
         ) {
             Text(
                 stringResource(R.string.report_section_reports),
@@ -189,12 +191,14 @@ fun CrashReportListScreen(navController: NavController) {
             )
             if (reports.isEmpty()) {
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        ),
                 ) {
                     ListItem(
                         headlineContent = {
@@ -208,24 +212,35 @@ fun CrashReportListScreen(navController: NavController) {
                 }
             } else {
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        ),
                 ) {
                     Column {
                         reports.forEachIndexed { index, report ->
-                            val shape = when {
-                                reports.size == 1 -> RoundedCornerShape(12.dp)
-                                index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                                index == reports.lastIndex -> RoundedCornerShape(
-                                    bottomStart = 12.dp,
-                                    bottomEnd = 12.dp,
-                                )
-                                else -> RoundedCornerShape(0.dp)
-                            }
+                            val shape =
+                                when {
+                                    reports.size == 1 -> {
+                                        RoundedCornerShape(12.dp)
+                                    }
+                                    index == 0 -> {
+                                        RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                                    }
+                                    index == reports.lastIndex -> {
+                                        RoundedCornerShape(
+                                            bottomStart = 12.dp,
+                                            bottomEnd = 12.dp,
+                                        )
+                                    }
+                                    else -> {
+                                        RoundedCornerShape(0.dp)
+                                    }
+                                }
                             ListItem(
                                 headlineContent = {
                                     Text(
@@ -234,20 +249,22 @@ fun CrashReportListScreen(navController: NavController) {
                                         fontWeight = if (report.isRead) FontWeight.Normal else FontWeight.SemiBold,
                                     )
                                 },
-                                leadingContent = if (!report.isRead) {
-                                    {
-                                        Badge(
-                                            containerColor = MaterialTheme.colorScheme.primary,
-                                        )
-                                    }
-                                } else {
-                                    null
-                                },
-                                modifier = Modifier
-                                    .clip(shape)
-                                    .clickable {
-                                        navController.navigate("tools/crash_report/${report.id}")
+                                leadingContent =
+                                    if (!report.isRead) {
+                                        {
+                                            Badge(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                            )
+                                        }
+                                    } else {
+                                        null
                                     },
+                                modifier =
+                                    Modifier
+                                        .clip(shape)
+                                        .clickable {
+                                            navController.navigate("tools/crash_report/${report.id}")
+                                        },
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                             )
                         }

@@ -34,8 +34,14 @@ object ManagedAppScan {
 
     fun select(regions: Set<AppScanRegion>) = controller.select(regions)
 
-    suspend fun update() = withContext(Dispatchers.Main.immediate) {
-        if (!Settings.perAppProxyEnabled || controller.state.value.regions.isEmpty()) return@withContext
-        controller.select(controller.state.value.regions).join()
-    }
+    suspend fun update() =
+        withContext(Dispatchers.Main.immediate) {
+            if (!Settings.perAppProxyEnabled ||
+                controller.state.value.regions
+                    .isEmpty()
+            ) {
+                return@withContext
+            }
+            controller.select(controller.state.value.regions).join()
+        }
 }

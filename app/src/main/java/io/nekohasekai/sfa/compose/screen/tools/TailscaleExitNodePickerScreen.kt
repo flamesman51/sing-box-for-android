@@ -78,10 +78,11 @@ fun TailscaleExitNodePickerScreen(
     var searchText by rememberSaveable { mutableStateOf("") }
 
     val selfStableID = endpoint.selfPeer?.stableID
-    val candidates = endpoint.userGroups
-        .flatMap { it.peers }
-        .filter { it.exitNodeOption && it.stableID != selfStableID }
-        .filter { searchText.isEmpty() || it.displayName.contains(searchText, ignoreCase = true) || it.hostName.contains(searchText, ignoreCase = true) }
+    val candidates =
+        endpoint.userGroups
+            .flatMap { it.peers }
+            .filter { it.exitNodeOption && it.stableID != selfStableID }
+            .filter { searchText.isEmpty() || it.displayName.contains(searchText, ignoreCase = true) || it.hostName.contains(searchText, ignoreCase = true) }
 
     val scaffoldPadding = LocalScaffoldPadding.current
 
@@ -89,9 +90,10 @@ fun TailscaleExitNodePickerScreen(
         OutlinedTextField(
             value = searchText,
             onValueChange = { searchText = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
             placeholder = { Text(stringResource(android.R.string.search_go)) },
             leadingIcon = {
                 Icon(Icons.Default.Search, contentDescription = null)
@@ -134,10 +136,11 @@ private fun DisabledRow(
     onClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -162,18 +165,20 @@ private fun PeerRow(
     onClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(if (peer.online) Color(0xFF4CAF50) else Color.Gray),
+            modifier =
+                Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(if (peer.online) Color(0xFF4CAF50) else Color.Gray),
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(

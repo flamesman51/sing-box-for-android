@@ -19,5 +19,10 @@ object HookStatusStore {
 
     fun snapshot(): Status = Status(active, lastPatchedAt, HookModuleVersion.CURRENT, Process.myPid())
 
-    data class Status(val active: Boolean, val lastPatchedAt: Long, val version: Int, val systemPid: Int)
+    data class Status(
+        val active: Boolean,
+        val lastPatchedAt: Long,
+        val version: Int,
+        val systemPid: Int,
+    )
 }

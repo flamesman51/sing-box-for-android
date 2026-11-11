@@ -22,18 +22,27 @@ internal enum class SmartPermissionStep {
     Done,
 }
 
-internal data class SmartHistoryPermissions(val fine: Boolean, val background: Boolean, val phone: Boolean) {
-    fun nextStep(sdkInt: Int, foregroundRequestable: Boolean): SmartPermissionStep = when {
-        !fine || !phone -> if (foregroundRequestable) SmartPermissionStep.Foreground else SmartPermissionStep.ForegroundSettings
-        sdkInt >= 29 && !background -> if (sdkInt == 29) SmartPermissionStep.BackgroundRequest else SmartPermissionStep.BackgroundSettings
-        else -> SmartPermissionStep.Done
-    }
+internal data class SmartHistoryPermissions(
+    val fine: Boolean,
+    val background: Boolean,
+    val phone: Boolean,
+) {
+    fun nextStep(
+        sdkInt: Int,
+        foregroundRequestable: Boolean,
+    ): SmartPermissionStep =
+        when {
+            !fine || !phone -> if (foregroundRequestable) SmartPermissionStep.Foreground else SmartPermissionStep.ForegroundSettings
+            sdkInt >= 29 && !background -> if (sdkInt == 29) SmartPermissionStep.BackgroundRequest else SmartPermissionStep.BackgroundSettings
+            else -> SmartPermissionStep.Done
+        }
 
-    fun historyLabel(sdkInt: Int): Int = when {
-        !fine -> R.string.smart_history_basic
-        sdkInt >= 29 && !background -> R.string.smart_history_foreground
-        else -> R.string.smart_history_detailed
-    }
+    fun historyLabel(sdkInt: Int): Int =
+        when {
+            !fine -> R.string.smart_history_basic
+            sdkInt >= 29 && !background -> R.string.smart_history_foreground
+            else -> R.string.smart_history_detailed
+        }
 }
 
 @Composable

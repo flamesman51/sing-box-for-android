@@ -63,7 +63,10 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SmartSettingsScreen(navController: NavController, serviceStatus: Status) {
+fun SmartSettingsScreen(
+    navController: NavController,
+    serviceStatus: Status,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val locale = ConfigurationCompat.getLocales(LocalConfiguration.current)[0] ?: Locale.getDefault()
@@ -96,14 +99,15 @@ fun SmartSettingsScreen(navController: NavController, serviceStatus: Status) {
     }
     val scaffoldPadding = LocalScaffoldPadding.current
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .verticalScroll(rememberScrollState())
-            .padding(
-                top = scaffoldPadding.calculateTopPadding() + 8.dp,
-                bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
-            ),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    top = scaffoldPadding.calculateTopPadding() + 8.dp,
+                    bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
+                ),
     ) {
         Card(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -122,18 +126,21 @@ fun SmartSettingsScreen(navController: NavController, serviceStatus: Status) {
                 },
                 leadingContent = { Icon(Icons.Outlined.Tune, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                 trailingContent = if (!remotePolicy) ({ Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }) else null,
-                modifier = Modifier.clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                    .then(if (remotePolicy) Modifier else Modifier.clickable { navController.navigate("settings/smart/profile") }),
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                        .then(if (remotePolicy) Modifier else Modifier.clickable { navController.navigate("settings/smart/profile") }),
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.smart_country), style = MaterialTheme.typography.bodyLarge) },
                 supportingContent = {
-                    val name = when {
-                        country.isNotEmpty() -> Locale("", country).getDisplayCountry(locale)
-                        automaticCountry.isNotEmpty() -> stringResource(R.string.smart_country_automatic_resolved, Locale("", automaticCountry).getDisplayCountry(locale))
-                        else -> stringResource(R.string.smart_country_auto)
-                    }
+                    val name =
+                        when {
+                            country.isNotEmpty() -> Locale("", country).getDisplayCountry(locale)
+                            automaticCountry.isNotEmpty() -> stringResource(R.string.smart_country_automatic_resolved, Locale("", automaticCountry).getDisplayCountry(locale))
+                            else -> stringResource(R.string.smart_country_auto)
+                        }
                     Text(name, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp), maxLines = 2)
                 },
                 leadingContent = { Icon(Icons.Outlined.Public, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },

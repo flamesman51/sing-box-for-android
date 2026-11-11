@@ -18,18 +18,28 @@ import java.io.IOException
 import java.security.MessageDigest
 import java.util.UUID
 
-internal data class DiagnosticsCrash(val key: String, val report: JsonObject)
-internal data class DiagnosticsBatch(val envelope: JsonObject, val eventIds: List<String>, val crashKeys: List<String>) {
+internal data class DiagnosticsCrash(
+    val key: String,
+    val report: JsonObject,
+)
+internal data class DiagnosticsBatch(
+    val envelope: JsonObject,
+    val eventIds: List<String>,
+    val crashKeys: List<String>,
+) {
     val id: String get() = requireNotNull(envelope.string("report_id"))
     val body: String get() = envelope.toString()
-    fun stored(): JsonObject = buildJsonObject {
-        put("body", envelope)
-        put("events", JsonArray(eventIds.map(::JsonPrimitive)))
-        put("crashes", JsonArray(crashKeys.map(::JsonPrimitive)))
-    }
+    fun stored(): JsonObject =
+        buildJsonObject {
+            put("body", envelope)
+            put("events", JsonArray(eventIds.map(::JsonPrimitive)))
+            put("crashes", JsonArray(crashKeys.map(::JsonPrimitive)))
+        }
 }
 
-internal class DiagnosticsStore(private val directory: File) {
+internal class DiagnosticsStore(
+    private val directory: File,
+) {
     companion object {
         const val MAX_BODY_BYTES = 768 * 1024
         const val MAX_EVENT_BYTES = 256 * 1024
@@ -37,7 +47,10 @@ internal class DiagnosticsStore(private val directory: File) {
         private const val MAX_STATE_BYTES = 4 * 1024 * 1024
         private val lock = Any()
         fun digest(value: String): String = MessageDigest.getInstance("SHA-256").digest(value.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
-        fun crashKey(kind: String, id: String): String = "$kind:${digest(id)}"
+        fun crashKey(
+            kind: String,
+            id: String,
+        ): String = "$kind:${digest(id)}"
     }
 
     enum class Outcome { ACKNOWLEDGED, DISCARDED, SPLIT, RETRY }
@@ -45,7 +58,10 @@ internal class DiagnosticsStore(private val directory: File) {
     val eventsFile = File(directory, "events.jsonl")
     private val stateFile = File(directory, "pending.json")
 
-    private fun readObject(file: File, limit: Int): JsonObject? {
+    private fun readObject(
+        file: File,
+        limit: Int,
+    ): JsonObject? {
         if (!file.exists()) return null
         if (file.length() > limit) throw IOException("Diagnostics file exceeds its bound")
         return Json.parseToJsonElement(file.readText(Charsets.UTF_8)).jsonObject
@@ -68,14 +84,20 @@ internal class DiagnosticsStore(private val directory: File) {
         if (JsonArray(batches.map { it.stored() }) != stored["batches"]) saveQueue(owner, batches)
         return batches
     }
-    private fun saveQueue(owner: String, batches: List<DiagnosticsBatch>) = atomic(
+    private fun saveQueue(
+        owner: String,
+        batches: List<DiagnosticsBatch>,
+    ) = atomic(
         queueFile(owner),
         buildJsonObject {
             put("owner", owner)
             put("batches", JsonArray(batches.map { it.stored() }))
         }.toString(),
     )
-    private fun atomic(file: File, content: String) {
+    private fun atomic(
+        file: File,
+        content: String,
+    ) {
         if (!directory.isDirectory && !directory.mkdirs()) throw IOException("Cannot create diagnostics storage")
         val bytes = content.toByteArray(Charsets.UTF_8)
         if (bytes.size > MAX_STATE_BYTES) throw IOException("Diagnostics storage exceeds its bound")
@@ -90,21 +112,27 @@ internal class DiagnosticsStore(private val directory: File) {
     private fun events(): List<JsonObject> {
         if (!eventsFile.exists()) return emptyList()
         if (eventsFile.length() > MAX_JOURNAL_BYTES) throw IOException("Diagnostics journal exceeds its bound")
-        val stored = eventsFile.useLines { lines ->
-            lines.mapNotNull { line ->
-                runCatching { Json.parseToJsonElement(line) as? JsonObject }.getOrNull()
-            }.toList()
-        }
-        val projected = stored.map { entry ->
-            entry.obj("event")?.let { JsonObject(entry + ("event" to DiagnosticsProjection.sanitizeEvent(it))) } ?: entry
-        }
+        val stored =
+            eventsFile.useLines { lines ->
+                lines
+                    .mapNotNull { line ->
+                        runCatching { Json.parseToJsonElement(line) as? JsonObject }.getOrNull()
+                    }.toList()
+            }
+        val projected =
+            stored.map { entry ->
+                entry.obj("event")?.let { JsonObject(entry + ("event" to DiagnosticsProjection.sanitizeEvent(it))) } ?: entry
+            }
         if (projected != stored) atomic(eventsFile, projected.joinToString("\n", postfix = "\n"))
         return projected
     }
 
     fun eventCount(): Int = synchronized(lock) { events().size }
 
-    fun record(owner: String?, event: JsonObject) = synchronized(lock) {
+    fun record(
+        owner: String?,
+        event: JsonObject,
+    ) = synchronized(lock) {
         if (owner == null) return@synchronized
         append(
             buildJsonObject {
@@ -115,40 +143,48 @@ internal class DiagnosticsStore(private val directory: File) {
         )
     }
 
-    fun observe(association: String, owner: String, kind: String, id: String, event: JsonObject): Observation = synchronized(lock) {
-        val current = state()
-        val observations = current.array("observations")
-        val key = crashKey(kind, id)
-        observations.mapNotNull { it as? JsonObject }.firstOrNull { it.string("key") == key }?.let {
-            return@synchronized if (it.string("association") == association) Observation.KNOWN else Observation.OTHER_ASSOCIATION
-        }
-        current.array("discoveries").mapNotNull { it as? JsonObject }.firstOrNull { it.string("key") == key }?.let {
-            return@synchronized if (it.string("owner") == owner) Observation.KNOWN else Observation.OTHER_ASSOCIATION
-        }
-        // Recover the association if the event was synced before its observation state.
-        val existing = events().firstOrNull { it.string("id") == "discovery:$key" }
-        val captured = existing?.string("association") ?: association
-        if (existing == null) {
-            append(
+    fun observe(
+        association: String,
+        owner: String,
+        kind: String,
+        id: String,
+        event: JsonObject,
+    ): Observation =
+        synchronized(lock) {
+            val current = state()
+            val observations = current.array("observations")
+            val key = crashKey(kind, id)
+            observations.mapNotNull { it as? JsonObject }.firstOrNull { it.string("key") == key }?.let {
+                return@synchronized if (it.string("association") == association) Observation.KNOWN else Observation.OTHER_ASSOCIATION
+            }
+            current.array("discoveries").mapNotNull { it as? JsonObject }.firstOrNull { it.string("key") == key }?.let {
+                return@synchronized if (it.string("owner") == owner) Observation.KNOWN else Observation.OTHER_ASSOCIATION
+            }
+            // Recover the association if the event was synced before its observation state.
+            val existing = events().firstOrNull { it.string("id") == "discovery:$key" }
+            val captured = existing?.string("association") ?: association
+            if (existing == null) {
+                append(
+                    buildJsonObject {
+                        put("id", "discovery:$key")
+                        put("owner", owner)
+                        put("association", association)
+                        put("event", DiagnosticsProjection.sanitizeEvent(event))
+                    },
+                )
+            }
+            val observation =
                 buildJsonObject {
-                    put("id", "discovery:$key")
-                    put("owner", owner)
-                    put("association", association)
-                    put("event", DiagnosticsProjection.sanitizeEvent(event))
-                },
-            )
+                    put("key", key)
+                    put("association", captured)
+                }
+            save(JsonObject(current + ("observations" to JsonArray((observations + observation).takeLast(1000)))))
+            when {
+                captured != association -> Observation.OTHER_ASSOCIATION
+                existing != null -> Observation.KNOWN
+                else -> Observation.RECORDED
+            }
         }
-        val observation = buildJsonObject {
-            put("key", key)
-            put("association", captured)
-        }
-        save(JsonObject(current + ("observations" to JsonArray((observations + observation).takeLast(1000)))))
-        when {
-            captured != association -> Observation.OTHER_ASSOCIATION
-            existing != null -> Observation.KNOWN
-            else -> Observation.RECORDED
-        }
-    }
 
     private fun append(entry: JsonObject) {
         val line = entry.toString() + "\n"
@@ -164,130 +200,176 @@ internal class DiagnosticsStore(private val directory: File) {
         } else {
             val kept = (existing + entry).takeLast(1000).toMutableList()
             var size = kept.sumOf { it.toString().toByteArray(Charsets.UTF_8).size + 1 }
-            while (size > MAX_JOURNAL_BYTES) size -= kept.removeAt(0).toString().toByteArray(Charsets.UTF_8).size + 1
+            while (size > MAX_JOURNAL_BYTES) {
+                size -= kept
+                    .removeAt(0)
+                    .toString()
+                    .toByteArray(Charsets.UTF_8)
+                    .size + 1
+            }
             atomic(eventsFile, kept.joinToString("\n", postfix = "\n"))
         }
     }
 
-    fun discover(owner: String?, kind: String, id: String): Boolean = synchronized(lock) {
-        if (owner == null) return@synchronized false
-        val current = state()
-        val discoveries = current.array("discoveries")
-        val key = crashKey(kind, id)
-        if (discoveries.any { (it as? JsonObject)?.string("key") == key }) return false
-        val discovery = buildJsonObject {
-            put("key", key)
-            put("owner", owner)
-            put("sent", false)
+    fun discover(
+        owner: String?,
+        kind: String,
+        id: String,
+    ): Boolean =
+        synchronized(lock) {
+            if (owner == null) return@synchronized false
+            val current = state()
+            val discoveries = current.array("discoveries")
+            val key = crashKey(kind, id)
+            if (discoveries.any { (it as? JsonObject)?.string("key") == key }) return false
+            val discovery =
+                buildJsonObject {
+                    put("key", key)
+                    put("owner", owner)
+                    put("sent", false)
+                }
+            save(JsonObject(current + ("discoveries" to JsonArray((discoveries + discovery).takeLast(512)))))
+            true
         }
-        save(JsonObject(current + ("discoveries" to JsonArray((discoveries + discovery).takeLast(512)))))
-        true
-    }
 
-    fun unsentDiscoveries(owner: String): Set<String> = synchronized(lock) {
-        state().array("discoveries").mapNotNull { it as? JsonObject }.filter {
-            it.string("owner") == owner && it["sent"] == JsonPrimitive(false)
-        }.mapNotNull { it.string("key") }.toSet()
-    }
+    fun unsentDiscoveries(owner: String): Set<String> =
+        synchronized(lock) {
+            state()
+                .array("discoveries")
+                .mapNotNull { it as? JsonObject }
+                .filter {
+                    it.string("owner") == owner && it["sent"] == JsonPrimitive(false)
+                }.mapNotNull { it.string("key") }
+                .toSet()
+        }
 
-    private fun batches(state: JsonObject): List<DiagnosticsBatch> = state.array("batches").map { item ->
-        val stored = item.jsonObject
-        val body = requireNotNull(stored.obj("body"))
-        val projected = JsonObject(
-            body + mapOf(
-                "events" to JsonArray(body.array("events").map { DiagnosticsProjection.sanitizeEvent(it.jsonObject) }),
-                "crashes" to JsonArray(body.array("crashes").map { DiagnosticsProjection.sanitizeCrash(it.jsonObject) }),
-                "smart" to (body.obj("smart")?.let(DiagnosticsProjection::sanitizeSmart) ?: JsonNull),
-            ),
+    private fun batches(state: JsonObject): List<DiagnosticsBatch> =
+        state.array("batches").map { item ->
+            val stored = item.jsonObject
+            val body = requireNotNull(stored.obj("body"))
+            val projected =
+                JsonObject(
+                    body +
+                        mapOf(
+                            "events" to JsonArray(body.array("events").map { DiagnosticsProjection.sanitizeEvent(it.jsonObject) }),
+                            "crashes" to JsonArray(body.array("crashes").map { DiagnosticsProjection.sanitizeCrash(it.jsonObject) }),
+                            "smart" to (body.obj("smart")?.let(DiagnosticsProjection::sanitizeSmart) ?: JsonNull),
+                        ),
+                )
+            DiagnosticsBatch(projected, stored.array("events").map { (it as JsonPrimitive).content }, stored.array("crashes").map { (it as JsonPrimitive).content })
+        }
+
+    fun pending(owner: String): DiagnosticsBatch? =
+        synchronized(lock) {
+            state()
+            queue(owner).firstOrNull()
+        }
+
+    fun prepare(
+        owner: String,
+        app: JsonObject,
+        smart: JsonObject?,
+        crashes: List<DiagnosticsCrash>,
+        association: String? = null,
+    ): DiagnosticsBatch? =
+        synchronized(lock) {
+            state()
+            queue(owner).firstOrNull()?.let { return it }
+            val journal = events()
+            val associated =
+                if (association == null) {
+                    journal
+                } else {
+                    journal.map { entry ->
+                        if (entry.string("owner") == "local:$association") JsonObject(entry + ("owner" to JsonPrimitive(owner))) else entry
+                    }
+                }
+            if (associated != journal) atomic(eventsFile, associated.joinToString("\n", postfix = "\n"))
+            val selectedEvents = mutableListOf<JsonObject>()
+            val eventIds = mutableListOf<String>()
+            var eventBytes = 2
+            for (entry in associated) {
+                if (entry.string("owner") != owner) continue
+                val event = entry.obj("event") ?: continue
+                val size = event.toString().toByteArray(Charsets.UTF_8).size + if (selectedEvents.isEmpty()) 0 else 1
+                if (eventBytes + size > MAX_EVENT_BYTES) break
+                selectedEvents += event
+                eventIds += requireNotNull(entry.string("id"))
+                eventBytes += size
+            }
+            val unsent = unsentDiscoveries(owner)
+            val selectedCrashes = crashes.filter { it.key in unsent }.take(5)
+            val batch = newBatch(app, selectedEvents, selectedCrashes.map { it.report }, smart, eventIds, selectedCrashes.map { it.key })
+            require(batch.body.toByteArray(Charsets.UTF_8).size <= MAX_BODY_BYTES)
+            saveQueue(owner, listOf(batch))
+            batch
+        }
+
+    private fun newBatch(
+        app: JsonObject,
+        events: List<JsonElement>,
+        crashes: List<JsonElement>,
+        smart: JsonObject?,
+        eventIds: List<String>,
+        crashKeys: List<String>,
+        at: String = DiagnosticsProjection.utc(),
+    ): DiagnosticsBatch =
+        DiagnosticsBatch(
+            buildJsonObject {
+                put("schema", 1)
+                put("report_id", UUID.randomUUID().toString())
+                put("created_at", at)
+                put("app", app)
+                put("events", JsonArray(events.map { DiagnosticsProjection.sanitizeEvent(it.jsonObject) }))
+                put("smart", smart?.let(DiagnosticsProjection::sanitizeSmart) ?: JsonNull)
+                put("crashes", JsonArray(crashes.map { DiagnosticsProjection.sanitizeCrash(it.jsonObject) }))
+            },
+            eventIds,
+            crashKeys,
         )
-        DiagnosticsBatch(projected, stored.array("events").map { (it as JsonPrimitive).content }, stored.array("crashes").map { (it as JsonPrimitive).content })
-    }
 
-    fun pending(owner: String): DiagnosticsBatch? = synchronized(lock) {
-        state()
-        queue(owner).firstOrNull()
-    }
-
-    fun prepare(owner: String, app: JsonObject, smart: JsonObject?, crashes: List<DiagnosticsCrash>, association: String? = null): DiagnosticsBatch? = synchronized(lock) {
-        state()
-        queue(owner).firstOrNull()?.let { return it }
-        val journal = events()
-        val associated = if (association == null) {
-            journal
-        } else {
-            journal.map { entry ->
-                if (entry.string("owner") == "local:$association") JsonObject(entry + ("owner" to JsonPrimitive(owner))) else entry
-            }
-        }
-        if (associated != journal) atomic(eventsFile, associated.joinToString("\n", postfix = "\n"))
-        val selectedEvents = mutableListOf<JsonObject>()
-        val eventIds = mutableListOf<String>()
-        var eventBytes = 2
-        for (entry in associated) {
-            if (entry.string("owner") != owner) continue
-            val event = entry.obj("event") ?: continue
-            val size = event.toString().toByteArray(Charsets.UTF_8).size + if (selectedEvents.isEmpty()) 0 else 1
-            if (eventBytes + size > MAX_EVENT_BYTES) break
-            selectedEvents += event
-            eventIds += requireNotNull(entry.string("id"))
-            eventBytes += size
-        }
-        val unsent = unsentDiscoveries(owner)
-        val selectedCrashes = crashes.filter { it.key in unsent }.take(5)
-        val batch = newBatch(app, selectedEvents, selectedCrashes.map { it.report }, smart, eventIds, selectedCrashes.map { it.key })
-        require(batch.body.toByteArray(Charsets.UTF_8).size <= MAX_BODY_BYTES)
-        saveQueue(owner, listOf(batch))
-        batch
-    }
-
-    private fun newBatch(app: JsonObject, events: List<JsonElement>, crashes: List<JsonElement>, smart: JsonObject?, eventIds: List<String>, crashKeys: List<String>, at: String = DiagnosticsProjection.utc()): DiagnosticsBatch = DiagnosticsBatch(
-        buildJsonObject {
-            put("schema", 1)
-            put("report_id", UUID.randomUUID().toString())
-            put("created_at", at)
-            put("app", app)
-            put("events", JsonArray(events.map { DiagnosticsProjection.sanitizeEvent(it.jsonObject) }))
-            put("smart", smart?.let(DiagnosticsProjection::sanitizeSmart) ?: JsonNull)
-            put("crashes", JsonArray(crashes.map { DiagnosticsProjection.sanitizeCrash(it.jsonObject) }))
-        },
-        eventIds,
-        crashKeys,
-    )
-
-    fun respond(owner: String, reportId: String, status: Int): Outcome = synchronized(lock) {
-        val current = state()
-        val queue = queue(owner)
-        val batch = queue.firstOrNull()?.takeIf { it.id == reportId } ?: return Outcome.RETRY
-        when {
-            status in 200..299 || status == 400 -> {
-                val ids = batch.eventIds.toSet()
-                val remaining = events().filter { it.string("owner") != owner || it.string("id") !in ids }
-                atomic(eventsFile, if (remaining.isEmpty()) "" else remaining.joinToString("\n", postfix = "\n"))
-                val discoveries = current.array("discoveries").map { item ->
-                    val discovery = item.jsonObject
-                    if (discovery.string("owner") == owner && discovery.string("key") in batch.crashKeys) JsonObject(discovery + ("sent" to JsonPrimitive(true))) else discovery
+    fun respond(
+        owner: String,
+        reportId: String,
+        status: Int,
+    ): Outcome =
+        synchronized(lock) {
+            val current = state()
+            val queue = queue(owner)
+            val batch = queue.firstOrNull()?.takeIf { it.id == reportId } ?: return Outcome.RETRY
+            when {
+                status in 200..299 || status == 400 -> {
+                    val ids = batch.eventIds.toSet()
+                    val remaining = events().filter { it.string("owner") != owner || it.string("id") !in ids }
+                    atomic(eventsFile, if (remaining.isEmpty()) "" else remaining.joinToString("\n", postfix = "\n"))
+                    val discoveries =
+                        current.array("discoveries").map { item ->
+                            val discovery = item.jsonObject
+                            if (discovery.string("owner") == owner && discovery.string("key") in batch.crashKeys) JsonObject(discovery + ("sent" to JsonPrimitive(true))) else discovery
+                        }
+                    save(JsonObject(current + ("discoveries" to JsonArray(discoveries))))
+                    saveQueue(owner, queue.drop(1))
+                    if (status == 400) {
+                        record(owner, DiagnosticsProjection.event("diagnostics_rejected", mapOf("status" to 400)))
+                        Outcome.DISCARDED
+                    } else {
+                        Outcome.ACKNOWLEDGED
+                    }
                 }
-                save(JsonObject(current + ("discoveries" to JsonArray(discoveries))))
-                saveQueue(owner, queue.drop(1))
-                if (status == 400) {
-                    record(owner, DiagnosticsProjection.event("diagnostics_rejected", mapOf("status" to 400)))
-                    Outcome.DISCARDED
-                } else {
-                    Outcome.ACKNOWLEDGED
+                status == 413 -> {
+                    val children = split(batch)
+                    if (children == null) {
+                        Outcome.RETRY
+                    } else {
+                        saveQueue(owner, children + queue.drop(1))
+                        Outcome.SPLIT
+                    }
                 }
-            }
-            status == 413 -> {
-                val children = split(batch)
-                if (children == null) {
+                else -> {
                     Outcome.RETRY
-                } else {
-                    saveQueue(owner, children + queue.drop(1))
-                    Outcome.SPLIT
                 }
             }
-            else -> Outcome.RETRY
         }
-    }
 
     private fun split(batch: DiagnosticsBatch): List<DiagnosticsBatch>? {
         val events = batch.envelope.array("events")

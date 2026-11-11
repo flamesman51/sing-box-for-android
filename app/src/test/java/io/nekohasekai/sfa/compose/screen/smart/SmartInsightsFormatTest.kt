@@ -76,13 +76,14 @@ class SmartInsightsFormatTest {
     @Test
     fun everyEventIdentityFieldMustMatchBeforeMerging() {
         val newest = event(30)
-        val differentEvents = listOf(
-            newest.copy(time = 20, kind = "recover"),
-            newest.copy(time = 20, from = "Server [second]"),
-            newest.copy(time = 20, to = "Server [second]"),
-            newest.copy(time = 20, reason = "different reason"),
-            newest.copy(time = 20, network = "different-network"),
-        )
+        val differentEvents =
+            listOf(
+                newest.copy(time = 20, kind = "recover"),
+                newest.copy(time = 20, from = "Server [second]"),
+                newest.copy(time = 20, to = "Server [second]"),
+                newest.copy(time = 20, reason = "different reason"),
+                newest.copy(time = 20, network = "different-network"),
+            )
         differentEvents.forEach { different ->
             assertEquals(listOf(SmartEventGroup(newest, 1, 30), SmartEventGroup(different, 1, 20)), mergeSmartEvents(listOf(newest, different)))
         }
@@ -140,12 +141,13 @@ class SmartInsightsFormatTest {
 
     @Test
     fun networkGroupsUseSafeLabelAndTypeWithMaximumCountsAndNewestFirst() {
-        val networks = listOf(
-            network("first", "wifi", "Guest AA:BB:CC:DD:EE:FF", null, 30, 2),
-            network("second", "wifi", "Guest BB:CC:DD:EE:FF:AA", null, 20, 5),
-            network("third", "cellular", "Guest", null, 40, 3),
-            network("fourth", "wifi", "Separate", null, 10, 1),
-        )
+        val networks =
+            listOf(
+                network("first", "wifi", "Guest AA:BB:CC:DD:EE:FF", null, 30, 2),
+                network("second", "wifi", "Guest BB:CC:DD:EE:FF:AA", null, 20, 5),
+                network("third", "cellular", "Guest", null, 40, 3),
+                network("fourth", "wifi", "Separate", null, 10, 1),
+            )
         assertEquals(
             listOf(
                 SmartNetworkGroup("Guest", "cellular", 1, 3, 40),
@@ -159,13 +161,14 @@ class SmartInsightsFormatTest {
 
     @Test
     fun networkGroupsAndEventsShareUnnamedNetworkFallbacks() {
-        val networks = listOf(
-            network("first", "wifi", "", "", 10, 1),
-            network("second", "wifi", "AA:BB:CC:DD:EE:FF", null, 20, 2),
-            network("third", "cellular", null, " ", 30, 1),
-            network("fourth", "other", null, null, 40, 1),
-            network("fifth", "cellular", null, "Carrier", 50, 2),
-        )
+        val networks =
+            listOf(
+                network("first", "wifi", "", "", 10, 1),
+                network("second", "wifi", "AA:BB:CC:DD:EE:FF", null, 20, 2),
+                network("third", "cellular", null, " ", 30, 1),
+                network("fourth", "other", null, null, 40, 1),
+                network("fifth", "cellular", null, "Carrier", 50, 2),
+            )
         val fallback = { type: String ->
             when (type) {
                 "wifi" -> "Unnamed Wi‑Fi network"
@@ -187,7 +190,14 @@ class SmartInsightsFormatTest {
         assertEquals("Other", networkLabelForKey("fourth", networks, null, fallback))
     }
 
-    private fun network(key: String, type: String, label: String?, carrier: String?, lastSeen: Long, servers: Int) = SmartNetworkHistory(
+    private fun network(
+        key: String,
+        type: String,
+        label: String?,
+        carrier: String?,
+        lastSeen: Long,
+        servers: Int,
+    ) = SmartNetworkHistory(
         key,
         type,
         label,
@@ -237,7 +247,10 @@ class SmartInsightsFormatTest {
 
     @Test
     fun megabytesUseWholeNumbersAtOneHundredAndLocalizedDecimalsBelow() {
-        fun format(value: Double?, locale: Locale = Locale.US): String? = formatSmartMegabytes(value, "%,.1f MB", "%,.0f MB", locale)
+        fun format(
+            value: Double?,
+            locale: Locale = Locale.US,
+        ): String? = formatSmartMegabytes(value, "%,.1f MB", "%,.0f MB", locale)
         assertEquals("0.0 MB", format(0.0))
         assertEquals("99.9 MB", format(99.9))
         assertEquals("100 MB", format(100.0))

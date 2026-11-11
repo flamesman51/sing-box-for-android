@@ -36,7 +36,8 @@ suspend fun Context.shareProfile(profile: Profile) {
     withContext(Dispatchers.Main) {
         startActivity(
             Intent.createChooser(
-                Intent(Intent.ACTION_SEND).setType("application/octet-stream")
+                Intent(Intent.ACTION_SEND)
+                    .setType("application/octet-stream")
                     .setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     .putExtra(Intent.EXTRA_STREAM, uri),
                 getString(AppCompatR.string.abc_shareactionprovider_share_with),
@@ -53,7 +54,8 @@ suspend fun Context.shareProfileAsJson(profile: Profile) {
     withContext(Dispatchers.Main) {
         startActivity(
             Intent.createChooser(
-                Intent(Intent.ACTION_SEND).setType("application/json")
+                Intent(Intent.ACTION_SEND)
+                    .setType("application/json")
                     .setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     .putExtra(Intent.EXTRA_STREAM, uri),
                 getString(AppCompatR.string.abc_shareactionprovider_share_with),

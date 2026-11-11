@@ -7,10 +7,11 @@ enum class UpdateSource {
     ;
 
     companion object {
-        fun fromString(value: String): UpdateSource = when (value.lowercase()) {
-            "github" -> GITHUB
-            "fdroid" -> FDROID
-            else -> SERVER
-        }
+        fun fromString(value: String): UpdateSource =
+            when (value.lowercase()) {
+                "github" -> GITHUB
+                "fdroid" -> FDROID
+                else -> SERVER
+            }
     }
 }

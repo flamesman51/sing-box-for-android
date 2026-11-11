@@ -19,7 +19,11 @@ import androidx.compose.ui.unit.dp
 import io.nekohasekai.sfa.R
 
 @Composable
-fun SelectableMessageDialog(title: String, message: String, onDismiss: () -> Unit) {
+fun SelectableMessageDialog(
+    title: String,
+    message: String,
+    onDismiss: () -> Unit,
+) {
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
     val scrollState = rememberScrollState()
@@ -28,9 +32,10 @@ fun SelectableMessageDialog(title: String, message: String, onDismiss: () -> Uni
         title = { Text(title) },
         text = {
             Box(
-                modifier = Modifier
-                    .heightIn(max = 320.dp)
-                    .verticalScroll(scrollState),
+                modifier =
+                    Modifier
+                        .heightIn(max = 320.dp)
+                        .verticalScroll(scrollState),
             ) {
                 SelectionContainer {
                     Text(message)

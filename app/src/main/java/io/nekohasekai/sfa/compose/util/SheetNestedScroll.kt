@@ -22,7 +22,11 @@ fun rememberSheetDismissFromContentOnlyIfGestureStartedAtTopModifier(isAtTop: ()
     val nestedScrollConnection =
         remember {
             object : NestedScrollConnection {
-                override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                override fun onPostScroll(
+                    consumed: Offset,
+                    available: Offset,
+                    source: NestedScrollSource,
+                ): Offset {
                     if (source != NestedScrollSource.UserInput) return Offset.Zero
                     val startedAtTop = gestureStartedAtTop.value
                     return when {
@@ -32,7 +36,10 @@ fun rememberSheetDismissFromContentOnlyIfGestureStartedAtTopModifier(isAtTop: ()
                     }
                 }
 
-                override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                override suspend fun onPostFling(
+                    consumed: Velocity,
+                    available: Velocity,
+                ): Velocity {
                     val startedAtTop = gestureStartedAtTop.value
                     return when {
                         available.y < 0 -> available

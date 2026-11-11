@@ -45,7 +45,11 @@ class Profile(
         fun get(profileId: Long): Profile?
 
         @Transaction
-        fun updateRemoteError(profileId: Long, remoteUrl: String, error: String): TypedProfile? {
+        fun updateRemoteError(
+            profileId: Long,
+            remoteUrl: String,
+            error: String,
+        ): TypedProfile? {
             val current = get(profileId) ?: return null
             if (current.typed.type != TypedProfile.Type.Remote || current.typed.remoteURL != remoteUrl) return null
             current.typed.lastUpdateError = error

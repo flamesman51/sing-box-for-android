@@ -56,9 +56,10 @@ open class CommandClient(
         }
     }
 
-    private fun getAllHandlers(): List<Handler> = synchronized(additionalHandlers) {
-        listOf(handler) + additionalHandlers
-    }
+    private fun getAllHandlers(): List<Handler> =
+        synchronized(additionalHandlers) {
+            listOf(handler) + additionalHandlers
+        }
 
     enum class ConnectionType {
         Status,
@@ -88,7 +89,10 @@ open class CommandClient(
 
         fun updateOutbounds(outbounds: List<io.nekohasekai.libbox.OutboundGroupItem>) {}
 
-        fun initializeClashMode(modeList: List<String>, currentMode: String) {}
+        fun initializeClashMode(
+            modeList: List<String>,
+            currentMode: String,
+        ) {}
 
         fun updateClashMode(newMode: String) {}
 
@@ -194,7 +198,9 @@ open class CommandClient(
 
     private fun isActiveEpoch(epoch: Int): Boolean = synchronized(access) { epoch == connectionEpoch }
 
-    private inner class ClientHandler(private val epoch: Int) : CommandClientHandler {
+    private inner class ClientHandler(
+        private val epoch: Int,
+    ) : CommandClientHandler {
         override fun connected() {
             if (!isActiveEpoch(epoch)) return
             getAllHandlers().forEach { it.onConnected() }
@@ -257,7 +263,10 @@ open class CommandClient(
             getAllHandlers().forEach { it.updateStatus(message) }
         }
 
-        override fun initializeClashMode(modeList: StringIterator, currentMode: String) {
+        override fun initializeClashMode(
+            modeList: StringIterator,
+            currentMode: String,
+        ) {
             if (!isActiveEpoch(epoch)) return
             val modes = modeList.toList()
             getAllHandlers().forEach { it.initializeClashMode(modes, currentMode) }

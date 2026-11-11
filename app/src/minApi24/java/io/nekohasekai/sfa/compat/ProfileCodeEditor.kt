@@ -18,8 +18,10 @@ import io.github.rosemoe.sora.widget.EditorSearcher
 import io.github.rosemoe.sora.widget.component.EditorAutoCompletion
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
 
-class ProfileCodeEditor(context: Context, private val syntax: CodeEditorSyntax = CodeEditorSyntax.JSON) {
-
+class ProfileCodeEditor(
+    context: Context,
+    private val syntax: CodeEditorSyntax = CodeEditorSyntax.JSON,
+) {
     companion object {
         private const val JSON_HIGHLIGHTS = """
 (string) @string
@@ -246,18 +248,26 @@ class ProfileCodeEditor(context: Context, private val syntax: CodeEditorSyntax =
     }
 }
 
-private class ConfigCodeEditor(context: Context) : CodeEditor(context) {
-
+private class ConfigCodeEditor(
+    context: Context,
+) : CodeEditor(context) {
     var suppressFocusRequest = false
 
-    override fun requestFocus(direction: Int, previouslyFocusedRect: Rect?): Boolean {
+    override fun requestFocus(
+        direction: Int,
+        previouslyFocusedRect: Rect?,
+    ): Boolean {
         if (suppressFocusRequest) {
             return isFocused
         }
         return super.requestFocus(direction, previouslyFocusedRect)
     }
 
-    override fun commitText(text: CharSequence, applyAutoIndent: Boolean, applySymbolCompletion: Boolean) {
+    override fun commitText(
+        text: CharSequence,
+        applyAutoIndent: Boolean,
+        applySymbolCompletion: Boolean,
+    ) {
         val language = editorLanguage as? ConfigJsonLanguage
         val newlineFromHandler = language?.consumeNewlineHandlerCommit() == true
         val content = getText()

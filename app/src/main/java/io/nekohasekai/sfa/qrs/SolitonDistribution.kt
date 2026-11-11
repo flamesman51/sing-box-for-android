@@ -3,7 +3,10 @@ package io.nekohasekai.sfa.qrs
 import kotlin.random.Random
 
 object SolitonDistribution {
-    fun sample(k: Int, random: Random): Int {
+    fun sample(
+        k: Int,
+        random: Random,
+    ): Int {
         if (k <= 0) return 1
 
         val p = random.nextDouble()

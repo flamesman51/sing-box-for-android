@@ -17,7 +17,10 @@ class AppChangeReceiver : BroadcastReceiver() {
         private const val TAG = "AppChangeReceiver"
     }
 
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         Log.d(TAG, "onReceive: ${intent.action}")
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {

@@ -13,25 +13,32 @@ data class ResolvedUser(
 )
 
 object UserResolver {
-
     const val TERMUX_PACKAGE = "com.termux"
     const val TERMUX_PREFIX = "/data/data/com.termux/files/usr"
     const val TERMUX_HOME = "/data/data/com.termux/files/home"
 
-    fun resolve(pm: PackageManager, username: String): ResolvedUser = when (username) {
-        "root" -> ResolvedUser("root", Process.ROOT_UID, Process.ROOT_UID, "/")
-        "shell" -> ResolvedUser("shell", Process.SHELL_UID, Process.SHELL_UID, "/data/local")
-        "termux" -> resolvePackage(pm, TERMUX_PACKAGE)
-        "sing-box" -> resolvePackage(pm, BuildConfig.APPLICATION_ID)
-        else -> resolvePackage(pm, username)
-    }
-
-    private fun resolvePackage(pm: PackageManager, packageName: String): ResolvedUser {
-        val appInfo = pm.getApplicationInfo(packageName, 0)
-        val homeDir = when (packageName) {
-            TERMUX_PACKAGE -> TERMUX_HOME
-            else -> appInfo.dataDir
+    fun resolve(
+        pm: PackageManager,
+        username: String,
+    ): ResolvedUser =
+        when (username) {
+            "root" -> ResolvedUser("root", Process.ROOT_UID, Process.ROOT_UID, "/")
+            "shell" -> ResolvedUser("shell", Process.SHELL_UID, Process.SHELL_UID, "/data/local")
+            "termux" -> resolvePackage(pm, TERMUX_PACKAGE)
+            "sing-box" -> resolvePackage(pm, BuildConfig.APPLICATION_ID)
+            else -> resolvePackage(pm, username)
         }
+
+    private fun resolvePackage(
+        pm: PackageManager,
+        packageName: String,
+    ): ResolvedUser {
+        val appInfo = pm.getApplicationInfo(packageName, 0)
+        val homeDir =
+            when (packageName) {
+                TERMUX_PACKAGE -> TERMUX_HOME
+                else -> appInfo.dataDir
+            }
         return ResolvedUser(packageName, appInfo.uid, appInfo.uid, homeDir)
     }
 
@@ -45,7 +52,10 @@ object UserResolver {
         return "/system/bin/sh"
     }
 
-    fun findTermuxShell(prefix: File, homeDir: String): String {
+    fun findTermuxShell(
+        prefix: File,
+        homeDir: String,
+    ): String {
         val dotTermuxShell = File(homeDir, ".termux/shell")
         if (dotTermuxShell.canExecute()) {
             return dotTermuxShell.canonicalPath

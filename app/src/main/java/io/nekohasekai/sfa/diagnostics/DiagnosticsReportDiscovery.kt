@@ -28,21 +28,25 @@ internal class DiagnosticsReportDiscovery(
         flushJournal()
     }
 
-    fun scheduleRefresh() = try {
-        background.launch {
-            // Upload discovery retries refresh/flush failures without holding up the lifecycle.
-            runCatching { refresh() }
+    fun scheduleRefresh() =
+        try {
+            background.launch {
+                // Upload discovery retries refresh/flush failures without holding up the lifecycle.
+                runCatching { refresh() }
+            }
+        } catch (_: Throwable) {
+            null
         }
-    } catch (_: Throwable) {
-        null
-    }
 
     fun afterPromotion(promote: () -> Unit): Job? {
         promote()
         return scheduleRefresh()
     }
 
-    suspend fun unsent(store: DiagnosticsStore, owner: String): Set<String> {
+    suspend fun unsent(
+        store: DiagnosticsStore,
+        owner: String,
+    ): Set<String> {
         refresh()
         return store.unsentDiscoveries(owner)
     }

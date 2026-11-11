@@ -19,13 +19,17 @@ class ServerUpdatePolicyTest {
 
     private fun manifest(apks: String = """{"abi":"arm64-v8a","path":"app.apk","size":3,"sha256":"$sha256"}"""): String = """{"version":1,"application_id":"example.app","version_code":760,"version_name":"1.2","published_at":1794000000,"apks":[$apks]}"""
 
-    private fun candidate(version: Int = 760, firstSeen: Long = 1_000): PendingServerUpdate = PendingServerUpdate(
-        version,
-        "1.2",
-        null,
-        ServerArtifact("arm64-v8a", "$origin/secret/app.apk", 3, sha256),
-        firstSeen,
-    )
+    private fun candidate(
+        version: Int = 760,
+        firstSeen: Long = 1_000,
+    ): PendingServerUpdate =
+        PendingServerUpdate(
+            version,
+            "1.2",
+            null,
+            ServerArtifact("arm64-v8a", "$origin/secret/app.apk", 3, sha256),
+            firstSeen,
+        )
 
     @Test
     fun profileDiscoveryRequiresHttpsBeforeAndAfterRedirect() {
@@ -76,19 +80,21 @@ class ServerUpdatePolicyTest {
     @Test
     fun manifestRejectsInvalidMetadataSizesDigestsAndEscapingArtifactPaths() {
         val valid = manifest()
-        val invalid = listOf(
-            valid.replace("\"version\":1", "\"version\":2"),
-            valid.replace("example.app", "other.app"),
-            valid.replace("\"version_code\":760", "\"version_code\":0"),
-            valid.replace("\"version_code\":760", "\"version_code\":2147483648"),
-            valid.replace("\"version_name\":\"1.2\"", "\"version_name\":\"\""),
-            valid.replace("\"size\":3", "\"size\":0"),
-            valid.replace("\"size\":3", "\"size\":268435457"),
-            valid.replace(sha256, "g".repeat(64)),
-            valid.replace(sha256, "a".repeat(63)),
-        ) + listOf("../app.apk", "%2e%2e/app.apk", "https://hostile.example/app.apk", "//hostile.example/app.apk", "/app.apk", "app.apk?x", "app.apk#x", "http://updates.example/app.apk").map {
-            valid.replace("app.apk", it)
-        }
+        val invalid =
+            listOf(
+                valid.replace("\"version\":1", "\"version\":2"),
+                valid.replace("example.app", "other.app"),
+                valid.replace("\"version_code\":760", "\"version_code\":0"),
+                valid.replace("\"version_code\":760", "\"version_code\":2147483648"),
+                valid.replace("\"version_name\":\"1.2\"", "\"version_name\":\"\""),
+                valid.replace("\"size\":3", "\"size\":0"),
+                valid.replace("\"size\":3", "\"size\":268435457"),
+                valid.replace(sha256, "g".repeat(64)),
+                valid.replace(sha256, "a".repeat(63)),
+            ) +
+                listOf("../app.apk", "%2e%2e/app.apk", "https://hostile.example/app.apk", "//hostile.example/app.apk", "/app.apk", "app.apk?x", "app.apk#x", "http://updates.example/app.apk").map {
+                    valid.replace("app.apk", it)
+                }
         for (text in invalid) {
             assertThrows(Exception::class.java) {
                 ServerUpdatePolicy.parseManifest(text, manifestUrl, origin, "example.app", listOf("arm64-v8a"), 1_000)

@@ -124,7 +124,11 @@ class Application : Application() {
         }
     }
 
-    private suspend fun initialize(baseDir: File, workingDir: File?, tempDir: File) {
+    private suspend fun initialize(
+        baseDir: File,
+        workingDir: File?,
+        tempDir: File,
+    ) {
         val actualWorkingDir = workingDir ?: error("App storage is unavailable")
         setupLibbox(baseDir, actualWorkingDir, tempDir)
     }
@@ -136,33 +140,44 @@ class Application : Application() {
         Libbox.reloadSetupOptions(createSetupOptions(baseDir, workingDir, tempDir))
     }
 
-    private suspend fun setupLibbox(baseDir: File, workingDir: File, tempDir: File) {
+    private suspend fun setupLibbox(
+        baseDir: File,
+        workingDir: File,
+        tempDir: File,
+    ) {
         DiagnosticsReportDiscovery.shared.afterPromotion {
             Libbox.setup(createSetupOptions(baseDir, workingDir, tempDir))
         }
     }
 
-    private fun createSetupOptions(baseDir: File, workingDir: File, tempDir: File): SetupOptions = SetupOptions().also {
-        it.basePath = baseDir.path
-        it.workingPath = workingDir.path
-        it.tempPath = tempDir.path
-        it.fixAndroidStack = Bugs.fixAndroidStack
-        it.logMaxLines = 3000
-        it.debug = BuildConfig.DEBUG
-        it.crashReportSource = "Application"
-        it.appVersion = BuildConfig.VERSION_CODE.toString()
-        it.appMarketingVersion = BuildConfig.VERSION_NAME
-        it.oomKillerEnabled = Settings.oomKillerEnabled
-        it.oomKillerDisabled = Settings.oomKillerDisabled
-        it.oomMemoryLimit = Settings.oomMemoryLimitMB.toLong() * 1024L * 1024L
-        it.powerReportEnabled = Settings.powerReportEnabled
-        it.platformMetadata = JSONObject().apply {
-            put("os", "Android " + Build.VERSION.RELEASE)
-            put("sdk", Build.VERSION.SDK_INT)
-            put("manufacturer", Build.MANUFACTURER)
-            put("model", Build.MODEL)
-        }.toString()
-    }
+    private fun createSetupOptions(
+        baseDir: File,
+        workingDir: File,
+        tempDir: File,
+    ): SetupOptions =
+        SetupOptions().also {
+            it.basePath = baseDir.path
+            it.workingPath = workingDir.path
+            it.tempPath = tempDir.path
+            it.fixAndroidStack = Bugs.fixAndroidStack
+            it.logMaxLines = 3000
+            it.debug = BuildConfig.DEBUG
+            it.crashReportSource = "Application"
+            it.appVersion = BuildConfig.VERSION_CODE.toString()
+            it.appMarketingVersion = BuildConfig.VERSION_NAME
+            it.oomKillerEnabled = Settings.oomKillerEnabled
+            it.oomKillerDisabled = Settings.oomKillerDisabled
+            it.oomMemoryLimit = Settings.oomMemoryLimitMB.toLong() * 1024L * 1024L
+            it.powerReportEnabled = Settings.powerReportEnabled
+            it.platformMetadata =
+                JSONObject()
+                    .apply {
+                        put("os", "Android " + Build.VERSION.RELEASE)
+                        put("sdk", Build.VERSION.SDK_INT)
+                        put("manufacturer", Build.MANUFACTURER)
+                        put("model", Build.MODEL)
+                    }.toString()
+        }
 
     companion object {
         lateinit var application: BoxApplication

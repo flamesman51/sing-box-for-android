@@ -39,11 +39,12 @@ class TaildropSendFile(
 ) {
     val size: Long = text?.size?.toLong() ?: descriptor!!.statSize
 
-    fun open(): InputStream = if (text != null) {
-        ByteArrayInputStream(text)
-    } else {
-        FileInputStream(descriptor!!.fileDescriptor)
-    }
+    fun open(): InputStream =
+        if (text != null) {
+            ByteArrayInputStream(text)
+        } else {
+            FileInputStream(descriptor!!.fileDescriptor)
+        }
 
     fun close() {
         descriptor?.let { runCatching { it.close() } }
@@ -84,8 +85,9 @@ object TaildropSendManager {
                     throw FileNotFoundException("unsupported share source: $uri")
                 }
                 val resolver = Application.application.contentResolver
-                val descriptor = resolver.openFileDescriptor(uri, "r")
-                    ?: throw FileNotFoundException(uri.toString())
+                val descriptor =
+                    resolver.openFileDescriptor(uri, "r")
+                        ?: throw FileNotFoundException(uri.toString())
                 files.add(TaildropSendFile(displayName(resolver, uri), descriptor))
             }
         } catch (e: Exception) {
@@ -97,9 +99,17 @@ object TaildropSendManager {
         return files
     }
 
-    fun createTextFile(name: String, text: String): TaildropSendFile = TaildropSendFile(name, null, text.encodeToByteArray())
+    fun createTextFile(
+        name: String,
+        text: String,
+    ): TaildropSendFile = TaildropSendFile(name, null, text.encodeToByteArray())
 
-    fun send(endpointTag: String, peerStableID: String, peerName: String, files: List<TaildropSendFile>): Long {
+    fun send(
+        endpointTag: String,
+        peerStableID: String,
+        peerName: String,
+        files: List<TaildropSendFile>,
+    ): Long {
         if (files.isEmpty()) return -1L
         val id: Long
         val holder = SessionHolder()
@@ -107,18 +117,20 @@ object TaildropSendManager {
         synchronized(access) {
             id = ++nextID
             holders[id] = holder
-            job = scope.launch(start = CoroutineStart.LAZY) {
-                runSession(id, holder, endpointTag, peerStableID, files)
-            }
+            job =
+                scope.launch(start = CoroutineStart.LAZY) {
+                    runSession(id, holder, endpointTag, peerStableID, files)
+                }
             jobs[id] = job
         }
         _sessions.update { sessions ->
-            sessions + TaildropSendState(
-                id = id,
-                endpointTag = endpointTag,
-                peerName = peerName,
-                files = files.map { TaildropSendFileState(name = it.name, size = it.size) },
-            )
+            sessions +
+                TaildropSendState(
+                    id = id,
+                    endpointTag = endpointTag,
+                    peerName = peerName,
+                    files = files.map { TaildropSendFileState(name = it.name, size = it.size) },
+                )
         }
         ContextCompat.startForegroundService(
             Application.application,
@@ -189,22 +201,29 @@ object TaildropSendManager {
                 options.addFile(file.name, file.size)
             }
             val finish = CompletableDeferred<String>()
-            val session = CommandTarget.standaloneClient().sendTaildropFiles(
-                options,
-                object : TaildropSendHandler {
-                    override fun onProgress(fileIndex: Int, sentBytes: Long) {
-                        updateFile(id, fileIndex) { copy(sentBytes = sentBytes) }
-                    }
+            val session =
+                CommandTarget.standaloneClient().sendTaildropFiles(
+                    options,
+                    object : TaildropSendHandler {
+                        override fun onProgress(
+                            fileIndex: Int,
+                            sentBytes: Long,
+                        ) {
+                            updateFile(id, fileIndex) { copy(sentBytes = sentBytes) }
+                        }
 
-                    override fun onFileCompleted(fileIndex: Int, sentBytes: Long) {
-                        updateFile(id, fileIndex) { copy(size = sentBytes, sentBytes = sentBytes, completed = true) }
-                    }
+                        override fun onFileCompleted(
+                            fileIndex: Int,
+                            sentBytes: Long,
+                        ) {
+                            updateFile(id, fileIndex) { copy(size = sentBytes, sentBytes = sentBytes, completed = true) }
+                        }
 
-                    override fun onFinish(errorMessage: String) {
-                        finish.complete(errorMessage)
-                    }
-                },
-            )
+                        override fun onFinish(errorMessage: String) {
+                            finish.complete(errorMessage)
+                        }
+                    },
+                )
             holder.set(session)
 
             var readFailure: IOException? = null
@@ -246,7 +265,10 @@ object TaildropSendManager {
         }
     }
 
-    private fun writeFile(session: TaildropSendSession, input: InputStream) {
+    private fun writeFile(
+        session: TaildropSendSession,
+        input: InputStream,
+    ) {
         val chunkSize = Libbox.TaildropChunkSize.toInt()
         var reachedEnd = false
         while (!reachedEnd) {
@@ -267,7 +289,10 @@ object TaildropSendManager {
         session.finishFile()
     }
 
-    private fun displayName(resolver: ContentResolver, uri: Uri): String {
+    private fun displayName(
+        resolver: ContentResolver,
+        uri: Uri,
+    ): String {
         resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
             if (cursor.moveToFirst() && !cursor.isNull(0)) {
                 val name = cursor.getString(0)
@@ -277,7 +302,10 @@ object TaildropSendManager {
         return uri.lastPathSegment?.let { File(it).name }?.takeIf { it.isNotEmpty() } ?: "file"
     }
 
-    private fun updateSession(id: Long, reducer: TaildropSendState.() -> TaildropSendState) {
+    private fun updateSession(
+        id: Long,
+        reducer: TaildropSendState.() -> TaildropSendState,
+    ) {
         _sessions.update { sessions ->
             sessions.map { if (it.id == id) it.reducer() else it }
         }
@@ -293,9 +321,10 @@ object TaildropSendManager {
                 this
             } else {
                 copy(
-                    files = files.mapIndexed { index, file ->
-                        if (index == fileIndex) file.reducer() else file
-                    },
+                    files =
+                        files.mapIndexed { index, file ->
+                            if (index == fileIndex) file.reducer() else file
+                        },
                 )
             }
         }

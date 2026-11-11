@@ -64,7 +64,8 @@ class STUNTestViewModel : BaseViewModel<STUNTestState, Nothing>() {
             viewModelScope.launch(Dispatchers.IO) {
                 try {
                     stunSession =
-                        CommandTarget.standaloneClient()
+                        CommandTarget
+                            .standaloneClient()
                             .startSTUNTest(server, outboundTag, handler)
                 } catch (e: Exception) {
                     withContext(Dispatchers.Main) {

@@ -23,17 +23,20 @@ object UpdateState {
         data object Idle : InstallStatus()
         data object Installing : InstallStatus()
         data object Success : InstallStatus()
-        data class Failed(val error: String) : InstallStatus()
+        data class Failed(
+            val error: String,
+        ) : InstallStatus()
     }
 
     val installStatus = mutableStateOf<InstallStatus>(InstallStatus.Idle)
 
     fun setUpdate(info: UpdateInfo?) {
-        val effectiveInfo = if (info == null && UpdateSource.fromString(Settings.updateSource) == UpdateSource.SERVER) {
-            serverUpdateInfo()
-        } else {
-            info
-        }
+        val effectiveInfo =
+            if (info == null && UpdateSource.fromString(Settings.updateSource) == UpdateSource.SERVER) {
+                serverUpdateInfo()
+            } else {
+                info
+            }
         updateInfo.value = effectiveInfo
         hasUpdate.value = effectiveInfo != null
         saveToCache(effectiveInfo)
@@ -61,35 +64,36 @@ object UpdateState {
         downloadError.value = null
     }
 
-    suspend fun loadFromCache() = withContext(Dispatchers.IO) {
-        if (UpdateSource.fromString(Settings.updateSource) == UpdateSource.SERVER) {
-            ServerUpdates.initialize()
-            ServerUpdates.reconcileInstalled()
-            setUpdate(serverUpdateInfo())
-            return@withContext
-        }
-        val json = Settings.cachedUpdateInfo
-        if (json.isBlank()) return@withContext
+    suspend fun loadFromCache() =
+        withContext(Dispatchers.IO) {
+            if (UpdateSource.fromString(Settings.updateSource) == UpdateSource.SERVER) {
+                ServerUpdates.initialize()
+                ServerUpdates.reconcileInstalled()
+                setUpdate(serverUpdateInfo())
+                return@withContext
+            }
+            val json = Settings.cachedUpdateInfo
+            if (json.isBlank()) return@withContext
 
-        val info = UpdateInfo.fromJson(json) ?: return@withContext
-        if (info.versionCode <= BuildConfig.VERSION_CODE) {
-            clearCache()
-            return@withContext
-        }
+            val info = UpdateInfo.fromJson(json) ?: return@withContext
+            if (info.versionCode <= BuildConfig.VERSION_CODE) {
+                clearCache()
+                return@withContext
+            }
 
-        updateInfo.value = info
-        hasUpdate.value = true
+            updateInfo.value = info
+            hasUpdate.value = true
 
-        val apkPath = Settings.cachedApkPath
-        if (apkPath.isNotBlank()) {
-            val apkFile = File(apkPath)
-            if (apkFile.exists() && apkFile.length() > 0) {
-                cachedApkFile.value = apkFile
-            } else {
-                Settings.cachedApkPath = ""
+            val apkPath = Settings.cachedApkPath
+            if (apkPath.isNotBlank()) {
+                val apkFile = File(apkPath)
+                if (apkFile.exists() && apkFile.length() > 0) {
+                    cachedApkFile.value = apkFile
+                } else {
+                    Settings.cachedApkPath = ""
+                }
             }
         }
-    }
 
     private fun serverUpdateInfo(): UpdateInfo? {
         val pending = ServerUpdates.state.value.pending ?: return null

@@ -32,14 +32,15 @@ class DiagnosticsScrubberTest {
 
     @Test
     fun preservesEveryTrailingPunctuationAfterRedactingEveryIpv6Form() {
-        val addresses = listOf(
-            "2001:db8:1:2:3:4:5:6",
-            "2001:db8::1",
-            "2001:db8::",
-            "::",
-            "::ffff:192.0.2.10",
-            "2001:db8:1:2:3:4:192.0.2.10",
-        )
+        val addresses =
+            listOf(
+                "2001:db8:1:2:3:4:5:6",
+                "2001:db8::1",
+                "2001:db8::",
+                "::",
+                "::ffff:192.0.2.10",
+                "2001:db8:1:2:3:4:192.0.2.10",
+            )
         for (address in addresses) {
             for (suffix in listOf(".", ",", ":", ";", ")", "]", "\"", "'")) {
                 assertEquals("$address$suffix", "connect <ip>$suffix", DiagnosticsScrubber.text("connect $address$suffix"))
@@ -50,20 +51,21 @@ class DiagnosticsScrubberTest {
 
     @Test
     fun keepsOnlyStrictJvmAndAlreadyScrubbedGoFrames() {
-        val frames = DiagnosticsScrubber.stack(
-            """
-            java.lang.IllegalStateException: https://secret.example/token
-                at io.example.Worker.run(Worker.kt:42)
-            group.(*Smart).probe
-            smart_probe.go:113
-            debug.Stack
-            stack.go:26
-            goroutine 8 [running]:
-            example.org/private/group.(*Smart).probe(0xc0000123, {0x123, 0x456})
-                /home/private/project/group/smart_probe.go:113 +0x42
-            log text containing a password
-            """.trimIndent(),
-        )
+        val frames =
+            DiagnosticsScrubber.stack(
+                """
+                java.lang.IllegalStateException: https://secret.example/token
+                    at io.example.Worker.run(Worker.kt:42)
+                group.(*Smart).probe
+                smart_probe.go:113
+                debug.Stack
+                stack.go:26
+                goroutine 8 [running]:
+                example.org/private/group.(*Smart).probe(0xc0000123, {0x123, 0x456})
+                    /home/private/project/group/smart_probe.go:113 +0x42
+                log text containing a password
+                """.trimIndent(),
+            )
         assertEquals("at io.example.Worker.run(Worker.kt:42)\ngroup.(*Smart).probe\nsmart_probe.go:113\ndebug.Stack\nstack.go:26", frames)
         assertEquals(frames, DiagnosticsScrubber.stack(frames))
         assertFalse(frames.contains("private"))
@@ -73,7 +75,8 @@ class DiagnosticsScrubberTest {
 
     @Test
     fun rejectsExceptionTextDisguisedAsFramesAndNonIdentifierLocations() {
-        val value = """
+        val value =
+            """
             dial private.example:443
             Unable to resolve host "myrouter"
             192.0.2.10.
@@ -87,7 +90,7 @@ class DiagnosticsScrubberTest {
             dial private.example:443
             smart.go:42
             at io.example.Worker.run(Worker.kt:42)
-        """.trimIndent()
+            """.trimIndent()
         assertEquals("at io.example.Worker.run(Worker.kt:42)", DiagnosticsScrubber.stack(value))
         assertEquals("", DiagnosticsScrubber.stack("group.run\n${"a".repeat(4097)}\nsmart.go:1"))
         assertEquals("", DiagnosticsScrubber.stack("group.run\nsmart.go:1", 8))

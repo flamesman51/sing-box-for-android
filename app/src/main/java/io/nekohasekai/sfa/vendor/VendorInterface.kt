@@ -7,7 +7,10 @@ import io.nekohasekai.sfa.update.UpdateInfo
 import io.nekohasekai.sfa.update.UpdateSource
 
 interface VendorInterface {
-    fun checkUpdate(activity: Activity, byUser: Boolean)
+    fun checkUpdate(
+        activity: Activity,
+        byUser: Boolean,
+    )
 
     fun createQRCodeAnalyzer(
         onSuccess: (String) -> Unit,
@@ -27,5 +30,8 @@ interface VendorInterface {
 
     suspend fun verifySilentInstallMethod(method: String): Boolean = false
 
-    suspend fun downloadAndInstall(context: android.content.Context, downloadUrl: String): Unit = throw UnsupportedOperationException("Not supported in this flavor")
+    suspend fun downloadAndInstall(
+        context: android.content.Context,
+        downloadUrl: String,
+    ): Unit = throw UnsupportedOperationException("Not supported in this flavor")
 }

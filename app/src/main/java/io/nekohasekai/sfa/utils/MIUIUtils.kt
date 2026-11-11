@@ -13,7 +13,9 @@ object MIUIUtils {
     @SuppressLint("PrivateApi")
     fun getSystemProperty(key: String?): String? {
         try {
-            return Class.forName("android.os.SystemProperties").getMethod("get", String::class.java)
+            return Class
+                .forName("android.os.SystemProperties")
+                .getMethod("get", String::class.java)
                 .invoke(null, key) as String
         } catch (ignored: Exception) {
         }

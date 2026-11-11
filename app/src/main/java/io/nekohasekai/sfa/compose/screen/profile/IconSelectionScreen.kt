@@ -72,7 +72,11 @@ import io.nekohasekai.sfa.compose.util.icons.MaterialIconsLibrary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun IconSelectionScreen(currentIconId: String?, onIconSelected: (String?) -> Unit, onNavigateBack: () -> Unit) {
+fun IconSelectionScreen(
+    currentIconId: String?,
+    onIconSelected: (String?) -> Unit,
+    onNavigateBack: () -> Unit,
+) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var viewMode by remember { mutableStateOf(IconViewMode.CATEGORIES) }
@@ -83,14 +87,20 @@ fun IconSelectionScreen(currentIconId: String?, onIconSelected: (String?) -> Uni
     val displayedIcons =
         remember(searchQuery, selectedCategory, viewMode) {
             when {
-                searchQuery.isNotEmpty() -> MaterialIconsLibrary.searchIcons(searchQuery)
+                searchQuery.isNotEmpty() -> {
+                    MaterialIconsLibrary.searchIcons(searchQuery)
+                }
                 selectedCategory != null -> {
                     MaterialIconsLibrary.categories
                         .find { it.name == selectedCategory }
                         ?.icons ?: emptyList()
                 }
-                viewMode == IconViewMode.ALL -> MaterialIconsLibrary.getAllIcons()
-                else -> emptyList()
+                viewMode == IconViewMode.ALL -> {
+                    MaterialIconsLibrary.getAllIcons()
+                }
+                else -> {
+                    emptyList()
+                }
             }
         }
 
@@ -120,26 +130,26 @@ fun IconSelectionScreen(currentIconId: String?, onIconSelected: (String?) -> Uni
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription =
-                        if (isSearchActive) {
-                            stringResource(R.string.close_search)
-                        } else {
-                            stringResource(
-                                R.string.search_icons,
-                            )
-                        },
+                            if (isSearchActive) {
+                                stringResource(R.string.close_search)
+                            } else {
+                                stringResource(
+                                    R.string.search_icons,
+                                )
+                            },
                         tint =
-                        if (isSearchActive) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        },
+                            if (isSearchActive) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
                     )
                 }
             },
             colors =
-            TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
+                TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
         )
     }
 
@@ -159,28 +169,28 @@ fun IconSelectionScreen(currentIconId: String?, onIconSelected: (String?) -> Uni
 
         Column(
             modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(scaffoldPadding)
-                .padding(bottom = bottomBarPadding),
+                Modifier
+                    .fillMaxSize()
+                    .padding(scaffoldPadding)
+                    .padding(bottom = bottomBarPadding),
         ) {
             // Show search bar with animation
             AnimatedVisibility(
                 visible = isSearchActive,
                 enter =
-                expandVertically(
-                    animationSpec = tween(300),
-                ) +
-                    fadeIn(
+                    expandVertically(
                         animationSpec = tween(300),
-                    ),
+                    ) +
+                        fadeIn(
+                            animationSpec = tween(300),
+                        ),
                 exit =
-                shrinkVertically(
-                    animationSpec = tween(300),
-                ) +
-                    fadeOut(
+                    shrinkVertically(
                         animationSpec = tween(300),
-                    ),
+                    ) +
+                        fadeOut(
+                            animationSpec = tween(300),
+                        ),
             ) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
@@ -205,10 +215,10 @@ fun IconSelectionScreen(currentIconId: String?, onIconSelected: (String?) -> Uni
                             }
                         },
                         modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
-                            .focusRequester(focusRequester),
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+                                .focusRequester(focusRequester),
                         placeholder = { Text(stringResource(R.string.search_icons_placeholder)) },
                         leadingIcon = {
                             Icon(
@@ -233,20 +243,20 @@ fun IconSelectionScreen(currentIconId: String?, onIconSelected: (String?) -> Uni
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                         keyboardActions =
-                        KeyboardActions(
-                            onSearch = {
-                                focusManager.clearFocus()
-                            },
-                        ),
+                            KeyboardActions(
+                                onSearch = {
+                                    focusManager.clearFocus()
+                                },
+                            ),
                     )
                 }
             }
 
             Column(
                 modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
             ) {
                 // View mode tabs (only show when not searching)
                 AnimatedVisibility(visible = searchQuery.isEmpty()) {
@@ -262,11 +272,11 @@ fun IconSelectionScreen(currentIconId: String?, onIconSelected: (String?) -> Uni
                             },
                             label = { Text(stringResource(R.string.categories)) },
                             leadingIcon =
-                            if (viewMode == IconViewMode.CATEGORIES && selectedCategory == null) {
-                                { Icon(Icons.Default.Check, contentDescription = null, Modifier.size(16.dp)) }
-                            } else {
-                                null
-                            },
+                                if (viewMode == IconViewMode.CATEGORIES && selectedCategory == null) {
+                                    { Icon(Icons.Default.Check, contentDescription = null, Modifier.size(16.dp)) }
+                                } else {
+                                    null
+                                },
                         )
 
                         FilterChip(
@@ -277,11 +287,11 @@ fun IconSelectionScreen(currentIconId: String?, onIconSelected: (String?) -> Uni
                             },
                             label = { Text(stringResource(R.string.all_icons)) },
                             leadingIcon =
-                            if (viewMode == IconViewMode.ALL) {
-                                { Icon(Icons.Default.Check, contentDescription = null, Modifier.size(16.dp)) }
-                            } else {
-                                null
-                            },
+                                if (viewMode == IconViewMode.ALL) {
+                                    { Icon(Icons.Default.Check, contentDescription = null, Modifier.size(16.dp)) }
+                                } else {
+                                    null
+                                },
                         )
 
                         FilterChip(
@@ -322,9 +332,9 @@ fun IconSelectionScreen(currentIconId: String?, onIconSelected: (String?) -> Uni
                 // Main content area
                 Box(
                     modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                        Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                 ) {
                     when {
                         // Search results
@@ -380,21 +390,21 @@ fun IconSelectionScreen(currentIconId: String?, onIconSelected: (String?) -> Uni
         currentIcon?.let { (id, icon) ->
             Card(
                 modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = scaffoldPadding.calculateBottomPadding())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = scaffoldPadding.calculateBottomPadding())
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                 colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                ),
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                    ),
             ) {
                 Row(
                     modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
@@ -408,10 +418,10 @@ fun IconSelectionScreen(currentIconId: String?, onIconSelected: (String?) -> Uni
                         val iconInfo = MaterialIconsLibrary.getAllIcons().find { it.id == id }
                         Text(
                             text =
-                            stringResource(
-                                R.string.current_icon_format,
-                                iconInfo?.label ?: id,
-                            ),
+                                stringResource(
+                                    R.string.current_icon_format,
+                                    iconInfo?.label ?: id,
+                                ),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         MaterialIconsLibrary.getCategoryForIcon(id)?.let { category ->
@@ -429,7 +439,11 @@ fun IconSelectionScreen(currentIconId: String?, onIconSelected: (String?) -> Uni
 }
 
 @Composable
-private fun CategoryList(categories: List<IconCategory>, currentIconId: String?, onCategoryClick: (IconCategory) -> Unit) {
+private fun CategoryList(
+    categories: List<IconCategory>,
+    currentIconId: String?,
+    onCategoryClick: (IconCategory) -> Unit,
+) {
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -445,25 +459,29 @@ private fun CategoryList(categories: List<IconCategory>, currentIconId: String?,
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CategoryCard(category: IconCategory, hasSelectedIcon: Boolean, onClick: () -> Unit) {
+private fun CategoryCard(
+    category: IconCategory,
+    hasSelectedIcon: Boolean,
+    onClick: () -> Unit,
+) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         colors =
-        CardDefaults.cardColors(
-            containerColor =
-            if (hasSelectedIcon) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            },
-        ),
+            CardDefaults.cardColors(
+                containerColor =
+                    if (hasSelectedIcon) {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    },
+            ),
     ) {
         Row(
             modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -502,7 +520,11 @@ private fun CategoryCard(category: IconCategory, hasSelectedIcon: Boolean, onCli
 }
 
 @Composable
-private fun IconGrid(icons: List<ProfileIcon>, currentIconId: String?, onIconClick: (ProfileIcon) -> Unit) {
+private fun IconGrid(
+    icons: List<ProfileIcon>,
+    currentIconId: String?,
+    onIconClick: (ProfileIcon) -> Unit,
+) {
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 72.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -520,34 +542,38 @@ private fun IconGrid(icons: List<ProfileIcon>, currentIconId: String?, onIconCli
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun IconGridItem(icon: ProfileIcon, isSelected: Boolean, onClick: () -> Unit) {
+private fun IconGridItem(
+    icon: ProfileIcon,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
     Card(
         onClick = onClick,
         modifier =
-        Modifier
-            .fillMaxWidth()
-            .aspectRatio(1f),
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f),
         colors =
-        CardDefaults.cardColors(
-            containerColor =
-            if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            },
-        ),
+            CardDefaults.cardColors(
+                containerColor =
+                    if (isSelected) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    },
+            ),
         border =
-        if (isSelected) {
-            CardDefaults.outlinedCardBorder()
-        } else {
-            null
-        },
+            if (isSelected) {
+                CardDefaults.outlinedCardBorder()
+            } else {
+                null
+            },
     ) {
         Column(
             modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(8.dp),
+                Modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -556,11 +582,11 @@ private fun IconGridItem(icon: ProfileIcon, isSelected: Boolean, onClick: () -> 
                 contentDescription = icon.label,
                 modifier = Modifier.size(28.dp),
                 tint =
-                if (isSelected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
+                    if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -569,11 +595,11 @@ private fun IconGridItem(icon: ProfileIcon, isSelected: Boolean, onClick: () -> 
                 text = icon.label,
                 style = MaterialTheme.typography.labelSmall,
                 color =
-                if (isSelected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
+                    if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
@@ -587,9 +613,9 @@ private fun IconGridItem(icon: ProfileIcon, isSelected: Boolean, onClick: () -> 
 private fun EmptySearchResult(query: String) {
     Column(
         modifier =
-        Modifier
-            .fillMaxSize()
-            .padding(32.dp),
+            Modifier
+                .fillMaxSize()
+                .padding(32.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

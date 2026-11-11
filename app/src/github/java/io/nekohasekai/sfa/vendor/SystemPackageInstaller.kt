@@ -14,14 +14,22 @@ import java.io.FileInputStream
 import android.content.pm.PackageInstaller as AndroidPackageInstaller
 
 object SystemPackageInstaller {
-
     fun canSystemSilentInstall(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
-    fun install(context: Context, apkFile: File) {
+    fun install(
+        context: Context,
+        apkFile: File,
+    ) {
         commit(context, apkFile, null) {}
     }
 
-    internal fun installServer(context: Context, ready: ReadyServerUpdate, existingSessionId: Int = -1, cancellation: InstallCancellation, onSessionCreated: (Int) -> Unit): Int {
+    internal fun installServer(
+        context: Context,
+        ready: ReadyServerUpdate,
+        existingSessionId: Int = -1,
+        cancellation: InstallCancellation,
+        onSessionCreated: (Int) -> Unit,
+    ): Int {
         cancellation.check()
         val apkFile = ServerUpdateChecker.verifiedReadyApk(context)
         check(apkFile != null && apkFile.absolutePath == ready.path && ServerUpdates.state.value.ready == ready) {
@@ -45,15 +53,16 @@ object SystemPackageInstaller {
             params.setRequireUserAction(AndroidPackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
         }
 
-        val existingSession = if (existingSessionId >= 0) {
-            packageInstaller.getSessionInfo(existingSessionId).also {
-                check(it != null && it.installerPackageName == context.packageName && it.appPackageName == context.packageName) {
-                    context.getString(R.string.server_update_confirmation_unavailable)
+        val existingSession =
+            if (existingSessionId >= 0) {
+                packageInstaller.getSessionInfo(existingSessionId).also {
+                    check(it != null && it.installerPackageName == context.packageName && it.appPackageName == context.packageName) {
+                        context.getString(R.string.server_update_confirmation_unavailable)
+                    }
                 }
+            } else {
+                null
             }
-        } else {
-            null
-        }
         cancellation?.check()
         val sessionId = existingSession?.sessionId ?: packageInstaller.createSession(params)
         // API 24-25 cannot query sealing; a sealed session then fails openWrite and is abandoned below.
@@ -79,18 +88,20 @@ object SystemPackageInstaller {
                     session.fsync(outputStream)
                 }
 
-                val intent = Intent(context, InstallResultReceiver::class.java).apply {
-                    action = InstallResultReceiver.ACTION_INSTALL_COMPLETE
-                    putExtra(AndroidPackageInstaller.EXTRA_SESSION_ID, sessionId)
-                    ready?.let { putReadyIdentity(it) }
-                }
-                val pendingIntent = PendingIntent.getBroadcast(
-                    context,
-                    sessionId,
-                    intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or
-                        (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0),
-                )
+                val intent =
+                    Intent(context, InstallResultReceiver::class.java).apply {
+                        action = InstallResultReceiver.ACTION_INSTALL_COMPLETE
+                        putExtra(AndroidPackageInstaller.EXTRA_SESSION_ID, sessionId)
+                        ready?.let { putReadyIdentity(it) }
+                    }
+                val pendingIntent =
+                    PendingIntent.getBroadcast(
+                        context,
+                        sessionId,
+                        intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or
+                            (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0),
+                    )
                 check(ready == null || ServerUpdates.state.value.ready == ready) {
                     context.getString(R.string.server_update_unavailable)
                 }

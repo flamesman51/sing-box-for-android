@@ -26,20 +26,22 @@ object ServerUpdates {
     private var loggedForeignOrigin = false
     private val stateFile by lazy { AtomicFile(Settings.serverUpdateStateFile) }
 
-    fun initialize() = synchronized(lock) {
-        if (!initialized) {
-            val stored = try {
-                stateFile.openRead().use { Json.decodeFromString<ServerUpdateSnapshot>(it.readBytes().toString(Charsets.UTF_8)) }
-            } catch (_: FileNotFoundException) {
-                if (stateFile.baseFile.exists()) throw IOException("Cannot read server update state")
-                ServerUpdateSnapshot()
-            } catch (_: Exception) {
-                throw IOException("Cannot read server update state")
+    fun initialize() =
+        synchronized(lock) {
+            if (!initialized) {
+                val stored =
+                    try {
+                        stateFile.openRead().use { Json.decodeFromString<ServerUpdateSnapshot>(it.readBytes().toString(Charsets.UTF_8)) }
+                    } catch (_: FileNotFoundException) {
+                        if (stateFile.baseFile.exists()) throw IOException("Cannot read server update state")
+                        ServerUpdateSnapshot()
+                    } catch (_: Exception) {
+                        throw IOException("Cannot read server update state")
+                    }
+                mutableState.value = stored
+                initialized = true
             }
-            mutableState.value = stored
-            initialized = true
         }
-    }
 
     fun reconcileInstalled() {
         synchronized(lock) {
@@ -49,68 +51,84 @@ object ServerUpdates {
         ServerUpdateChecker.deleteInstalledArtifacts(Application.application)
     }
 
-    fun discover(profileUrl: String, header: String): Boolean {
-        val changed = synchronized(lock) {
-            initialize()
-            val current = mutableState.value
-            val discovery = ServerUpdatePolicy.discover(current.origin, profileUrl, header)
-            if (discovery == null) {
-                val incomingOrigin = ServerUpdatePolicy.origin(profileUrl)
-                if (current.origin != null && incomingOrigin != null && current.origin != incomingOrigin && !loggedForeignOrigin) {
-                    Log.w("ServerUpdates", "Ignored update discovery from another origin")
-                    loggedForeignOrigin = true
+    fun discover(
+        profileUrl: String,
+        header: String,
+    ): Boolean {
+        val changed =
+            synchronized(lock) {
+                initialize()
+                val current = mutableState.value
+                val discovery = ServerUpdatePolicy.discover(current.origin, profileUrl, header)
+                if (discovery == null) {
+                    val incomingOrigin = ServerUpdatePolicy.origin(profileUrl)
+                    if (current.origin != null && incomingOrigin != null && current.origin != incomingOrigin && !loggedForeignOrigin) {
+                        Log.w("ServerUpdates", "Ignored update discovery from another origin")
+                        loggedForeignOrigin = true
+                    }
+                    return false
                 }
-                return false
+                val next = current.copy(origin = discovery.origin, manifestUrl = discovery.manifestUrl)
+                persist(next)
+                current.origin != next.origin || current.manifestUrl != next.manifestUrl
             }
-            val next = current.copy(origin = discovery.origin, manifestUrl = discovery.manifestUrl)
-            persist(next)
-            current.origin != next.origin || current.manifestUrl != next.manifestUrl
-        }
         if (changed) ServerUpdateWork.enqueueCheck(Application.application)
         return true
     }
 
-    fun forgetServer() = synchronized(lock) {
-        initialize()
-        persist(ServerUpdatePolicy.forget(mutableState.value))
-        loggedForeignOrigin = false
-    }
+    fun forgetServer() =
+        synchronized(lock) {
+            initialize()
+            persist(ServerUpdatePolicy.forget(mutableState.value))
+            loggedForeignOrigin = false
+        }
 
-    fun markReminderShown(nowMillis: Long) = synchronized(lock) {
-        initialize()
-        if (mutableState.value.pending != null) persist(mutableState.value.copy(lastReminderAtMillis = nowMillis))
-    }
+    fun markReminderShown(nowMillis: Long) =
+        synchronized(lock) {
+            initialize()
+            if (mutableState.value.pending != null) persist(mutableState.value.copy(lastReminderAtMillis = nowMillis))
+        }
 
-    internal fun accept(candidate: PendingServerUpdate, manifestUrl: String, installedVersion: Long) = synchronized(lock) {
+    internal fun accept(
+        candidate: PendingServerUpdate,
+        manifestUrl: String,
+        installedVersion: Long,
+    ) = synchronized(lock) {
         initialize()
         if (mutableState.value.manifestUrl == manifestUrl) persist(ServerUpdatePolicy.accept(mutableState.value, candidate, installedVersion))
     }
 
-    internal fun publishReady(pending: PendingServerUpdate, path: String): Boolean = synchronized(lock) {
-        val current = mutableState.value
-        if (current.pending?.versionCode != pending.versionCode || current.pending.artifact.sha256 != pending.artifact.sha256) {
-            false
-        } else {
-            persist(current.copy(ready = ReadyServerUpdate(pending.versionCode, pending.artifact.sha256, path)))
-            if (current.ready?.versionCode != pending.versionCode || current.ready.sha256 != pending.artifact.sha256) {
-                DiagnosticsJournal.record("update_downloaded", mapOf("from" to BuildConfig.VERSION_CODE, "to" to pending.versionCode))
+    internal fun publishReady(
+        pending: PendingServerUpdate,
+        path: String,
+    ): Boolean =
+        synchronized(lock) {
+            val current = mutableState.value
+            if (current.pending?.versionCode != pending.versionCode || current.pending.artifact.sha256 != pending.artifact.sha256) {
+                false
+            } else {
+                persist(current.copy(ready = ReadyServerUpdate(pending.versionCode, pending.artifact.sha256, path)))
+                if (current.ready?.versionCode != pending.versionCode || current.ready.sha256 != pending.artifact.sha256) {
+                    DiagnosticsJournal.record("update_downloaded", mapOf("from" to BuildConfig.VERSION_CODE, "to" to pending.versionCode))
+                }
+                true
             }
-            true
         }
-    }
 
-    internal fun discardReady(ready: ReadyServerUpdate) = synchronized(lock) {
-        if (mutableState.value.ready == ready) persist(mutableState.value.copy(ready = null))
-    }
+    internal fun discardReady(ready: ReadyServerUpdate) =
+        synchronized(lock) {
+            if (mutableState.value.ready == ready) persist(mutableState.value.copy(ready = null))
+        }
 
     private fun persist(next: ServerUpdateSnapshot) {
         if (mutableState.value == next) return
         val bytes = Json.encodeToString(next).toByteArray(Charsets.UTF_8)
-        val output = try {
-            stateFile.startWrite()
-        } catch (_: Exception) {
-            throw IOException("Cannot persist server update state")
-        }
+        val output =
+            try {
+                stateFile.startWrite()
+            } catch (_: Exception) {
+                throw IOException("Cannot persist server update state")
+            }
         try {
             output.write(bytes)
             output.fd.sync()

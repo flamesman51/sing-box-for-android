@@ -50,18 +50,22 @@ import io.nekohasekai.sfa.utils.RemoteControlManager
 
 private fun Drawable.toBitmap(): Bitmap {
     if (this is BitmapDrawable) return bitmap
-    val bitmap = Bitmap.createBitmap(
-        intrinsicWidth.coerceAtLeast(1),
-        intrinsicHeight.coerceAtLeast(1),
-        Bitmap.Config.ARGB_8888,
-    )
+    val bitmap =
+        Bitmap.createBitmap(
+            intrinsicWidth.coerceAtLeast(1),
+            intrinsicHeight.coerceAtLeast(1),
+            Bitmap.Config.ARGB_8888,
+        )
     val canvas = Canvas(bitmap)
     setBounds(0, 0, canvas.width, canvas.height)
     draw(canvas)
     return bitmap
 }
 
-data class AppInfo(val icon: ImageBitmap, val label: String)
+data class AppInfo(
+    val icon: ImageBitmap,
+    val label: String,
+)
 
 @Composable
 private fun rememberAppInfo(packageName: String): AppInfo? {
@@ -82,7 +86,12 @@ private fun rememberAppInfo(packageName: String): AppInfo? {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ConnectionItem(connection: Connection, onClick: () -> Unit, onClose: () -> Unit, modifier: Modifier = Modifier) {
+fun ConnectionItem(
+    connection: Connection,
+    onClick: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     var showContextMenu by remember { mutableStateOf(false) }
     // In remote control mode the reported packages belong to the remote device,
     // so resolving them against the local package manager would be wrong.
@@ -98,17 +107,19 @@ fun ConnectionItem(connection: Connection, onClick: () -> Unit, onClose: () -> U
 
     Box(modifier = modifier) {
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = { showContextMenu = true },
-                ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .combinedClickable(
+                        onClick = onClick,
+                        onLongClick = { showContextMenu = true },
+                    ),
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 // Column 1: App icon
@@ -139,27 +150,30 @@ fun ConnectionItem(connection: Connection, onClick: () -> Unit, onClose: () -> U
                     ) {
                         Text(
                             text = "${connection.network.uppercase()} ${connection.displayDestination}",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Bold,
-                            ),
+                            style =
+                                MaterialTheme.typography.bodySmall.copy(
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
+                                ),
                             modifier = Modifier.weight(1f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (connection.isActive) {
-                                stringResource(R.string.connection_state_active)
-                            } else {
-                                stringResource(R.string.connection_state_closed)
-                            },
+                            text =
+                                if (connection.isActive) {
+                                    stringResource(R.string.connection_state_active)
+                                } else {
+                                    stringResource(R.string.connection_state_closed)
+                                },
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = if (connection.isActive) {
-                                MaterialTheme.colorScheme.tertiary
-                            } else {
-                                MaterialTheme.colorScheme.error
-                            },
+                            color =
+                                if (connection.isActive) {
+                                    MaterialTheme.colorScheme.tertiary
+                                } else {
+                                    MaterialTheme.colorScheme.error
+                                },
                         )
                     }
 

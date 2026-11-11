@@ -99,20 +99,22 @@ fun ProfilePickerSheet(
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp),
         ) {
             Text(
                 text = stringResource(R.string.title_configuration),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(
-                    start = 24.dp,
-                    end = 24.dp,
-                    top = 8.dp,
-                    bottom = 16.dp,
-                ),
+                modifier =
+                    Modifier.padding(
+                        start = 24.dp,
+                        end = 24.dp,
+                        top = 8.dp,
+                        bottom = 16.dp,
+                    ),
             )
 
             val lazyListState = rememberLazyListState()
@@ -123,10 +125,11 @@ fun ProfilePickerSheet(
 
             LazyColumn(
                 state = lazyListState,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 100.dp, max = 400.dp)
-                    .padding(horizontal = 16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 100.dp, max = 400.dp)
+                        .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 itemsIndexed(profiles, key = { _, profile -> profile.id }) { _, profile ->
@@ -166,12 +169,13 @@ fun ProfilePickerSheet(
 
     if (showQRCodeDialog && qrCodeProfile != null) {
         val profile = qrCodeProfile!!
-        val link = remember(profile) {
-            Libbox.generateRemoteProfileImportLink(
-                profile.name,
-                profile.typed.remoteURL,
-            )
-        }
+        val link =
+            remember(profile) {
+                Libbox.generateRemoteProfileImportLink(
+                    profile.name,
+                    profile.typed.remoteURL,
+                )
+            }
         val surfaceColor = MaterialTheme.colorScheme.surface.toArgb()
         val qrBitmap = QRCodeGenerator.rememberPrimaryBitmap(link, backgroundColor = surfaceColor)
 
@@ -223,76 +227,88 @@ private fun ProfilePickerRow(
     val coroutineScope = rememberCoroutineScope()
 
     val animatedElevation by animateFloatAsState(
-        targetValue = when {
-            isDragging -> 8.dp.value
-            isSelected -> 2.dp.value
-            else -> 0.dp.value
-        },
+        targetValue =
+            when {
+                isDragging -> 8.dp.value
+                isSelected -> 2.dp.value
+                else -> 0.dp.value
+            },
         animationSpec = tween(300),
         label = "Elevation",
     )
 
-    val saveFileLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
-    ) { uri ->
-        if (uri != null) {
-            coroutineScope.launch(Dispatchers.IO) {
-                try {
-                    val profileData = createProfileContent(profile)
-                    context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                        outputStream.write(profileData)
-                    }
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.success_profile_saved),
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                    }
-                } catch (e: Exception) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.failed_save_profile, e.message),
-                            Toast.LENGTH_SHORT,
-                        ).show()
+    val saveFileLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
+        ) { uri ->
+            if (uri != null) {
+                coroutineScope.launch(Dispatchers.IO) {
+                    try {
+                        val profileData = createProfileContent(profile)
+                        context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                            outputStream.write(profileData)
+                        }
+                        withContext(Dispatchers.Main) {
+                            Toast
+                                .makeText(
+                                    context,
+                                    context.getString(R.string.success_profile_saved),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            Toast
+                                .makeText(
+                                    context,
+                                    context.getString(R.string.failed_save_profile, e.message),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                        }
                     }
                 }
             }
         }
-    }
 
     Surface(
         onClick = onSelect,
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        color = when {
-            isDragging -> MaterialTheme.colorScheme.tertiaryContainer
-            isSelected -> if (isSystemInDarkTheme()) {
-                lerp(
-                    MaterialTheme.colorScheme.surfaceContainerLow,
-                    MaterialTheme.colorScheme.surfaceContainerHigh,
-                    0.5f,
-                )
-            } else {
-                MaterialTheme.colorScheme.surfaceDim
-            }
-            else -> if (isSystemInDarkTheme()) {
-                lerp(
-                    MaterialTheme.colorScheme.surfaceContainerLow,
-                    MaterialTheme.colorScheme.surfaceContainerHigh,
-                    0.35f,
-                )
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            }
-        },
+        color =
+            when {
+                isDragging -> {
+                    MaterialTheme.colorScheme.tertiaryContainer
+                }
+                isSelected -> {
+                    if (isSystemInDarkTheme()) {
+                        lerp(
+                            MaterialTheme.colorScheme.surfaceContainerLow,
+                            MaterialTheme.colorScheme.surfaceContainerHigh,
+                            0.5f,
+                        )
+                    } else {
+                        MaterialTheme.colorScheme.surfaceDim
+                    }
+                }
+                else -> {
+                    if (isSystemInDarkTheme()) {
+                        lerp(
+                            MaterialTheme.colorScheme.surfaceContainerLow,
+                            MaterialTheme.colorScheme.surfaceContainerHigh,
+                            0.35f,
+                        )
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    }
+                }
+            },
         tonalElevation = animatedElevation.dp,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             val profileIcon =
@@ -322,13 +338,18 @@ private fun ProfilePickerRow(
                 )
 
                 Text(
-                    text = when (profile.typed.type) {
-                        TypedProfile.Type.Local -> stringResource(R.string.profile_type_local)
-                        TypedProfile.Type.Remote -> stringResource(
-                            R.string.profile_type_remote_updated,
-                            RelativeTimeFormatter.format(context, profile.typed.lastUpdated),
-                        )
-                    },
+                    text =
+                        when (profile.typed.type) {
+                            TypedProfile.Type.Local -> {
+                                stringResource(R.string.profile_type_local)
+                            }
+                            TypedProfile.Type.Remote -> {
+                                stringResource(
+                                    R.string.profile_type_remote_updated,
+                                    RelativeTimeFormatter.format(context, profile.typed.lastUpdated),
+                                )
+                            }
+                        },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 )
@@ -401,11 +422,12 @@ private fun ProfilePickerRow(
                             },
                             trailingIcon = {
                                 Icon(
-                                    imageVector = if (expandedShareSubmenu) {
-                                        Icons.Default.ExpandLess
-                                    } else {
-                                        Icons.Default.ExpandMore
-                                    },
+                                    imageVector =
+                                        if (expandedShareSubmenu) {
+                                            Icons.Default.ExpandLess
+                                        } else {
+                                            Icons.Default.ExpandMore
+                                        },
                                     contentDescription = null,
                                 )
                             },

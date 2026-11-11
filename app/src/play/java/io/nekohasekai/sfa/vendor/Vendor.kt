@@ -19,7 +19,10 @@ import io.nekohasekai.sfa.update.UpdateState
 object Vendor : VendorInterface {
     private const val TAG = "Vendor"
 
-    override fun checkUpdate(activity: Activity, byUser: Boolean) {
+    override fun checkUpdate(
+        activity: Activity,
+        byUser: Boolean,
+    ) {
         val appUpdateManager = AppUpdateManagerFactory.create(activity)
         val appUpdateInfoTask = appUpdateManager.appUpdateInfo
         appUpdateInfoTask.addOnSuccessListener { appUpdateInfo ->
@@ -73,8 +76,11 @@ object Vendor : VendorInterface {
     }
 
     private fun Context.showNoUpdatesDialog() {
-        MaterialAlertDialogBuilder(this).setTitle(io.nekohasekai.sfa.R.string.check_update)
-            .setMessage(R.string.no_updates_available).setPositiveButton(R.string.ok, null).show()
+        MaterialAlertDialogBuilder(this)
+            .setTitle(io.nekohasekai.sfa.R.string.check_update)
+            .setMessage(R.string.no_updates_available)
+            .setPositiveButton(R.string.ok, null)
+            .show()
     }
 
     override fun createQRCodeAnalyzer(

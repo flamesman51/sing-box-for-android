@@ -50,12 +50,13 @@ import io.nekohasekai.sfa.compose.topbar.LocalScaffoldPadding
 import io.nekohasekai.sfa.compose.topbar.OverrideTopBar
 import io.nekohasekai.sfa.database.Settings
 
-private val knownMonospaceFamilies = listOf(
-    "monospace",
-    "Droid Sans Mono",
-    "Courier New",
-    "Courier",
-)
+private val knownMonospaceFamilies =
+    listOf(
+        "monospace",
+        "Droid Sans Mono",
+        "Courier New",
+        "Courier",
+    )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,28 +68,30 @@ fun TailscaleFontPickerScreen(navController: NavController) {
     var menuExpanded by remember { mutableStateOf(false) }
     var manageMode by remember { mutableStateOf(false) }
 
-    val systemFonts = remember {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            enumerateSystemMonospaceFonts()
-        } else {
-            knownMonospaceFamilies
-        }
-    }
-
-    val importLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-    ) { uri ->
-        if (uri != null) {
-            val imported = GhosttyFontStore.importFont(context, uri)
-            if (imported != null) {
-                importedFonts = GhosttyFontStore.listImportedFonts(context)
-                selectedFamily = ""
-                selectedCustomPath = imported.path
-                Settings.tailscaleSSHFontFamily = ""
-                Settings.tailscaleSSHCustomFontPath = imported.path
+    val systemFonts =
+        remember {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                enumerateSystemMonospaceFonts()
+            } else {
+                knownMonospaceFamilies
             }
         }
-    }
+
+    val importLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent(),
+        ) { uri ->
+            if (uri != null) {
+                val imported = GhosttyFontStore.importFont(context, uri)
+                if (imported != null) {
+                    importedFonts = GhosttyFontStore.listImportedFonts(context)
+                    selectedFamily = ""
+                    selectedCustomPath = imported.path
+                    Settings.tailscaleSSHFontFamily = ""
+                    Settings.tailscaleSSHCustomFontPath = imported.path
+                }
+            }
+        }
 
     OverrideTopBar {
         TopAppBar(
@@ -150,13 +153,15 @@ fun TailscaleFontPickerScreen(navController: NavController) {
     val scaffoldPadding = LocalScaffoldPadding.current
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface),
-        contentPadding = PaddingValues(
-            top = scaffoldPadding.calculateTopPadding() + 8.dp,
-            bottom = scaffoldPadding.calculateBottomPadding() + 16.dp,
-        ),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface),
+        contentPadding =
+            PaddingValues(
+                top = scaffoldPadding.calculateTopPadding() + 8.dp,
+                bottom = scaffoldPadding.calculateBottomPadding() + 16.dp,
+            ),
     ) {
         item {
             Text(
@@ -173,19 +178,21 @@ fun TailscaleFontPickerScreen(navController: NavController) {
                 leadingContent = {
                     RadioButton(selected = isDefault, onClick = null)
                 },
-                modifier = Modifier.clickable {
-                    selectedFamily = ""
-                    selectedCustomPath = ""
-                    Settings.tailscaleSSHFontFamily = ""
-                    Settings.tailscaleSSHCustomFontPath = ""
-                },
+                modifier =
+                    Modifier.clickable {
+                        selectedFamily = ""
+                        selectedCustomPath = ""
+                        Settings.tailscaleSSHFontFamily = ""
+                        Settings.tailscaleSSHCustomFontPath = ""
+                    },
             )
         }
         items(systemFonts) { family ->
             val isSelected = selectedFamily == family && selectedCustomPath.isBlank()
-            val previewFamily = remember(family) {
-                FontFamily(Typeface.create(family, Typeface.NORMAL))
-            }
+            val previewFamily =
+                remember(family) {
+                    FontFamily(Typeface.create(family, Typeface.NORMAL))
+                }
             ListItem(
                 headlineContent = {
                     Text(family, fontFamily = previewFamily)
@@ -193,12 +200,13 @@ fun TailscaleFontPickerScreen(navController: NavController) {
                 leadingContent = {
                     RadioButton(selected = isSelected, onClick = null)
                 },
-                modifier = Modifier.clickable {
-                    selectedFamily = family
-                    selectedCustomPath = ""
-                    Settings.tailscaleSSHFontFamily = family
-                    Settings.tailscaleSSHCustomFontPath = ""
-                },
+                modifier =
+                    Modifier.clickable {
+                        selectedFamily = family
+                        selectedCustomPath = ""
+                        Settings.tailscaleSSHFontFamily = family
+                        Settings.tailscaleSSHCustomFontPath = ""
+                    },
             )
         }
 
@@ -214,9 +222,10 @@ fun TailscaleFontPickerScreen(navController: NavController) {
             }
             items(importedFonts) { font ->
                 val isSelected = selectedCustomPath == font.path
-                val previewFamily = remember(font.path) {
-                    GhosttyFontStore.loadTypeface(font.path)?.let { FontFamily(it) }
-                }
+                val previewFamily =
+                    remember(font.path) {
+                        GhosttyFontStore.loadTypeface(font.path)?.let { FontFamily(it) }
+                    }
                 ListItem(
                     headlineContent = {
                         Text(font.name, fontFamily = previewFamily)
@@ -247,12 +256,13 @@ fun TailscaleFontPickerScreen(navController: NavController) {
                             }
                         }
                     },
-                    modifier = Modifier.clickable {
-                        selectedFamily = ""
-                        selectedCustomPath = font.path
-                        Settings.tailscaleSSHFontFamily = ""
-                        Settings.tailscaleSSHCustomFontPath = font.path
-                    },
+                    modifier =
+                        Modifier.clickable {
+                            selectedFamily = ""
+                            selectedCustomPath = font.path
+                            Settings.tailscaleSSHFontFamily = ""
+                            Settings.tailscaleSSHCustomFontPath = font.path
+                        },
                 )
             }
         }

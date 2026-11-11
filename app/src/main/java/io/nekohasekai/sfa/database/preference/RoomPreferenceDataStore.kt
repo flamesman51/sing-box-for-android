@@ -12,7 +12,9 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 
 @Suppress("MemberVisibilityCanBePrivate", "unused")
-open class RoomPreferenceDataStore(createDao: () -> KeyValueEntity.Dao) : PreferenceDataStore() {
+open class RoomPreferenceDataStore(
+    createDao: () -> KeyValueEntity.Dao,
+) : PreferenceDataStore() {
     private val kvPairDao by lazy(createDao)
     private val writeAccess = Any()
     private val pendingWrites = Channel<() -> Unit>(Channel.UNLIMITED)
@@ -34,10 +36,11 @@ open class RoomPreferenceDataStore(createDao: () -> KeyValueEntity.Dao) : Prefer
         }
     }
 
-    suspend fun initialize() = withContext(Dispatchers.IO) {
-        cache.size
-        Unit
-    }
+    suspend fun initialize() =
+        withContext(Dispatchers.IO) {
+            cache.size
+            Unit
+        }
 
     suspend fun flush() {
         val completion = CompletableDeferred<Unit>()
@@ -76,41 +79,89 @@ open class RoomPreferenceDataStore(createDao: () -> KeyValueEntity.Dao) : Prefer
         }
     }
 
-    override fun getBoolean(key: String, defValue: Boolean) = getBoolean(key) ?: defValue
+    override fun getBoolean(
+        key: String,
+        defValue: Boolean,
+    ) = getBoolean(key) ?: defValue
 
-    override fun getFloat(key: String, defValue: Float) = getFloat(key) ?: defValue
+    override fun getFloat(
+        key: String,
+        defValue: Float,
+    ) = getFloat(key) ?: defValue
 
-    override fun getInt(key: String, defValue: Int) = getInt(key) ?: defValue
+    override fun getInt(
+        key: String,
+        defValue: Int,
+    ) = getInt(key) ?: defValue
 
-    override fun getLong(key: String, defValue: Long) = getLong(key) ?: defValue
+    override fun getLong(
+        key: String,
+        defValue: Long,
+    ) = getLong(key) ?: defValue
 
-    override fun getString(key: String, defValue: String?) = getString(key) ?: defValue
+    override fun getString(
+        key: String,
+        defValue: String?,
+    ) = getString(key) ?: defValue
 
-    override fun getStringSet(key: String, defValue: MutableSet<String>?) = getStringSet(key) ?: defValue
+    override fun getStringSet(
+        key: String,
+        defValue: MutableSet<String>?,
+    ) = getStringSet(key) ?: defValue
 
-    fun putBoolean(key: String, value: Boolean?) = if (value == null) remove(key) else putBoolean(key, value)
+    fun putBoolean(
+        key: String,
+        value: Boolean?,
+    ) = if (value == null) remove(key) else putBoolean(key, value)
 
-    fun putFloat(key: String, value: Float?) = if (value == null) remove(key) else putFloat(key, value)
+    fun putFloat(
+        key: String,
+        value: Float?,
+    ) = if (value == null) remove(key) else putFloat(key, value)
 
-    fun putInt(key: String, value: Int?) = if (value == null) remove(key) else putLong(key, value.toLong())
+    fun putInt(
+        key: String,
+        value: Int?,
+    ) = if (value == null) remove(key) else putLong(key, value.toLong())
 
-    fun putLong(key: String, value: Long?) = if (value == null) remove(key) else putLong(key, value)
+    fun putLong(
+        key: String,
+        value: Long?,
+    ) = if (value == null) remove(key) else putLong(key, value)
 
-    override fun putBoolean(key: String, value: Boolean) = put(KeyValueEntity(key).put(value))
+    override fun putBoolean(
+        key: String,
+        value: Boolean,
+    ) = put(KeyValueEntity(key).put(value))
 
-    override fun putFloat(key: String, value: Float) = put(KeyValueEntity(key).put(value))
+    override fun putFloat(
+        key: String,
+        value: Float,
+    ) = put(KeyValueEntity(key).put(value))
 
-    override fun putInt(key: String, value: Int) = put(KeyValueEntity(key).put(value.toLong()))
+    override fun putInt(
+        key: String,
+        value: Int,
+    ) = put(KeyValueEntity(key).put(value.toLong()))
 
-    override fun putLong(key: String, value: Long) = put(KeyValueEntity(key).put(value))
+    override fun putLong(
+        key: String,
+        value: Long,
+    ) = put(KeyValueEntity(key).put(value))
 
-    override fun putString(key: String, value: String?) = if (value == null) {
+    override fun putString(
+        key: String,
+        value: String?,
+    ) = if (value == null) {
         remove(key)
     } else {
         put(KeyValueEntity(key).put(value))
     }
 
-    override fun putStringSet(key: String, values: MutableSet<String>?) = if (values == null) {
+    override fun putStringSet(
+        key: String,
+        values: MutableSet<String>?,
+    ) = if (values == null) {
         remove(key)
     } else {
         put(KeyValueEntity(key).put(values))

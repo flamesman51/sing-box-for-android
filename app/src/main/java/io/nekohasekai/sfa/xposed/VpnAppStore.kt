@@ -15,7 +15,10 @@ object VpnAppStore {
     private const val REFRESH_INTERVAL_MS = 60_000L
     private const val UID_CACHE_MS = 5_000L
 
-    private data class CacheEntry<T>(val atMs: Long, val value: T)
+    private data class CacheEntry<T>(
+        val atMs: Long,
+        val value: T,
+    )
 
     private val vpnPackagesByUser = ConcurrentHashMap<Int, CacheEntry<Set<String>>>()
     private val uidVpnCache = ConcurrentHashMap<Int, CacheEntry<Boolean>>()
@@ -45,7 +48,10 @@ object VpnAppStore {
         return result
     }
 
-    fun isVpnPackage(packageName: String, userId: Int): Boolean = getVpnPackages(userId).contains(packageName)
+    fun isVpnPackage(
+        packageName: String,
+        userId: Int,
+    ): Boolean = getVpnPackages(userId).contains(packageName)
 
     fun isVpnUidExcludeSelf(uid: Int): Boolean {
         val packages = getPackagesForUid(uid)
@@ -63,24 +69,26 @@ object VpnAppStore {
         if (cached != null && now - cached.atMs < UID_CACHE_MS) {
             return cached.value
         }
-        val result = binderLocalScope {
-            val pm = getPackageManager() ?: return@binderLocalScope emptyList<String>()
-            try {
-                val method = getPackagesForUidMethod ?: run {
-                    pm.javaClass.getMethod("getPackagesForUid", Int::class.javaPrimitiveType).also {
-                        getPackagesForUidMethod = it
+        val result =
+            binderLocalScope {
+                val pm = getPackageManager() ?: return@binderLocalScope emptyList<String>()
+                try {
+                    val method =
+                        getPackagesForUidMethod ?: run {
+                            pm.javaClass.getMethod("getPackagesForUid", Int::class.javaPrimitiveType).also {
+                                getPackagesForUidMethod = it
+                            }
+                        }
+                    when (val raw = method.invoke(pm, uid)) {
+                        is Array<*> -> raw.filterIsInstance<String>()
+                        is List<*> -> raw.filterIsInstance<String>()
+                        else -> emptyList()
                     }
+                } catch (e: Throwable) {
+                    HookErrorStore.e("VpnAppStore", "getPackagesForUid failed for uid=$uid", e)
+                    emptyList()
                 }
-                when (val raw = method.invoke(pm, uid)) {
-                    is Array<*> -> raw.filterIsInstance<String>()
-                    is List<*> -> raw.filterIsInstance<String>()
-                    else -> emptyList()
-                }
-            } catch (e: Throwable) {
-                HookErrorStore.e("VpnAppStore", "getPackagesForUid failed for uid=$uid", e)
-                emptyList()
             }
-        }
         uidPackagesCache[uid] = CacheEntry(now, result)
         return result
     }
@@ -100,10 +108,11 @@ object VpnAppStore {
     private fun scanVpnPackages(userId: Int): Set<String> {
         return binderLocalScope {
             val pm = getPackageManager() ?: return@binderLocalScope emptySet()
-            val flags = PackageManager.MATCH_DISABLED_COMPONENTS or
-                PackageManager.MATCH_DIRECT_BOOT_AWARE or
-                PackageManager.MATCH_DIRECT_BOOT_UNAWARE or
-                PackageManager.GET_SERVICES
+            val flags =
+                PackageManager.MATCH_DISABLED_COMPONENTS or
+                    PackageManager.MATCH_DIRECT_BOOT_AWARE or
+                    PackageManager.MATCH_DIRECT_BOOT_UNAWARE or
+                    PackageManager.GET_SERVICES
             val packages = getInstalledPackagesCompat(pm, flags.toLong(), userId)
             val result = HashSet<String>()
             for (pkg in packages) {
@@ -119,43 +128,54 @@ object VpnAppStore {
         }
     }
 
-    private fun getInstalledPackagesCompat(pm: Any, flags: Long, userId: Int): List<PackageInfo> {
-        val result = try {
-            val method = getInstalledPackagesMethodLong ?: run {
-                pm.javaClass.getMethod(
-                    "getInstalledPackages",
-                    Long::class.javaPrimitiveType,
-                    Int::class.javaPrimitiveType,
-                ).also { getInstalledPackagesMethodLong = it }
-            }
-            method.invoke(pm, flags, userId)
-        } catch (_: Throwable) {
+    private fun getInstalledPackagesCompat(
+        pm: Any,
+        flags: Long,
+        userId: Int,
+    ): List<PackageInfo> {
+        val result =
             try {
-                val method = getInstalledPackagesMethodInt ?: run {
-                    pm.javaClass.getMethod(
-                        "getInstalledPackages",
-                        Int::class.javaPrimitiveType,
-                        Int::class.javaPrimitiveType,
-                    ).also { getInstalledPackagesMethodInt = it }
+                val method =
+                    getInstalledPackagesMethodLong ?: run {
+                        pm.javaClass
+                            .getMethod(
+                                "getInstalledPackages",
+                                Long::class.javaPrimitiveType,
+                                Int::class.javaPrimitiveType,
+                            ).also { getInstalledPackagesMethodLong = it }
+                    }
+                method.invoke(pm, flags, userId)
+            } catch (_: Throwable) {
+                try {
+                    val method =
+                        getInstalledPackagesMethodInt ?: run {
+                            pm.javaClass
+                                .getMethod(
+                                    "getInstalledPackages",
+                                    Int::class.javaPrimitiveType,
+                                    Int::class.javaPrimitiveType,
+                                ).also { getInstalledPackagesMethodInt = it }
+                        }
+                    method.invoke(pm, flags.toInt(), userId)
+                } catch (e: Throwable) {
+                    HookErrorStore.e("VpnAppStore", "getInstalledPackages failed", e)
+                    return emptyList()
                 }
-                method.invoke(pm, flags.toInt(), userId)
-            } catch (e: Throwable) {
-                HookErrorStore.e("VpnAppStore", "getInstalledPackages failed", e)
-                return emptyList()
             }
-        }
         return unwrapParceledListSlice(result)
     }
 
-    private fun isSystemApp(info: ApplicationInfo): Boolean = info.flags and ApplicationInfo.FLAG_SYSTEM != 0 ||
-        info.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP != 0
+    private fun isSystemApp(info: ApplicationInfo): Boolean =
+        info.flags and ApplicationInfo.FLAG_SYSTEM != 0 ||
+            info.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP != 0
 
-    private fun getPackageManager(): Any? = try {
-        getPackageManagerMethod.invoke(null)
-    } catch (e: Throwable) {
-        HookErrorStore.e("VpnAppStore", "getPackageManager failed", e)
-        null
-    }
+    private fun getPackageManager(): Any? =
+        try {
+            getPackageManagerMethod.invoke(null)
+        } catch (e: Throwable) {
+            HookErrorStore.e("VpnAppStore", "getPackageManager failed", e)
+            null
+        }
 
     private inline fun <T> binderLocalScope(block: () -> T): T {
         val token = Binder.clearCallingIdentity()
@@ -172,9 +192,10 @@ object VpnAppStore {
             return raw.filterIsInstance<PackageInfo>()
         }
         return try {
-            val method = getListMethod ?: run {
-                raw.javaClass.getMethod("getList").also { getListMethod = it }
-            }
+            val method =
+                getListMethod ?: run {
+                    raw.javaClass.getMethod("getList").also { getListMethod = it }
+                }
             val list = method.invoke(raw)
             if (list is List<*>) {
                 list.filterIsInstance<PackageInfo>()

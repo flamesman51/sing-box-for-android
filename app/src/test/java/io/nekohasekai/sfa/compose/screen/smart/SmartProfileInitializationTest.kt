@@ -35,53 +35,56 @@ class SmartProfileInitializationTest {
     }
 
     @Test(timeout = 5000)
-    fun cancellationAndResumeDuringDisconnectKeepWaitingForFirstSnapshot() = runBlocking {
-        var snapshot = SmartPolicySnapshot(loading = true)
-        val disconnectStarted = CompletableDeferred<Unit>()
-        val finishDisconnect = CompletableDeferred<Unit>()
-        val polling = launch(start = CoroutineStart.UNDISPATCHED) {
+    fun cancellationAndResumeDuringDisconnectKeepWaitingForFirstSnapshot() =
+        runBlocking {
+            var snapshot = SmartPolicySnapshot(loading = true)
+            val disconnectStarted = CompletableDeferred<Unit>()
+            val finishDisconnect = CompletableDeferred<Unit>()
+            val polling =
+                launch(start = CoroutineStart.UNDISPATCHED) {
+                    runSmartPolicySession(
+                        onUnavailable = { snapshot = SmartPolicySnapshot() },
+                        disconnect = {
+                            withContext(NonCancellable) {
+                                disconnectStarted.complete(Unit)
+                                finishDisconnect.await()
+                            }
+                        },
+                    ) {
+                        awaitCancellation()
+                    }
+                }
+            polling.cancel()
+            disconnectStarted.await()
+            try {
+                // Resuming the editor can precede completion of the previous session's cleanup.
+                assertNull(smartProfileInitialValues("", catalog, snapshot))
+            } finally {
+                finishDisconnect.complete(Unit)
+                polling.join()
+            }
+            assertNull(smartProfileInitialValues("", catalog, snapshot))
             runSmartPolicySession(
                 onUnavailable = { snapshot = SmartPolicySnapshot() },
-                disconnect = {
-                    withContext(NonCancellable) {
-                        disconnectStarted.complete(Unit)
-                        finishDisconnect.await()
-                    }
-                },
+                disconnect = {},
             ) {
-                awaitCancellation()
+                snapshot = SmartPolicySnapshot(listOf(group("resumed", desktop)))
             }
+            assertEquals(SmartProfileInitialValues(desktop.toString()), smartProfileInitialValues("", catalog, snapshot))
         }
-        polling.cancel()
-        disconnectStarted.await()
-        try {
-            // Resuming the editor can precede completion of the previous session's cleanup.
-            assertNull(smartProfileInitialValues("", catalog, snapshot))
-        } finally {
-            finishDisconnect.complete(Unit)
-            polling.join()
-        }
-        assertNull(smartProfileInitialValues("", catalog, snapshot))
-        runSmartPolicySession(
-            onUnavailable = { snapshot = SmartPolicySnapshot() },
-            disconnect = {},
-        ) {
-            snapshot = SmartPolicySnapshot(listOf(group("resumed", desktop)))
-        }
-        assertEquals(SmartProfileInitialValues(desktop.toString()), smartProfileInitialValues("", catalog, snapshot))
-    }
 
     @Test
-    fun connectionFailureMakesStatusUnavailableAndUsesPhone() = runBlocking {
-        var snapshot = SmartPolicySnapshot(loading = true)
-        runSmartPolicySession(
-            onUnavailable = { snapshot = SmartPolicySnapshot() },
-            disconnect = {},
-        ) {
-            throw IllegalStateException("Connection failed")
+    fun connectionFailureMakesStatusUnavailableAndUsesPhone() =
+        runBlocking {
+            var snapshot = SmartPolicySnapshot(loading = true)
+            runSmartPolicySession(
+                onUnavailable = { snapshot = SmartPolicySnapshot() },
+                disconnect = {},
+            ) {
+                throw IllegalStateException("Connection failed")
+            }
+            assertEquals(SmartProfileInitialValues(phone.toString()), smartProfileInitialValues("", catalog, snapshot))
         }
-        assertEquals(SmartProfileInitialValues(phone.toString()), smartProfileInitialValues("", catalog, snapshot))
-    }
 
     @Test
     fun storedCustomWinsExactlyEvenWhileStatusIsLoading() {
@@ -114,9 +117,14 @@ class SmartProfileInitializationTest {
 
     private fun policy(source: String): JsonObject = Json.parseToJsonElement(source) as JsonObject
 
-    private fun group(tag: String, resolved: JsonObject?): SmartStatus {
-        val fixture = requireNotNull(javaClass.getResourceAsStream("/smart/status.json"))
-            .bufferedReader().use { it.readText() }
+    private fun group(
+        tag: String,
+        resolved: JsonObject?,
+    ): SmartStatus {
+        val fixture =
+            requireNotNull(javaClass.getResourceAsStream("/smart/status.json"))
+                .bufferedReader()
+                .use { it.readText() }
         return SmartJson.status(fixture).copy(
             group = tag,
             preference = resolved?.let { SmartPreference("profile", "desktop", true, "config", "", it) },

@@ -57,7 +57,11 @@ fun rememberRemoteServers(): State<List<RemoteServer>> {
 }
 
 @Composable
-fun RemoteControlMenuItems(servers: List<RemoteServer>, onAction: () -> Unit, leadingDivider: Boolean = true) {
+fun RemoteControlMenuItems(
+    servers: List<RemoteServer>,
+    onAction: () -> Unit,
+    leadingDivider: Boolean = true,
+) {
     val scope = rememberCoroutineScope()
     val remoteServer by RemoteControlManager.remoteServer.collectAsState()
 
@@ -114,24 +118,28 @@ fun RemoteControlMenuItems(servers: List<RemoteServer>, onAction: () -> Unit, le
 }
 
 @Composable
-private fun SelectableMenuItem(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun SelectableMenuItem(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
     DropdownMenuItem(
         text = { Text(label) },
         leadingIcon = {
             Icon(
                 imageVector =
-                if (selected) {
-                    Icons.Default.RadioButtonChecked
-                } else {
-                    Icons.Default.RadioButtonUnchecked
-                },
+                    if (selected) {
+                        Icons.Default.RadioButtonChecked
+                    } else {
+                        Icons.Default.RadioButtonUnchecked
+                    },
                 contentDescription = null,
                 tint =
-                if (selected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
+                    if (selected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
             )
         },
         onClick = onClick,

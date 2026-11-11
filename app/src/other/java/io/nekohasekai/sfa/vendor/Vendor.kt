@@ -27,7 +27,10 @@ import kotlinx.coroutines.withContext
 object Vendor : VendorInterface {
     private const val TAG = "Vendor"
 
-    override fun checkUpdate(activity: Activity, byUser: Boolean) {
+    override fun checkUpdate(
+        activity: Activity,
+        byUser: Boolean,
+    ) {
         try {
             val updateInfo = checkUpdateAsync()
             if (updateInfo != null) {
@@ -56,17 +59,21 @@ object Vendor : VendorInterface {
         }
     }
 
-    private fun showUpdateDialog(activity: Activity, updateInfo: UpdateInfo) {
-        val message = buildString {
-            append(activity.getString(R.string.new_version_available, updateInfo.versionName))
-            if (!updateInfo.releaseNotes.isNullOrBlank()) {
-                append("\n\n")
-                append(updateInfo.releaseNotes.take(500))
-                if (updateInfo.releaseNotes.length > 500) {
-                    append("...")
+    private fun showUpdateDialog(
+        activity: Activity,
+        updateInfo: UpdateInfo,
+    ) {
+        val message =
+            buildString {
+                append(activity.getString(R.string.new_version_available, updateInfo.versionName))
+                if (!updateInfo.releaseNotes.isNullOrBlank()) {
+                    append("\n\n")
+                    append(updateInfo.releaseNotes.take(500))
+                    if (updateInfo.releaseNotes.length > 500) {
+                        append("...")
+                    }
                 }
             }
-        }
 
         MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.check_update)
@@ -81,8 +88,7 @@ object Vendor : VendorInterface {
                 } else {
                     activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(updateInfo.releaseUrl)))
                 }
-            }
-            .setNegativeButton(R.string.cancel, null)
+            }.setNegativeButton(R.string.cancel, null)
             .show()
     }
 
@@ -112,19 +118,24 @@ object Vendor : VendorInterface {
 
     override val updateSources = listOf(UpdateSource.SERVER, UpdateSource.GITHUB, UpdateSource.FDROID)
 
-    override fun checkUpdateAsync(): UpdateInfo? = when (UpdateSource.fromString(Settings.updateSource)) {
-        UpdateSource.SERVER -> ServerUpdateChecker.check(Application.application).also {
-            ServerUpdateWork.enqueueDownload(Application.application)
-            ServerUpdateNotifier.refresh(Application.application)
-        }
-        UpdateSource.FDROID -> checkFDroidUpdate(Application.application)
-        UpdateSource.GITHUB -> {
-            val track = UpdateTrack.fromString(Settings.updateTrack)
-            GitHubUpdateChecker().use { checker ->
-                checker.checkUpdate(track, Settings.githubToken)
+    override fun checkUpdateAsync(): UpdateInfo? =
+        when (UpdateSource.fromString(Settings.updateSource)) {
+            UpdateSource.SERVER -> {
+                ServerUpdateChecker.check(Application.application).also {
+                    ServerUpdateWork.enqueueDownload(Application.application)
+                    ServerUpdateNotifier.refresh(Application.application)
+                }
+            }
+            UpdateSource.FDROID -> {
+                checkFDroidUpdate(Application.application)
+            }
+            UpdateSource.GITHUB -> {
+                val track = UpdateTrack.fromString(Settings.updateTrack)
+                GitHubUpdateChecker().use { checker ->
+                    checker.checkUpdate(track, Settings.githubToken)
+                }
             }
         }
-    }
 
     override fun scheduleAutoUpdate() {
         ServerUpdateWork.schedule(Application.application)
@@ -145,12 +156,19 @@ object Vendor : VendorInterface {
                 }
                 true
             }
-            "ROOT" -> RootClient.checkRootAvailable()
-            else -> false
+            "ROOT" -> {
+                RootClient.checkRootAvailable()
+            }
+            else -> {
+                false
+            }
         }
     }
 
-    override suspend fun downloadAndInstall(context: android.content.Context, downloadUrl: String) {
+    override suspend fun downloadAndInstall(
+        context: android.content.Context,
+        downloadUrl: String,
+    ) {
         if (UpdateSource.fromString(Settings.updateSource) == UpdateSource.SERVER) {
             if (ServerUpdates.state.value.ready != null) {
                 withContext(Dispatchers.Main) {
@@ -162,11 +180,12 @@ object Vendor : VendorInterface {
             return
         }
         val cachedApk = UpdateState.cachedApkFile.value
-        val apkFile = if (cachedApk != null && cachedApk.exists() && cachedApk.length() > 0) {
-            cachedApk
-        } else {
-            ApkDownloader().use { it.download(downloadUrl) }
-        }
+        val apkFile =
+            if (cachedApk != null && cachedApk.exists() && cachedApk.length() > 0) {
+                cachedApk
+            } else {
+                ApkDownloader().use { it.download(downloadUrl) }
+            }
         ApkInstaller.install(context, apkFile)
     }
 }

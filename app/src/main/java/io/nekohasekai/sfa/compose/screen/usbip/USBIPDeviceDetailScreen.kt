@@ -46,7 +46,11 @@ fun USBIPDeviceDetailScreen(
     deviceKey: String,
 ) {
     val state by viewModel.uiState.collectAsState()
-    val device = state.servers.firstOrNull { it.serverTag == serverTag }?.devices?.firstOrNull { it.key == deviceKey }
+    val device =
+        state.servers
+            .firstOrNull { it.serverTag == serverTag }
+            ?.devices
+            ?.firstOrNull { it.key == deviceKey }
 
     OverrideTopBar {
         TopAppBar(
@@ -69,12 +73,13 @@ fun USBIPDeviceDetailScreen(
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .verticalScroll(rememberScrollState())
-            .padding(scaffoldPadding)
-            .padding(vertical = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .verticalScroll(rememberScrollState())
+                .padding(scaffoldPadding)
+                .padding(vertical = 8.dp),
     ) {
         DetailSection(stringResource(R.string.usbip_identity)) {
             if (device.product.isNotEmpty()) DataLine(stringResource(R.string.usbip_product), device.product)
@@ -112,7 +117,10 @@ fun USBIPDeviceDetailScreen(
 }
 
 @Composable
-private fun DetailSection(title: String, content: @Composable () -> Unit) {
+private fun DetailSection(
+    title: String,
+    content: @Composable () -> Unit,
+) {
     Text(
         text = title,
         style = MaterialTheme.typography.titleSmall,
@@ -120,9 +128,10 @@ private fun DetailSection(title: String, content: @Composable () -> Unit) {
         modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
     )
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
     ) {
         Column(
@@ -135,7 +144,11 @@ private fun DetailSection(title: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun DataLine(label: String, value: String, mono: Boolean = false) {
+private fun DataLine(
+    label: String,
+    value: String,
+    mono: Boolean = false,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,

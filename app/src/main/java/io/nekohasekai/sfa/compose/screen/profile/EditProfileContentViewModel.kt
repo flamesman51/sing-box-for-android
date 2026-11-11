@@ -39,7 +39,10 @@ data class EditProfileContentUiState(
     val profileName: String = "", // Add profile name
 )
 
-class EditProfileContentViewModel(private val profileId: Long, initialIsReadOnly: Boolean = false) : ViewModel() {
+class EditProfileContentViewModel(
+    private val profileId: Long,
+    initialIsReadOnly: Boolean = false,
+) : ViewModel() {
     private val _uiState =
         MutableStateFlow(
             EditProfileContentUiState(

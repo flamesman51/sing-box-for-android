@@ -29,7 +29,11 @@ class VPNService :
 
     private val service = BoxService(this, this)
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int) = service.onStartCommand(BoxService.startReason(intent), startId)
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int,
+    ) = service.onStartCommand(BoxService.startReason(intent), startId)
 
     override fun onBind(intent: Intent): IBinder {
         val binder = super.onBind(intent)
@@ -140,14 +144,15 @@ class VPNService :
                 }
             }
 
-            val routing = resolvePerAppRouting(
-                configInclude = options.includePackage.toList().toSet(),
-                configExclude = options.excludePackage.toList().toSet(),
-                overrideEnabled = Vendor.isPerAppProxyAvailable() && Settings.perAppProxyEnabled,
-                overrideInclude = Settings.getEffectivePerAppProxyMode() == Settings.PER_APP_PROXY_INCLUDE,
-                overridePackages = Settings.getEffectivePerAppProxyList(),
-                ownPackage = packageName,
-            )
+            val routing =
+                resolvePerAppRouting(
+                    configInclude = options.includePackage.toList().toSet(),
+                    configExclude = options.excludePackage.toList().toSet(),
+                    overrideEnabled = Vendor.isPerAppProxyAvailable() && Settings.perAppProxyEnabled,
+                    overrideInclude = Settings.getEffectivePerAppProxyMode() == Settings.PER_APP_PROXY_INCLUDE,
+                    overridePackages = Settings.getEffectivePerAppProxyList(),
+                    ownPackage = packageName,
+                )
             if (routing.conflictingConfig) {
                 Log.w(TAG, "Both include_package and exclude_package are configured; include_package takes precedence")
             }
@@ -191,5 +196,8 @@ class VPNService :
         prepareSmartNotification(notification)?.let(service::sendNotification)
     }
 
-    override fun cancelNotification(identifier: String, typeID: Int) = service.cancelNotification(identifier, typeID)
+    override fun cancelNotification(
+        identifier: String,
+        typeID: Int,
+    ) = service.cancelNotification(identifier, typeID)
 }

@@ -110,15 +110,15 @@ fun RemoteControlScreen(navController: NavController) {
     if (servers.isEmpty()) {
         Box(
             modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(
-                    top = scaffoldPadding.calculateTopPadding() + 32.dp,
-                    bottom = scaffoldPadding.calculateBottomPadding() + 32.dp,
-                    start = 32.dp,
-                    end = 32.dp,
-                ),
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(
+                        top = scaffoldPadding.calculateTopPadding() + 32.dp,
+                        bottom = scaffoldPadding.calculateBottomPadding() + 32.dp,
+                        start = 32.dp,
+                        end = 32.dp,
+                    ),
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -142,35 +142,42 @@ fun RemoteControlScreen(navController: NavController) {
 
     Column(
         modifier =
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .verticalScroll(rememberScrollState())
-            .padding(
-                top = scaffoldPadding.calculateTopPadding() + 8.dp,
-                bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
-            ),
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    top = scaffoldPadding.calculateTopPadding() + 8.dp,
+                    bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
+                ),
     ) {
         Card(
             modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
             colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ),
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
         ) {
             Column {
                 servers.forEachIndexed { index, server ->
                     val shape =
                         when {
-                            servers.size == 1 -> RoundedCornerShape(12.dp)
-                            index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                            index == servers.size - 1 ->
+                            servers.size == 1 -> {
+                                RoundedCornerShape(12.dp)
+                            }
+                            index == 0 -> {
+                                RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                            }
+                            index == servers.size - 1 -> {
                                 RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+                            }
 
-                            else -> RoundedCornerShape(0.dp)
+                            else -> {
+                                RoundedCornerShape(0.dp)
+                            }
                         }
                     var showMenu by remember { mutableStateOf(false) }
                     Box {
@@ -182,17 +189,17 @@ fun RemoteControlScreen(navController: NavController) {
                                 )
                             },
                             supportingContent =
-                            if (server.name.isNotEmpty()) {
-                                {
-                                    Text(
-                                        server.url,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            } else {
-                                null
-                            },
+                                if (server.name.isNotEmpty()) {
+                                    {
+                                        Text(
+                                            server.url,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                } else {
+                                    null
+                                },
                             leadingContent = {
                                 Icon(
                                     imageVector = Icons.Outlined.Dns,
@@ -201,32 +208,32 @@ fun RemoteControlScreen(navController: NavController) {
                                 )
                             },
                             trailingContent =
-                            if (activeRemoteServer?.id == server.id) {
-                                {
-                                    Icon(
-                                        imageVector = Icons.Default.CheckCircle,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
-                            } else {
-                                null
-                            },
-                            modifier =
-                            Modifier
-                                .clip(shape)
-                                .combinedClickable(
-                                    onClick = {
-                                        navController.navigate(
-                                            "settings/remote_control/edit/${server.id}",
+                                if (activeRemoteServer?.id == server.id) {
+                                    {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
                                         )
-                                    },
-                                    onLongClick = { showMenu = true },
-                                ),
+                                    }
+                                } else {
+                                    null
+                                },
+                            modifier =
+                                Modifier
+                                    .clip(shape)
+                                    .combinedClickable(
+                                        onClick = {
+                                            navController.navigate(
+                                                "settings/remote_control/edit/${server.id}",
+                                            )
+                                        },
+                                        onLongClick = { showMenu = true },
+                                    ),
                             colors =
-                            ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
+                                ListItemDefaults.colors(
+                                    containerColor = Color.Transparent,
+                                ),
                         )
                         DropdownMenu(
                             expanded = showMenu,

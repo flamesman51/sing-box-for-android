@@ -47,10 +47,11 @@ object ServerUpdateWork {
             manager.cancelAllWorkByTag(AUTOMATIC_DOWNLOAD)
             return
         }
-        val request = PeriodicWorkRequestBuilder<ServerUpdateCheckWorker>(24, TimeUnit.HOURS)
-            .setConstraints(connected())
-            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.HOURS)
-            .build()
+        val request =
+            PeriodicWorkRequestBuilder<ServerUpdateCheckWorker>(24, TimeUnit.HOURS)
+                .setConstraints(connected())
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.HOURS)
+                .build()
         manager.enqueueUniquePeriodicWork(PERIODIC, ExistingPeriodicWorkPolicy.KEEP, request)
         if (UpdateSource.fromString(Settings.updateSource) == UpdateSource.SERVER) {
             enqueueDownload(context)
@@ -62,14 +63,18 @@ object ServerUpdateWork {
 
     fun enqueueCheck(context: Context) {
         if (!automaticServerEnabled()) return
-        val request = OneTimeWorkRequestBuilder<ServerUpdateCheckWorker>()
-            .setConstraints(connected())
-            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-            .build()
+        val request =
+            OneTimeWorkRequestBuilder<ServerUpdateCheckWorker>()
+                .setConstraints(connected())
+                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                .build()
         WorkManager.getInstance(context).enqueueUniqueWork(CHECK, ExistingWorkPolicy.REPLACE, request)
     }
 
-    fun enqueueDownload(context: Context, downloadNow: Boolean = false) {
+    fun enqueueDownload(
+        context: Context,
+        downloadNow: Boolean = false,
+    ) {
         if (UpdateSource.fromString(Settings.updateSource) != UpdateSource.SERVER || (!downloadNow && !Settings.autoUpdateEnabled)) return
         ServerUpdates.initialize()
         val state = ServerUpdates.state.value
@@ -79,23 +84,27 @@ object ServerUpdateWork {
         val identity = "${pending.versionCode}-${pending.artifact.sha256}"
         val manager = WorkManager.getInstance(context)
         val input = workDataOf(VERSION to pending.versionCode, SHA256 to pending.artifact.sha256, MANUAL to downloadNow)
-        val immediate = OneTimeWorkRequestBuilder<ServerUpdateDownloadWorker>()
-            .setInputData(input)
-            .setConstraints(
-                Constraints.Builder().setRequiredNetworkType(
-                    if (ServerUpdatePolicy.requiresUnmetered(pending.firstSeenAtMillis, nowMillis, downloadNow)) NetworkType.UNMETERED else NetworkType.CONNECTED,
-                ).build(),
-            )
+        val immediate =
+            OneTimeWorkRequestBuilder<ServerUpdateDownloadWorker>()
+                .setInputData(input)
+                .setConstraints(
+                    Constraints
+                        .Builder()
+                        .setRequiredNetworkType(
+                            if (ServerUpdatePolicy.requiresUnmetered(pending.firstSeenAtMillis, nowMillis, downloadNow)) NetworkType.UNMETERED else NetworkType.CONNECTED,
+                        ).build(),
+                )
         if (!downloadNow) immediate.addTag(AUTOMATIC_DOWNLOAD)
         manager.enqueueUniqueWork("ServerUpdateDownload-$identity-${if (downloadNow) "manual" else "automatic"}", ExistingWorkPolicy.KEEP, immediate.build())
         if (!downloadNow && ServerUpdatePolicy.requiresUnmetered(pending.firstSeenAtMillis, nowMillis)) {
             // This independent work becomes eligible even if every later manifest fetch fails.
-            val fallback = OneTimeWorkRequestBuilder<ServerUpdateDownloadWorker>()
-                .setInputData(input)
-                .setConstraints(connected())
-                .setInitialDelay(ServerUpdatePolicy.fallbackDelayMillis(pending.firstSeenAtMillis, nowMillis), TimeUnit.MILLISECONDS)
-                .addTag(AUTOMATIC_DOWNLOAD)
-                .build()
+            val fallback =
+                OneTimeWorkRequestBuilder<ServerUpdateDownloadWorker>()
+                    .setInputData(input)
+                    .setConstraints(connected())
+                    .setInitialDelay(ServerUpdatePolicy.fallbackDelayMillis(pending.firstSeenAtMillis, nowMillis), TimeUnit.MILLISECONDS)
+                    .addTag(AUTOMATIC_DOWNLOAD)
+                    .build()
             manager.enqueueUniqueWork("ServerUpdateFallback-$identity", ExistingWorkPolicy.KEEP, fallback)
         }
     }
@@ -105,9 +114,10 @@ object ServerUpdateWork {
         ServerUpdateNotifier.refresh(context)
         return try {
             if (!Settings.autoUpdateEnabled) return ListenableWorker.Result.success()
-            val info = runInterruptible(Dispatchers.IO) {
-                if (UpdateSource.fromString(Settings.updateSource) == UpdateSource.SERVER) ServerUpdateChecker.check(context) else Vendor.checkUpdateAsync()
-            }
+            val info =
+                runInterruptible(Dispatchers.IO) {
+                    if (UpdateSource.fromString(Settings.updateSource) == UpdateSource.SERVER) ServerUpdateChecker.check(context) else Vendor.checkUpdateAsync()
+                }
             if (info != null) UpdateState.setUpdate(info)
             ListenableWorker.Result.success()
         } catch (exception: CancellationException) {
@@ -127,7 +137,10 @@ object ServerUpdateWork {
     internal fun automaticServerEnabled(): Boolean = Settings.autoUpdateEnabled && UpdateSource.fromString(Settings.updateSource) == UpdateSource.SERVER
 }
 
-class ServerUpdateCheckWorker(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
+class ServerUpdateCheckWorker(
+    context: Context,
+    parameters: WorkerParameters,
+) : CoroutineWorker(context, parameters) {
     override suspend fun getForegroundInfo(): ForegroundInfo {
         val channel = "${applicationContext.packageName}.server_update_checks"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -136,7 +149,8 @@ class ServerUpdateCheckWorker(context: Context, parameters: WorkerParameters) : 
         }
         return ForegroundInfo(
             40772,
-            NotificationCompat.Builder(applicationContext, channel)
+            NotificationCompat
+                .Builder(applicationContext, channel)
                 .setSmallIcon(R.drawable.ic_menu)
                 .setContentTitle(applicationContext.getString(R.string.app_name))
                 .setContentText(applicationContext.getString(R.string.check_update))
@@ -148,7 +162,10 @@ class ServerUpdateCheckWorker(context: Context, parameters: WorkerParameters) : 
     override suspend fun doWork(): Result = ServerUpdateWork.runCheck(applicationContext)
 }
 
-class ServerUpdateDownloadWorker(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
+class ServerUpdateDownloadWorker(
+    context: Context,
+    parameters: WorkerParameters,
+) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
         ServerUpdates.initialize()
         ServerUpdateNotifier.refresh(applicationContext)

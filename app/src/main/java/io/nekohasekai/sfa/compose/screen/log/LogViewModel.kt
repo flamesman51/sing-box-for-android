@@ -43,8 +43,9 @@ class LogViewModel :
                 serviceStatusFlow,
             ) { foreground, remoteServer, remoteConnected, status ->
                 SessionTarget(
-                    connect = foreground &&
-                        if (remoteServer != null) remoteConnected else status == Status.Started,
+                    connect =
+                        foreground &&
+                            if (remoteServer != null) remoteConnected else status == Status.Started,
                     remoteServerId = remoteServer?.id,
                 )
             }.distinctUntilChanged().collect { target ->
@@ -57,7 +58,10 @@ class LogViewModel :
         }
     }
 
-    private data class SessionTarget(val connect: Boolean, val remoteServerId: Long?)
+    private data class SessionTarget(
+        val connect: Boolean,
+        val remoteServerId: Long?,
+    )
 
     private fun processLogEntry(entry: LogEntry): ProcessedLogEntry {
         val level = LogLevel.entries.find { it.priority == entry.level } ?: LogLevel.Default

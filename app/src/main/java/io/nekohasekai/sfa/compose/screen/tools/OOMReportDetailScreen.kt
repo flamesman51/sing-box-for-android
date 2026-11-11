@@ -67,7 +67,10 @@ import java.text.DateFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OOMReportDetailScreen(navController: NavController, reportId: String) {
+fun OOMReportDetailScreen(
+    navController: NavController,
+    reportId: String,
+) {
     val reports by OOMReportManager.reports.collectAsState()
     val report = reports.find { it.id == reportId }
     var files by remember { mutableStateOf<List<OOMReportFile>>(emptyList()) }
@@ -77,21 +80,22 @@ fun OOMReportDetailScreen(navController: NavController, reportId: String) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    val saveLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/zip"),
-    ) { uri ->
-        val zipFile = pendingZipFile
-        pendingZipFile = null
-        if (uri != null && zipFile != null) {
-            scope.launch(Dispatchers.IO) {
-                runCatching {
-                    context.contentResolver.openOutputStream(uri)?.use { output ->
-                        zipFile.inputStream().use { input -> input.copyTo(output) }
+    val saveLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("application/zip"),
+        ) { uri ->
+            val zipFile = pendingZipFile
+            pendingZipFile = null
+            if (uri != null && zipFile != null) {
+                scope.launch(Dispatchers.IO) {
+                    runCatching {
+                        context.contentResolver.openOutputStream(uri)?.use { output ->
+                            zipFile.inputStream().use { input -> input.copyTo(output) }
+                        }
                     }
                 }
             }
         }
-    }
 
     LaunchedEffect(report) {
         if (report != null) {
@@ -103,25 +107,31 @@ fun OOMReportDetailScreen(navController: NavController, reportId: String) {
         isLoading = false
     }
 
-    val title = if (report != null) {
-        DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(report.date)
-    } else {
-        reportId
-    }
+    val title =
+        if (report != null) {
+            DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(report.date)
+        } else {
+            reportId
+        }
 
     val hasConfig = report != null && OOMReportManager.hasConfigFile(report)
     val hasLog = report != null && OOMReportManager.hasLogFile(report)
 
-    fun shareReport(includeConfig: Boolean, includeLog: Boolean, useAgeEncryption: Boolean) {
+    fun shareReport(
+        includeConfig: Boolean,
+        includeLog: Boolean,
+        useAgeEncryption: Boolean,
+    ) {
         val currentReport = report ?: return
         scope.launch {
             val zipFile = OOMReportManager.createZipArchive(currentReport, includeConfig, includeLog, useAgeEncryption)
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.cache", zipFile)
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = if (useAgeEncryption) "application/octet-stream" else "application/zip"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
+            val intent =
+                Intent(Intent.ACTION_SEND).apply {
+                    type = if (useAgeEncryption) "application/octet-stream" else "application/zip"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
             context.startActivity(Intent.createChooser(intent, null))
         }
     }
@@ -160,18 +170,20 @@ fun OOMReportDetailScreen(navController: NavController, reportId: String) {
 
     if (isLoading) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center,
         ) {
             CircularProgressIndicator()
         }
     } else if (files.isEmpty()) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -183,12 +195,13 @@ fun OOMReportDetailScreen(navController: NavController, reportId: String) {
         val scaffoldPadding = LocalScaffoldPadding.current
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .verticalScroll(rememberScrollState())
-                .padding(scaffoldPadding)
-                .padding(vertical = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .verticalScroll(rememberScrollState())
+                    .padding(scaffoldPadding)
+                    .padding(vertical = 8.dp),
         ) {
             Text(
                 stringResource(R.string.report_section_files),
@@ -197,30 +210,42 @@ fun OOMReportDetailScreen(navController: NavController, reportId: String) {
                 modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
             )
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    ),
             ) {
                 Column {
                     files.forEachIndexed { index, file ->
-                        val shape = when {
-                            files.size == 1 -> RoundedCornerShape(12.dp)
-                            index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                            index == files.lastIndex -> RoundedCornerShape(
-                                bottomStart = 12.dp,
-                                bottomEnd = 12.dp,
-                            )
-                            else -> RoundedCornerShape(0.dp)
-                        }
-                        val icon = when (file.kind) {
-                            OOMReportFile.Kind.METADATA -> Icons.Default.DataObject
-                            OOMReportFile.Kind.CONFIG -> Icons.Outlined.Settings
-                            OOMReportFile.Kind.GO_LOG -> Icons.Default.Description
-                            OOMReportFile.Kind.PROFILE -> Icons.Default.Terminal
-                        }
+                        val shape =
+                            when {
+                                files.size == 1 -> {
+                                    RoundedCornerShape(12.dp)
+                                }
+                                index == 0 -> {
+                                    RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                                }
+                                index == files.lastIndex -> {
+                                    RoundedCornerShape(
+                                        bottomStart = 12.dp,
+                                        bottomEnd = 12.dp,
+                                    )
+                                }
+                                else -> {
+                                    RoundedCornerShape(0.dp)
+                                }
+                            }
+                        val icon =
+                            when (file.kind) {
+                                OOMReportFile.Kind.METADATA -> Icons.Default.DataObject
+                                OOMReportFile.Kind.CONFIG -> Icons.Outlined.Settings
+                                OOMReportFile.Kind.GO_LOG -> Icons.Default.Description
+                                OOMReportFile.Kind.PROFILE -> Icons.Default.Terminal
+                            }
                         ListItem(
                             headlineContent = {
                                 Text(
@@ -235,21 +260,22 @@ fun OOMReportDetailScreen(navController: NavController, reportId: String) {
                                     tint = MaterialTheme.colorScheme.primary,
                                 )
                             },
-                            modifier = Modifier
-                                .clip(shape)
-                                .then(
-                                    if (file.kind != OOMReportFile.Kind.PROFILE) {
-                                        Modifier.clickable {
-                                            if (file.kind == OOMReportFile.Kind.METADATA) {
-                                                navController.navigate("tools/oom_report/$reportId/metadata")
-                                            } else {
-                                                navController.navigate("tools/oom_report/$reportId/file/${file.kind.name}")
+                            modifier =
+                                Modifier
+                                    .clip(shape)
+                                    .then(
+                                        if (file.kind != OOMReportFile.Kind.PROFILE) {
+                                            Modifier.clickable {
+                                                if (file.kind == OOMReportFile.Kind.METADATA) {
+                                                    navController.navigate("tools/oom_report/$reportId/metadata")
+                                                } else {
+                                                    navController.navigate("tools/oom_report/$reportId/file/${file.kind.name}")
+                                                }
                                             }
-                                        }
-                                    } else {
-                                        Modifier
-                                    },
-                                ),
+                                        } else {
+                                            Modifier
+                                        },
+                                    ),
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         )
                     }
@@ -280,7 +306,10 @@ fun OOMReportDetailScreen(navController: NavController, reportId: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OOMReportMetadataScreen(navController: NavController, reportId: String) {
+fun OOMReportMetadataScreen(
+    navController: NavController,
+    reportId: String,
+) {
     val reports by OOMReportManager.reports.collectAsState()
     val report = reports.find { it.id == reportId }
     var entries by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
@@ -308,18 +337,20 @@ fun OOMReportMetadataScreen(navController: NavController, reportId: String) {
 
     if (isLoading) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center,
         ) {
             CircularProgressIndicator()
         }
     } else if (entries.isEmpty()) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -330,31 +361,43 @@ fun OOMReportMetadataScreen(navController: NavController, reportId: String) {
     } else {
         SelectionContainer {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .verticalScroll(rememberScrollState())
-                    .padding(vertical = 8.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = 8.dp),
             ) {
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        ),
                 ) {
                     Column {
                         entries.forEachIndexed { index, (key, value) ->
-                            val shape = when {
-                                entries.size == 1 -> RoundedCornerShape(12.dp)
-                                index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                                index == entries.lastIndex -> RoundedCornerShape(
-                                    bottomStart = 12.dp,
-                                    bottomEnd = 12.dp,
-                                )
-                                else -> RoundedCornerShape(0.dp)
-                            }
+                            val shape =
+                                when {
+                                    entries.size == 1 -> {
+                                        RoundedCornerShape(12.dp)
+                                    }
+                                    index == 0 -> {
+                                        RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                                    }
+                                    index == entries.lastIndex -> {
+                                        RoundedCornerShape(
+                                            bottomStart = 12.dp,
+                                            bottomEnd = 12.dp,
+                                        )
+                                    }
+                                    else -> {
+                                        RoundedCornerShape(0.dp)
+                                    }
+                                }
                             ListItem(
                                 headlineContent = {
                                     Text(key, style = MaterialTheme.typography.bodyLarge)
@@ -372,21 +415,28 @@ fun OOMReportMetadataScreen(navController: NavController, reportId: String) {
 }
 
 private fun loadOOMMetadataEntries(report: OOMReport): List<Pair<String, String>> {
-    val metadataFile = OOMReportManager.availableFiles(report)
-        .find { it.kind == OOMReportFile.Kind.METADATA } ?: return emptyList()
+    val metadataFile =
+        OOMReportManager
+            .availableFiles(report)
+            .find { it.kind == OOMReportFile.Kind.METADATA } ?: return emptyList()
     val content = metadataFile.file.readText()
     val json = runCatching { JSONObject(content) }.getOrNull() ?: return emptyList()
-    return json.keys().asSequence()
+    return json
+        .keys()
+        .asSequence()
         .mapNotNull { key ->
             val value = json.optString(key, "")
             if (value.isNotBlank()) key to value else null
-        }
-        .toList()
+        }.toList()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OOMReportFileContentScreen(navController: NavController, reportId: String, fileKind: String) {
+fun OOMReportFileContentScreen(
+    navController: NavController,
+    reportId: String,
+    fileKind: String,
+) {
     val reports by OOMReportManager.reports.collectAsState()
     val report = reports.find { it.id == reportId }
     var content by remember { mutableStateOf("") }
@@ -421,18 +471,20 @@ fun OOMReportFileContentScreen(navController: NavController, reportId: String, f
 
     if (isLoading) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center,
         ) {
             CircularProgressIndicator()
         }
     } else if (content.isEmpty()) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -443,25 +495,28 @@ fun OOMReportFileContentScreen(navController: NavController, reportId: String, f
     } else {
         SelectionContainer {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
             ) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        ),
                 ) {
                     Text(
                         text = content,
                         fontFamily = FontFamily.Monospace,
                         fontSize = 12.sp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
                     )
                 }
             }

@@ -76,7 +76,12 @@ class SmartJsonTest {
         assertEquals(96, timeline.size)
         assertEquals(listOf(null, null, null), timeline.first())
         assertEquals(listOf(1.0, 120.0, 48.1), timeline.last())
-        assertEquals(listOf(null, null, null), status.timeline.members.getValue("b").last())
+        assertEquals(
+            listOf(null, null, null),
+            status.timeline.members
+                .getValue("b")
+                .last(),
+        )
     }
 
     @Test
@@ -99,16 +104,21 @@ class SmartJsonTest {
         assertTrue(status.members.all { it.udpRttMs == null && it.jitterMs == null && it.observedDownloadValue() == null })
         assertTrue(status.members.all { it.effectiveFloorState() == null && it.legacyEpisodeObservation(status.preference?.engine) == null })
         assertTrue(status.events.isEmpty())
-        assertTrue(status.timeline.members.values.flatten().all { it == listOf(null, null, null) })
+        assertTrue(
+            status.timeline.members.values
+                .flatten()
+                .all { it == listOf(null, null, null) },
+        )
     }
 
     @Test
     fun showsNoticeWhenEveryMemberIsUnhealthy() {
         val status = SmartJson.status(fixture("status.json"))
         val member = status.members.first()
-        val unavailable = status.copy(
-            members = listOf("suspect", "quarantined", "failed", "unknown").map { member.copy(state = it) },
-        )
+        val unavailable =
+            status.copy(
+                members = listOf("suspect", "quarantined", "failed", "unknown").map { member.copy(state = it) },
+            )
 
         assertEquals(SmartAvailabilityNotice.NoServersResponding, unavailable.availabilityNotice())
     }
@@ -131,10 +141,11 @@ class SmartJsonTest {
     @Test
     fun failedDirectProbeAloneDoesNotDiagnoseNetworkOutage() {
         val status = SmartJson.status(fixture("status.json"))
-        val unavailable = status.copy(
-            direct = status.direct.copy(state = "failed"),
-            members = status.members.map { it.copy(state = "unknown") },
-        )
+        val unavailable =
+            status.copy(
+                direct = status.direct.copy(state = "failed"),
+                members = status.members.map { it.copy(state = "unknown") },
+            )
 
         assertEquals(SmartAvailabilityNotice.NoServersResponding, unavailable.availabilityNotice())
     }
@@ -291,7 +302,8 @@ class SmartJsonTest {
         }
     }
 
-    private fun fixture(name: String): String = requireNotNull(javaClass.getResourceAsStream("/smart/$name")) {
-        "Missing core-generated fixture: $name"
-    }.bufferedReader().use { it.readText() }
+    private fun fixture(name: String): String =
+        requireNotNull(javaClass.getResourceAsStream("/smart/$name")) {
+            "Missing core-generated fixture: $name"
+        }.bufferedReader().use { it.readText() }
 }

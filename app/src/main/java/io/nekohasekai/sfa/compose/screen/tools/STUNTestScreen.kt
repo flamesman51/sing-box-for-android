@@ -86,10 +86,11 @@ fun STUNTestScreen(
         }
     }
 
-    val selectedOutboundResult = navController.currentBackStackEntry
-        ?.savedStateHandle
-        ?.getStateFlow("selected_outbound", state.selectedOutbound)
-        ?.collectAsState()
+    val selectedOutboundResult =
+        navController.currentBackStackEntry
+            ?.savedStateHandle
+            ?.getStateFlow("selected_outbound", state.selectedOutbound)
+            ?.collectAsState()
     LaunchedEffect(selectedOutboundResult?.value) {
         selectedOutboundResult?.value?.let { viewModel.selectOutbound(it) }
     }
@@ -113,19 +114,21 @@ fun STUNTestScreen(
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .verticalScroll(rememberScrollState())
-            .padding(scaffoldPadding)
-            .padding(16.dp),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .verticalScroll(rememberScrollState())
+                .padding(scaffoldPadding)
+                .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-            ),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                ),
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -138,17 +141,19 @@ fun STUNTestScreen(
                 )
 
                 Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { showServerDialog = true },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { showServerDialog = true },
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(12.dp),
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
@@ -192,9 +197,10 @@ fun STUNTestScreen(
             Button(
                 onClick = { viewModel.cancelTest() },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                ),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                    ),
             ) {
                 Text(stringResource(R.string.stun_cancel))
             }
@@ -210,9 +216,10 @@ fun STUNTestScreen(
         if (state.phase >= 0) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
-                ),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
+                    ),
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -278,19 +285,21 @@ fun STUNTestScreen(
     }
 }
 
-private fun natMappingColor(value: Int): Color = when (value) {
-    Libbox.NATMappingEndpointIndependent.toInt() -> Color.Green
-    Libbox.NATMappingAddressDependent.toInt() -> Color.Yellow
-    Libbox.NATMappingAddressAndPortDependent.toInt() -> Color.Red
-    else -> Color.Unspecified
-}
+private fun natMappingColor(value: Int): Color =
+    when (value) {
+        Libbox.NATMappingEndpointIndependent.toInt() -> Color.Green
+        Libbox.NATMappingAddressDependent.toInt() -> Color.Yellow
+        Libbox.NATMappingAddressAndPortDependent.toInt() -> Color.Red
+        else -> Color.Unspecified
+    }
 
-private fun natFilteringColor(value: Int): Color = when (value) {
-    Libbox.NATFilteringEndpointIndependent.toInt() -> Color.Green
-    Libbox.NATFilteringAddressDependent.toInt() -> Color.Yellow
-    Libbox.NATFilteringAddressAndPortDependent.toInt() -> Color.Red
-    else -> Color.Unspecified
-}
+private fun natFilteringColor(value: Int): Color =
+    when (value) {
+        Libbox.NATFilteringEndpointIndependent.toInt() -> Color.Green
+        Libbox.NATFilteringAddressDependent.toInt() -> Color.Yellow
+        Libbox.NATFilteringAddressAndPortDependent.toInt() -> Color.Red
+        else -> Color.Unspecified
+    }
 
 @Composable
 private fun ServerEditDialog(

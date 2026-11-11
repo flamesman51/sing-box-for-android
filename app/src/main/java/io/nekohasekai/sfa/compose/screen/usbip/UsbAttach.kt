@@ -27,7 +27,10 @@ fun rememberUsbAttacher(serverTag: String): (UsbDevice) -> Unit {
     DisposableEffect(serverTag) {
         val receiver =
             object : BroadcastReceiver() {
-                override fun onReceive(received: Context, intent: Intent) {
+                override fun onReceive(
+                    received: Context,
+                    intent: Intent,
+                ) {
                     if (intent.action != ACTION_USB_PERMISSION) return
                     val device = IntentCompat.getParcelableExtra(intent, UsbManager.EXTRA_DEVICE, UsbDevice::class.java) ?: return
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {

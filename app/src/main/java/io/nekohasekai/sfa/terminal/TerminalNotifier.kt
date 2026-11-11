@@ -22,28 +22,38 @@ object TerminalNotifier {
 
     private val nextNotificationId = AtomicInteger(0)
 
-    fun notify(context: Context, sessionTitle: String?, title: String, body: String) {
+    fun notify(
+        context: Context,
+        sessionTitle: String?,
+        title: String,
+        body: String,
+    ) {
         if (title.isEmpty() && body.isEmpty()) return
         ensureChannel(context)
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            context,
-            0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or ServiceNotification.flags,
-        )
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_menu)
-            .setContentTitle(title.ifEmpty { sessionTitle ?: "" })
-            .setContentText(body.ifEmpty { title })
-            .setSubText(sessionTitle)
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-        val id = NOTIFICATION_ID_BASE +
-            nextNotificationId.getAndIncrement() % NOTIFICATION_ID_COUNT
+        val intent =
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+        val pendingIntent =
+            PendingIntent.getActivity(
+                context,
+                0,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or ServiceNotification.flags,
+            )
+        val builder =
+            NotificationCompat
+                .Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_menu)
+                .setContentTitle(title.ifEmpty { sessionTitle ?: "" })
+                .setContentText(body.ifEmpty { title })
+                .setSubText(sessionTitle)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+        val id =
+            NOTIFICATION_ID_BASE +
+                nextNotificationId.getAndIncrement() % NOTIFICATION_ID_COUNT
         try {
             NotificationManagerCompat.from(context).notify(id, builder.build())
         } catch (_: SecurityException) {

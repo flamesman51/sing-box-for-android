@@ -116,21 +116,24 @@ fun OpenConnectEndpointScreen(
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .verticalScroll(rememberScrollState())
-            .padding(scaffoldPadding)
-            .padding(vertical = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .verticalScroll(rememberScrollState())
+                .padding(scaffoldPadding)
+                .padding(vertical = 8.dp),
     ) {
         SectionHeader(stringResource(R.string.endpoint_status))
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -161,12 +164,14 @@ fun OpenConnectEndpointScreen(
                         TunnelInfoRow(tunnelInfo.mtu.toString(), stringResource(R.string.endpoint_mtu))
                     }
                     if (tunnelInfo.connectedSince > 0) {
-                        val connectedText = DateUtils.getRelativeTimeSpanString(
-                            tunnelInfo.connectedSince * 1000,
-                            System.currentTimeMillis(),
-                            DateUtils.MINUTE_IN_MILLIS,
-                            0,
-                        ).toString()
+                        val connectedText =
+                            DateUtils
+                                .getRelativeTimeSpanString(
+                                    tunnelInfo.connectedSince * 1000,
+                                    System.currentTimeMillis(),
+                                    DateUtils.MINUTE_IN_MILLIS,
+                                    0,
+                                ).toString()
                         TunnelInfoRow(connectedText, stringResource(R.string.endpoint_connected))
                     }
                 }
@@ -177,12 +182,14 @@ fun OpenConnectEndpointScreen(
             Spacer(modifier = Modifier.height(16.dp))
             SectionHeader(stringResource(R.string.endpoint_authentication))
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    ),
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -199,24 +206,32 @@ fun OpenConnectEndpointScreen(
                         Text(authChallenge.message, style = MaterialTheme.typography.bodyMedium)
                     }
                     when {
-                        browserRequest?.completionMode == OpenConnectBrowserCompletionMode.HEADER -> Text(
-                            stringResource(R.string.endpoint_globalprotect_sso_unsupported_android),
-                            color = MaterialTheme.colorScheme.error,
-                        )
-
-                        browserRequest?.completionMode == OpenConnectBrowserCompletionMode.INVALID -> Text(
-                            stringResource(R.string.endpoint_browser_cookie_missing),
-                            color = MaterialTheme.colorScheme.error,
-                        )
-
-                        browserRequest != null -> Button(
-                            onClick = { browserChallengeID = authChallenge.id },
-                            modifier = Modifier.align(Alignment.End),
-                        ) {
-                            Text(stringResource(R.string.endpoint_continue))
+                        browserRequest?.completionMode == OpenConnectBrowserCompletionMode.HEADER -> {
+                            Text(
+                                stringResource(R.string.endpoint_globalprotect_sso_unsupported_android),
+                                color = MaterialTheme.colorScheme.error,
+                            )
                         }
 
-                        authChallenge.form != null -> AuthFormContent(viewModel, endpointTag, authChallenge, authChallenge.form)
+                        browserRequest?.completionMode == OpenConnectBrowserCompletionMode.INVALID -> {
+                            Text(
+                                stringResource(R.string.endpoint_browser_cookie_missing),
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+
+                        browserRequest != null -> {
+                            Button(
+                                onClick = { browserChallengeID = authChallenge.id },
+                                modifier = Modifier.align(Alignment.End),
+                            ) {
+                                Text(stringResource(R.string.endpoint_continue))
+                            }
+                        }
+
+                        authChallenge.form != null -> {
+                            AuthFormContent(viewModel, endpointTag, authChallenge, authChallenge.form)
+                        }
                     }
                     if (browserRequest != null) {
                         OutlinedButton(
@@ -266,13 +281,14 @@ private fun ColumnScope.AuthFormContent(
     val scope = rememberCoroutineScope()
     var submitting by remember(challenge.id) { mutableStateOf(false) }
     var submitted by remember(challenge.id) { mutableStateOf(false) }
-    val values = remember(challenge.id) {
-        mutableStateMapOf<String, String>().apply {
-            for (field in form.fields) {
-                put(field.submissionKey, initialFieldValue(field))
+    val values =
+        remember(challenge.id) {
+            mutableStateMapOf<String, String>().apply {
+                for (field in form.fields) {
+                    put(field.submissionKey, initialFieldValue(field))
+                }
             }
         }
-    }
 
     if (submitted) {
         Row(
@@ -343,9 +359,10 @@ private fun AuthFormFieldInput(
                     enabled = enabled,
                     label = { Text(label) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier
-                        .then(menuAnchorCompat(enabled))
-                        .fillMaxWidth(),
+                    modifier =
+                        Modifier
+                            .then(menuAnchorCompat(enabled))
+                            .fillMaxWidth(),
                 )
                 ExposedDropdownMenu(
                     expanded = expanded,
@@ -384,10 +401,11 @@ private fun AuthFormFieldInput(
                 label = { Text(label) },
                 singleLine = true,
                 enabled = enabled,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.None,
-                    autoCorrectEnabled = false,
-                ),
+                keyboardOptions =
+                    KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        autoCorrectEnabled = false,
+                    ),
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -401,7 +419,10 @@ private fun initialFieldValue(field: OpenConnectAuthFormFieldData): String {
     return if (field.options.any { it.value == field.value }) {
         field.value
     } else {
-        field.options.firstOrNull()?.value.orEmpty()
+        field.options
+            .firstOrNull()
+            ?.value
+            .orEmpty()
     }
 }
 
@@ -416,7 +437,10 @@ private fun SectionHeader(title: String) {
 }
 
 @Composable
-private fun StateRow(state: String, stateText: String) {
+private fun StateRow(
+    state: String,
+    stateText: String,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -433,10 +457,11 @@ private fun StateRow(state: String, stateText: String) {
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(stateColor(state)),
+                modifier =
+                    Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(stateColor(state)),
             )
             Text(
                 stateText,
@@ -448,7 +473,10 @@ private fun StateRow(state: String, stateText: String) {
 }
 
 @Composable
-private fun TunnelInfoRow(value: String, label: String) {
+private fun TunnelInfoRow(
+    value: String,
+    label: String,
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             value,
@@ -462,10 +490,11 @@ private fun TunnelInfoRow(value: String, label: String) {
     }
 }
 
-private fun stateColor(state: String): Color = when (state) {
-    "connected" -> Color(0xFF4CAF50)
-    "auth-pending" -> Color(0xFFFF9800)
-    "connecting" -> Color(0xFFFFEB3B)
-    "error" -> Color(0xFFF44336)
-    else -> Color.Gray
-}
+private fun stateColor(state: String): Color =
+    when (state) {
+        "connected" -> Color(0xFF4CAF50)
+        "auth-pending" -> Color(0xFFFF9800)
+        "connecting" -> Color(0xFFFFEB3B)
+        "error" -> Color(0xFFF44336)
+        else -> Color.Gray
+    }

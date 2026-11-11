@@ -216,6 +216,14 @@ Version codes use `(VERSION_CODE + run_number) * 10 + min(run_attempt, 9)`.
 Release runs are serialized. Only arm64 APKs are published because the nominal
 universal APK contains arm64-only libbox.
 
+## Formatting
+
+The root `.editorconfig` is the single source of ktlint settings for Spotless
+and the ktlint 1.8.0 CLI. With JDK 21, run `./gradlew spotlessApply` to format
+sources, then `./gradlew spotlessCheck :app:testOtherDebugUnitTest`.
+From the repository root, `ktlint --relative 'app/src/**/*.kt'` checks the same
+Kotlin rules without additional configuration.
+
 ## Documentation
 
 https://sing-box.sagernet.org/installation/clients/sfa/

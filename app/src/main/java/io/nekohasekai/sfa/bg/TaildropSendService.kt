@@ -29,7 +29,11 @@ class TaildropSendService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int,
+    ): Int {
         if (intent?.action == ACTION_STOP) {
             TaildropSendManager.cancelAll()
             stopSelf()
@@ -67,37 +71,38 @@ class TaildropSendService : Service() {
         )
     }
 
-    private fun buildNotification(sessions: List<TaildropSendState>) = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL)
-        .setShowWhen(false)
-        .setOngoing(true)
-        .setOnlyAlertOnce(true)
-        .setSmallIcon(R.drawable.ic_menu)
-        .setCategory(NotificationCompat.CATEGORY_SERVICE)
-        .setPriority(NotificationCompat.PRIORITY_LOW)
-        .setContentTitle(getString(R.string.taildrop_notification_title))
-        .setContentText(notificationText(sessions))
-        .setProgress(100, sentPercentage(sessions), false)
-        .setContentIntent(
-            PendingIntent.getActivity(
-                this,
-                0,
-                Intent(this, MainActivity::class.java).setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
-                pendingIntentFlags(),
-            ),
-        )
-        .addAction(
-            NotificationCompat.Action.Builder(
-                0,
-                getText(android.R.string.cancel),
-                PendingIntent.getService(
+    private fun buildNotification(sessions: List<TaildropSendState>) =
+        NotificationCompat
+            .Builder(this, NOTIFICATION_CHANNEL)
+            .setShowWhen(false)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setSmallIcon(R.drawable.ic_menu)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setContentTitle(getString(R.string.taildrop_notification_title))
+            .setContentText(notificationText(sessions))
+            .setProgress(100, sentPercentage(sessions), false)
+            .setContentIntent(
+                PendingIntent.getActivity(
                     this,
                     0,
-                    Intent(this, TaildropSendService::class.java).setAction(ACTION_STOP),
+                    Intent(this, MainActivity::class.java).setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
                     pendingIntentFlags(),
                 ),
-            ).build(),
-        )
-        .build()
+            ).addAction(
+                NotificationCompat.Action
+                    .Builder(
+                        0,
+                        getText(android.R.string.cancel),
+                        PendingIntent.getService(
+                            this,
+                            0,
+                            Intent(this, TaildropSendService::class.java).setAction(ACTION_STOP),
+                            pendingIntentFlags(),
+                        ),
+                    ).build(),
+            ).build()
 
     private fun notificationText(sessions: List<TaildropSendState>): String {
         val first = sessions.firstOrNull() ?: return ""

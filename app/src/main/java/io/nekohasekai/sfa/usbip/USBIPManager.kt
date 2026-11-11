@@ -33,7 +33,10 @@ object USBIPManager {
     private val _state = MutableStateFlow(USBIPProviderState())
     val state: StateFlow<USBIPProviderState> = _state.asStateFlow()
 
-    private class ServerSession(val serverTag: String, val session: USBProviderSession) {
+    private class ServerSession(
+        val serverTag: String,
+        val session: USBProviderSession,
+    ) {
         val bridges = HashMap<String, UsbDeviceBridge>()
         val devices = HashMap<String, ProvidedDevice>()
 
@@ -41,7 +44,11 @@ object USBIPManager {
         var closed = false
     }
 
-    fun attach(context: Context, serverTag: String, device: UsbDevice) {
+    fun attach(
+        context: Context,
+        serverTag: String,
+        device: UsbDevice,
+    ) {
         val appContext = context.applicationContext
         scope.launch { attachInternal(appContext, serverTag, device) }
     }
@@ -53,7 +60,10 @@ object USBIPManager {
     fun detachByDevice(device: UsbDevice) {
         val deviceId =
             synchronized(access) {
-                sessions.values.flatMap { it.devices.values }.firstOrNull { it.usbDeviceName == device.deviceName }?.deviceId
+                sessions.values
+                    .flatMap { it.devices.values }
+                    .firstOrNull { it.usbDeviceName == device.deviceName }
+                    ?.deviceId
             } ?: return
         detach(deviceId)
     }
@@ -75,7 +85,11 @@ object USBIPManager {
         serviceStarted = false
     }
 
-    private fun attachInternal(context: Context, serverTag: String, device: UsbDevice) {
+    private fun attachInternal(
+        context: Context,
+        serverTag: String,
+        device: UsbDevice,
+    ) {
         val deviceId = "dev-${counter.incrementAndGet()}"
         try {
             val session = ensureSession(serverTag)
@@ -106,10 +120,11 @@ object USBIPManager {
 
     private fun detachInternal(deviceId: String) {
         val session = synchronized(access) { sessions.values.firstOrNull { it.devices.containsKey(deviceId) } } ?: return
-        val bridge = synchronized(access) {
-            session.devices.remove(deviceId)
-            session.bridges.remove(deviceId)
-        }
+        val bridge =
+            synchronized(access) {
+                session.devices.remove(deviceId)
+                session.bridges.remove(deviceId)
+            }
         runCatching { session.session.detachDevice(deviceId) }
         bridge?.close()
         publish()
@@ -132,7 +147,11 @@ object USBIPManager {
         }
     }
 
-    private fun providedDevice(deviceId: String, serverTag: String, device: UsbDevice) = ProvidedDevice(
+    private fun providedDevice(
+        deviceId: String,
+        serverTag: String,
+        device: UsbDevice,
+    ) = ProvidedDevice(
         deviceId = deviceId,
         serverTag = serverTag,
         label = device.productName ?: formatVidPid(device.vendorId, device.productId),
@@ -142,27 +161,47 @@ object USBIPManager {
         usbDeviceName = device.deviceName,
     )
 
-    private fun handler(serverTag: String): USBProviderHandler = object : USBProviderHandler {
-        override fun onReady(deviceID: String, busID: String) = onDeviceReady(serverTag, deviceID, busID)
+    private fun handler(serverTag: String): USBProviderHandler =
+        object : USBProviderHandler {
+            override fun onReady(
+                deviceID: String,
+                busID: String,
+            ) = onDeviceReady(serverTag, deviceID, busID)
 
-        override fun onURBRequest(request: USBURBRequest) = dispatchUrb(serverTag, request)
+            override fun onURBRequest(request: USBURBRequest) = dispatchUrb(serverTag, request)
 
-        override fun onAbort(deviceID: String, endpoint: Int) {}
+            override fun onAbort(
+                deviceID: String,
+                endpoint: Int,
+            ) {}
 
-        override fun onError(deviceID: String, message: String) = onProviderError(serverTag, deviceID, message)
-    }
+            override fun onError(
+                deviceID: String,
+                message: String,
+            ) = onProviderError(serverTag, deviceID, message)
+        }
 
-    private fun sendResponse(session: ServerSession, response: USBURBResponse) {
+    private fun sendResponse(
+        session: ServerSession,
+        response: USBURBResponse,
+    ) {
         if (session.closed) return
         runCatching { session.session.sendURBResponse(response) }
     }
 
-    private fun dispatchUrb(serverTag: String, request: USBURBRequest) {
+    private fun dispatchUrb(
+        serverTag: String,
+        request: USBURBRequest,
+    ) {
         val bridge = synchronized(access) { sessions[serverTag]?.bridges?.get(request.deviceID) } ?: return
         bridge.submit(request)
     }
 
-    private fun onDeviceReady(serverTag: String, deviceId: String, busId: String) {
+    private fun onDeviceReady(
+        serverTag: String,
+        deviceId: String,
+        busId: String,
+    ) {
         synchronized(access) {
             val session = sessions[serverTag] ?: return@synchronized
             val device = session.devices[deviceId] ?: return@synchronized
@@ -171,7 +210,11 @@ object USBIPManager {
         publish()
     }
 
-    private fun onProviderError(serverTag: String, deviceId: String, message: String) {
+    private fun onProviderError(
+        serverTag: String,
+        deviceId: String,
+        message: String,
+    ) {
         val session = synchronized(access) { sessions[serverTag] } ?: return
         if (session.closed) return
         if (deviceId.isNotEmpty()) {
@@ -190,7 +233,9 @@ object USBIPManager {
                         session.devices[id] = device.copy(state = ProvidedDeviceState.ERROR, error = message)
                     }
                 }
-                session.bridges.values.toList().also { session.bridges.clear() }
+                session.bridges.values
+                    .toList()
+                    .also { session.bridges.clear() }
             }
         for (bridge in bridges) bridge.close()
         runCatching { session.session.close() }
@@ -199,7 +244,11 @@ object USBIPManager {
         stopServiceIfIdle()
     }
 
-    private fun markError(serverTag: String, deviceId: String, message: String) {
+    private fun markError(
+        serverTag: String,
+        deviceId: String,
+        message: String,
+    ) {
         synchronized(access) {
             val session = sessions[serverTag]
             val device = session?.devices?.get(deviceId)

@@ -57,8 +57,9 @@ import io.nekohasekai.sfa.update.UpdateSource
 import io.nekohasekai.sfa.vendor.Vendor
 import java.util.concurrent.TimeUnit
 
-private fun ServerUpdateSnapshot.isReady(): Boolean = ready != null &&
-    ready.versionCode == pending?.versionCode && ready.sha256 == pending?.artifact?.sha256
+private fun ServerUpdateSnapshot.isReady(): Boolean =
+    ready != null &&
+        ready.versionCode == pending?.versionCode && ready.sha256 == pending?.artifact?.sha256
 
 @Composable
 fun ServerUpdateBanner() {
@@ -71,12 +72,13 @@ fun ServerUpdateBanner() {
     val lifecycleOwner = LocalLifecycleOwner.current
     var degraded by remember { mutableStateOf(ServerUpdateNotifier.notificationsDegraded(context)) }
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                degraded = ServerUpdateNotifier.notificationsDegraded(context)
-                ServerUpdateNotifier.refresh(context)
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    degraded = ServerUpdateNotifier.notificationsDegraded(context)
+                    ServerUpdateNotifier.refresh(context)
+                }
             }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
@@ -142,29 +144,36 @@ fun ServerUpdateForegroundReminder(
     var autoUpdateEnabled by remember { mutableStateOf(Settings.autoUpdateEnabled) }
     var permissionRequested by rememberSaveable { mutableStateOf(false) }
     var permissionInFlight by rememberSaveable { mutableStateOf(false) }
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        permissionInFlight = false
-        ServerUpdateNotifier.refresh(context)
-    }
+    val permissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+            permissionInFlight = false
+            ServerUpdateNotifier.refresh(context)
+        }
     var resumed by remember { mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) }
     var showReminder by remember { mutableStateOf(false) }
-    val reminderDue = snapshot.pending != null && resumed &&
-        (snapshot.lastReminderAtMillis == 0L || System.currentTimeMillis() - snapshot.lastReminderAtMillis >= TimeUnit.HOURS.toMillis(24))
+    val reminderDue =
+        snapshot.pending != null && resumed &&
+            (snapshot.lastReminderAtMillis == 0L || System.currentTimeMillis() - snapshot.lastReminderAtMillis >= TimeUnit.HOURS.toMillis(24))
     SideEffect { onDialogVisibilityChanged(permissionInFlight || showReminder || reminderDue) }
     DisposableEffect(lifecycleOwner) {
-        val preferenceListener = object : OnPreferenceDataStoreChangeListener {
-            override fun onPreferenceDataStoreChanged(store: PreferenceDataStore, key: String) {
-                when (key) {
-                    SettingsKey.UPDATE_SOURCE -> updateSource = Settings.updateSource
-                    SettingsKey.AUTO_UPDATE_ENABLED -> autoUpdateEnabled = Settings.autoUpdateEnabled
+        val preferenceListener =
+            object : OnPreferenceDataStoreChangeListener {
+                override fun onPreferenceDataStoreChanged(
+                    store: PreferenceDataStore,
+                    key: String,
+                ) {
+                    when (key) {
+                        SettingsKey.UPDATE_SOURCE -> updateSource = Settings.updateSource
+                        SettingsKey.AUTO_UPDATE_ENABLED -> autoUpdateEnabled = Settings.autoUpdateEnabled
+                    }
                 }
             }
-        }
         Settings.dataStore.registerChangeListener(preferenceListener)
-        val observer = LifecycleEventObserver { _, event ->
-            resumed = event == Lifecycle.Event.ON_RESUME ||
-                lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
-        }
+        val observer =
+            LifecycleEventObserver { _, event ->
+                resumed = event == Lifecycle.Event.ON_RESUME ||
+                    lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+            }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
@@ -172,7 +181,8 @@ fun ServerUpdateForegroundReminder(
         }
     }
     LaunchedEffect(resumed, updateSource, autoUpdateEnabled, allowPermissionRequest) {
-        if (allowPermissionRequest && resumed && !permissionRequested && ServerUpdateNotifier.permissionNeeded(
+        if (allowPermissionRequest && resumed && !permissionRequested &&
+            ServerUpdateNotifier.permissionNeeded(
                 Build.VERSION.SDK_INT,
                 UpdateSource.fromString(updateSource),
                 autoUpdateEnabled,
@@ -238,7 +248,10 @@ fun ServerUpdateAvailableDialog(onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun ServerUpdateAction(snapshot: ServerUpdateSnapshot, onAction: () -> Unit = {}) {
+private fun ServerUpdateAction(
+    snapshot: ServerUpdateSnapshot,
+    onAction: () -> Unit = {},
+) {
     val context = LocalContext.current
     TextButton(onClick = {
         if (snapshot.isReady()) {

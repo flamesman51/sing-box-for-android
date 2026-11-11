@@ -41,13 +41,14 @@ object CommandTarget {
 
     // Returns a client for one-shot calls and streamed sessions. In remote mode the
     // client is shared for the whole session — callers must not disconnect it.
-    fun standaloneClient(): io.nekohasekai.libbox.CommandClient = synchronized(access) {
-        val server = activeRemoteServer ?: return Libbox.newStandaloneCommandClient()
-        sharedRemoteClient?.let { return it }
-        val client = Libbox.newStandaloneRemoteCommandClient(libboxOptions(server))
-        sharedRemoteClient = client
-        client
-    }
+    fun standaloneClient(): io.nekohasekai.libbox.CommandClient =
+        synchronized(access) {
+            val server = activeRemoteServer ?: return Libbox.newStandaloneCommandClient()
+            sharedRemoteClient?.let { return it }
+            val client = Libbox.newStandaloneRemoteCommandClient(libboxOptions(server))
+            sharedRemoteClient = client
+            client
+        }
 
     // Returns a dedicated client owned by the caller, who is responsible for
     // disconnecting it (e.g. the SSH terminal closes its client on session end).

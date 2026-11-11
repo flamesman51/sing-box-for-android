@@ -8,7 +8,9 @@ import de.robv.android.xposed.XposedHelpers
 import io.nekohasekai.sfa.xposed.VpnSanitizer
 import io.nekohasekai.sfa.xposed.hooks.SafeMethodHook
 
-class HookConnectivityManagerGetNetworkInfo(private val helper: ConnectivityServiceHookHelper) {
+class HookConnectivityManagerGetNetworkInfo(
+    private val helper: ConnectivityServiceHookHelper,
+) {
     private companion object {
         private const val SOURCE = "HookConnectivityManagerGetNetworkInfo"
     }
@@ -42,11 +44,12 @@ class HookConnectivityManagerGetNetworkInfo(private val helper: ConnectivityServ
                     val info = param.result as? NetworkInfo ?: return
                     if (info.type != ConnectivityManager.TYPE_VPN) return
                     val replacement = helper.getUnderlyingNetworkInfo(param.thisObject, uid)
-                    param.result = if (replacement != null) {
-                        VpnSanitizer.cloneNetworkInfo(replacement)
-                    } else {
-                        null
-                    }
+                    param.result =
+                        if (replacement != null) {
+                            VpnSanitizer.cloneNetworkInfo(replacement)
+                        } else {
+                            null
+                        }
                 }
             },
         )

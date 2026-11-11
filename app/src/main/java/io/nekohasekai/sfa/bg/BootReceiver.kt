@@ -20,12 +20,17 @@ import kotlinx.coroutines.withContext
 
 class BootReceiver : BroadcastReceiver() {
     @OptIn(DelicateCoroutinesApi::class)
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED -> {
             }
 
-            else -> return
+            else -> {
+                return
+            }
         }
         val action = intent.action?.substringAfterLast('.')
         val pendingResult = goAsync()
@@ -43,21 +48,28 @@ class BootReceiver : BroadcastReceiver() {
                         }
                     }
                 }
-                val hasUnreadCrashes = if (!packageReplaced && Settings.shouldRun) {
-                    CrashReportManager.refresh { _, _ -> }
-                    CrashReportManager.unreadCount.value > 0
-                } else {
-                    false
-                }
+                val hasUnreadCrashes =
+                    if (!packageReplaced && Settings.shouldRun) {
+                        CrashReportManager.refresh { _, _ -> }
+                        CrashReportManager.unreadCount.value > 0
+                    } else {
+                        false
+                    }
                 val decision = ServiceStartPolicy.receiverDecision(packageReplaced, Settings.shouldRun, hasUnreadCrashes)
                 runCatching { DiagnosticsJournal.record("boot_receiver", mapOf("action" to action, "decision" to decision.name)) }
                 Log.i("BootReceiver", "VPN restart: ${intent.action}, decision=${decision.name}")
                 when (decision) {
-                    ReceiverStartDecision.Start -> withContext(Dispatchers.Main) {
-                        BoxService.start(ServiceStartReason.Boot).join()
+                    ReceiverStartDecision.Start -> {
+                        withContext(Dispatchers.Main) {
+                            BoxService.start(ServiceStartReason.Boot).join()
+                        }
                     }
-                    ReceiverStartDecision.UnreadCrashReports -> Settings.shouldRun = false
-                    ReceiverStartDecision.NotRequested -> Unit
+                    ReceiverStartDecision.UnreadCrashReports -> {
+                        Settings.shouldRun = false
+                    }
+                    ReceiverStartDecision.NotRequested -> {
+                        Unit
+                    }
                 }
                 if (packageReplaced) {
                     ServerUpdates.initialize()

@@ -35,11 +35,15 @@ data class GroupsUiState(
 )
 
 sealed class GroupsEvent : ScreenEvent {
-    data class GroupSelected(val groupTag: String, val itemTag: String) : GroupsEvent()
+    data class GroupSelected(
+        val groupTag: String,
+        val itemTag: String,
+    ) : GroupsEvent()
 }
 
-class GroupsViewModel(private val sharedCommandClient: CommandClient? = null) :
-    BaseViewModel<GroupsUiState, GroupsEvent>(),
+class GroupsViewModel(
+    private val sharedCommandClient: CommandClient? = null,
+) : BaseViewModel<GroupsUiState, GroupsEvent>(),
     CommandClient.Handler {
     private val commandClient: CommandClient
     private val isUsingSharedClient: Boolean
@@ -72,8 +76,9 @@ class GroupsViewModel(private val sharedCommandClient: CommandClient? = null) :
                 _serviceStatus,
             ) { foreground, remoteServer, remoteConnected, status ->
                 SessionTarget(
-                    connect = foreground &&
-                        if (remoteServer != null) remoteConnected else status == Status.Started,
+                    connect =
+                        foreground &&
+                            if (remoteServer != null) remoteConnected else status == Status.Started,
                     remoteServerId = remoteServer?.id,
                 )
             }.distinctUntilChanged().collect { target ->
@@ -97,7 +102,10 @@ class GroupsViewModel(private val sharedCommandClient: CommandClient? = null) :
         }
     }
 
-    private data class SessionTarget(val connect: Boolean, val remoteServerId: Long?)
+    private data class SessionTarget(
+        val connect: Boolean,
+        val remoteServerId: Long?,
+    )
 
     override fun createInitialState() = GroupsUiState()
 
@@ -140,11 +148,12 @@ class GroupsViewModel(private val sharedCommandClient: CommandClient? = null) :
     fun toggleGroupExpand(groupTag: String) {
         val newExpanded = !uiState.value.expandedGroups.contains(groupTag)
         updateState {
-            val newExpandedGroups = if (newExpanded) {
-                expandedGroups + groupTag
-            } else {
-                expandedGroups - groupTag
-            }
+            val newExpandedGroups =
+                if (newExpanded) {
+                    expandedGroups + groupTag
+                } else {
+                    expandedGroups - groupTag
+                }
             copy(expandedGroups = newExpandedGroups)
         }
         viewModelScope.launch(Dispatchers.IO) {
@@ -176,7 +185,10 @@ class GroupsViewModel(private val sharedCommandClient: CommandClient? = null) :
         }
     }
 
-    fun selectGroupItem(groupTag: String, itemTag: String) {
+    fun selectGroupItem(
+        groupTag: String,
+        itemTag: String,
+    ) {
         // Check if this is actually a different selection
         val currentGroup = uiState.value.groups.find { it.tag == groupTag }
         if (currentGroup?.selected == itemTag) {
@@ -194,13 +206,13 @@ class GroupsViewModel(private val sharedCommandClient: CommandClient? = null) :
                     updateState {
                         copy(
                             groups =
-                            groups.map { group ->
-                                if (group.tag == groupTag) {
-                                    group.copy(selected = itemTag)
-                                } else {
-                                    group
-                                }
-                            },
+                                groups.map { group ->
+                                    if (group.tag == groupTag) {
+                                        group.copy(selected = itemTag)
+                                    } else {
+                                        group
+                                    }
+                                },
                             showCloseConnectionsSnackbar = true,
                         )
                     }
@@ -281,46 +293,50 @@ class GroupsViewModel(private val sharedCommandClient: CommandClient? = null) :
 
     override fun updateGroups(newGroups: MutableList<OutboundGroup>) {
         groupsUpdateJob?.cancel()
-        groupsUpdateJob = viewModelScope.launch(Dispatchers.Default) {
-            val currentGroups = uiState.value.groups
-            val currentByTag = currentGroups.associateBy { it.tag }
-            val mergedGroups = newGroups.map { goGroup ->
-                val converted = Group(goGroup)
-                val existing = currentByTag[converted.tag]
-                if (existing == converted) existing else converted
-            }
-            val smartNotices = withContext(Dispatchers.IO) {
-                buildMap {
-                    for (group in mergedGroups) {
-                        if (group.type != "smart") continue
-                        try {
-                            SmartJson.status(CommandTarget.standaloneClient().getSmartStatus(group.tag)).availabilityNotice()?.let {
-                                put(group.tag, it)
+        groupsUpdateJob =
+            viewModelScope.launch(Dispatchers.Default) {
+                val currentGroups = uiState.value.groups
+                val currentByTag = currentGroups.associateBy { it.tag }
+                val mergedGroups =
+                    newGroups.map { goGroup ->
+                        val converted = Group(goGroup)
+                        val existing = currentByTag[converted.tag]
+                        if (existing == converted) existing else converted
+                    }
+                val smartNotices =
+                    withContext(Dispatchers.IO) {
+                        buildMap {
+                            for (group in mergedGroups) {
+                                if (group.type != "smart") continue
+                                try {
+                                    SmartJson.status(CommandTarget.standaloneClient().getSmartStatus(group.tag)).availabilityNotice()?.let {
+                                        put(group.tag, it)
+                                    }
+                                } catch (error: CancellationException) {
+                                    throw error
+                                } catch (_: Exception) {
+                                    // Missing or incompatible status must not look like a network outage.
+                                }
                             }
-                        } catch (error: CancellationException) {
-                            throw error
-                        } catch (_: Exception) {
-                            // Missing or incompatible status must not look like a network outage.
                         }
                     }
-                }
-            }
 
-            withContext(Dispatchers.Main) {
-                updateState {
-                    val initialExpandedGroups = if (expandedGroups.isEmpty() && currentGroups.isEmpty()) {
-                        mergedGroups.filter { it.isExpand }.map { it.tag }.toSet()
-                    } else {
-                        expandedGroups
+                withContext(Dispatchers.Main) {
+                    updateState {
+                        val initialExpandedGroups =
+                            if (expandedGroups.isEmpty() && currentGroups.isEmpty()) {
+                                mergedGroups.filter { it.isExpand }.map { it.tag }.toSet()
+                            } else {
+                                expandedGroups
+                            }
+                        copy(
+                            groups = if (mergedGroups == groups) groups else mergedGroups,
+                            expandedGroups = initialExpandedGroups,
+                            isLoading = false,
+                            smartNotices = smartNotices,
+                        )
                     }
-                    copy(
-                        groups = if (mergedGroups == groups) groups else mergedGroups,
-                        expandedGroups = initialExpandedGroups,
-                        isLoading = false,
-                        smartNotices = smartNotices,
-                    )
                 }
             }
-        }
     }
 }

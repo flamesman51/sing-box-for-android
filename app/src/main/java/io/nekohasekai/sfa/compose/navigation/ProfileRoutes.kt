@@ -1,6 +1,10 @@
 package io.nekohasekai.sfa.compose.navigation
 
-data class NewProfileArgs(val importName: String? = null, val importUrl: String? = null, val qrsData: ByteArray? = null)
+data class NewProfileArgs(
+    val importName: String? = null,
+    val importUrl: String? = null,
+    val qrsData: ByteArray? = null,
+)
 
 object ProfileRoutes {
     const val NewProfile = "profile/new"

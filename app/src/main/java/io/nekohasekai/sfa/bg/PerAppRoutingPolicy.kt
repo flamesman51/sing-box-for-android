@@ -24,12 +24,18 @@ fun resolvePerAppRouting(
         }
     }
     return when {
-        configInclude.isNotEmpty() -> PerAppRoutingDecision(
-            PerAppRoutingMode.Include,
-            configInclude + ownPackage,
-            conflictingConfig = configExclude.isNotEmpty(),
-        )
-        configExclude.isNotEmpty() -> PerAppRoutingDecision(PerAppRoutingMode.Exclude, configExclude - ownPackage)
-        else -> PerAppRoutingDecision(PerAppRoutingMode.All, emptySet())
+        configInclude.isNotEmpty() -> {
+            PerAppRoutingDecision(
+                PerAppRoutingMode.Include,
+                configInclude + ownPackage,
+                conflictingConfig = configExclude.isNotEmpty(),
+            )
+        }
+        configExclude.isNotEmpty() -> {
+            PerAppRoutingDecision(PerAppRoutingMode.Exclude, configExclude - ownPackage)
+        }
+        else -> {
+            PerAppRoutingDecision(PerAppRoutingMode.All, emptySet())
+        }
     }
 }

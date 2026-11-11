@@ -30,15 +30,16 @@ class DiagnosticsOwnershipTest {
         val writes = ArrayDeque<Runnable>()
         var selected = firstProfile
         var captures = 0
-        val journal = DiagnosticsOwnership(
-            { store },
-            Executor { writes.addLast(it) },
-            {
-                captures++
-                selected
-            },
-            { if (it == firstProfile) firstDestination else secondDestination },
-        )
+        val journal =
+            DiagnosticsOwnership(
+                { store },
+                Executor { writes.addLast(it) },
+                {
+                    captures++
+                    selected
+                },
+                { if (it == firstProfile) firstDestination else secondDestination },
+            )
         val detail = mutableMapOf<String, Any?>("version_code" to 123, "message" to "private.example secret")
 
         journal.record("process_start", detail)
@@ -52,13 +53,23 @@ class DiagnosticsOwnershipTest {
         while (writes.isNotEmpty()) writes.removeFirst().run()
 
         val batch = store.prepare(firstDestination.owner, JsonObject(emptyMap()), null, emptyList())!!
-        val event = batch.envelope.array("events").single().jsonObject
+        val event =
+            batch.envelope
+                .array("events")
+                .single()
+                .jsonObject
         assertEquals("process_start", event.string("kind"))
         assertEquals("123", event.obj("detail")!!.string("version_code"))
         assertFalse(batch.body.contains("private.example"))
         assertFalse(batch.body.contains("secret"))
         assertEquals(1, captures)
-        assertTrue(store.prepare(secondDestination.owner, JsonObject(emptyMap()), null, emptyList())!!.envelope.array("events").isEmpty())
+        assertTrue(
+            store
+                .prepare(secondDestination.owner, JsonObject(emptyMap()), null, emptyList())!!
+                .envelope
+                .array("events")
+                .isEmpty(),
+        )
     }
 
     @Test
@@ -66,13 +77,14 @@ class DiagnosticsOwnershipTest {
         val store = DiagnosticsStore(temporary.newFolder())
         var destination: DiagnosticsDestination? = null
         var discoveries = 0
-        val journal = DiagnosticsOwnership(
-            { store },
-            Executor { it.run() },
-            { firstProfile },
-            { destination },
-            { discoveries++ },
-        )
+        val journal =
+            DiagnosticsOwnership(
+                { store },
+                Executor { it.run() },
+                { firstProfile },
+                { destination },
+                { discoveries++ },
+            )
 
         journal.reportFound("crash_report", "crash-1")
         journal.preferencesReady()
@@ -95,12 +107,13 @@ class DiagnosticsOwnershipTest {
         val store = DiagnosticsStore(temporary.newFolder())
         val writes = ArrayDeque<Runnable>()
         var selected = firstProfile
-        val journal = DiagnosticsOwnership(
-            { store },
-            Executor { writes.addLast(it) },
-            { selected },
-            { if (it == firstProfile) firstDestination else secondDestination },
-        )
+        val journal =
+            DiagnosticsOwnership(
+                { store },
+                Executor { writes.addLast(it) },
+                { selected },
+                { if (it == firstProfile) firstDestination else secondDestination },
+            )
         journal.preferencesReady()
         journal.record("vpn_start", mapOf("reason" to "User"))
         journal.reportFound("crash_report", "crash-1")
@@ -121,12 +134,13 @@ class DiagnosticsOwnershipTest {
         val store = DiagnosticsStore(temporary.newFolder())
         var selected = firstProfile
         var available: DiagnosticsDestination? = null
-        val journal = DiagnosticsOwnership(
-            { store },
-            Executor { it.run() },
-            { selected },
-            { available },
-        )
+        val journal =
+            DiagnosticsOwnership(
+                { store },
+                Executor { it.run() },
+                { selected },
+                { available },
+            )
         journal.preferencesReady()
         journal.record("vpn_start", mapOf("reason" to "User"))
         journal.reportFound("crash_report", "crash-1")
@@ -151,12 +165,13 @@ class DiagnosticsOwnershipTest {
     @Test
     fun explicitAssociationSurvivesReadinessAndMissingSourceNeverFallsBackToSelection() {
         val store = DiagnosticsStore(temporary.newFolder())
-        val journal = DiagnosticsOwnership(
-            { store },
-            Executor { it.run() },
-            { secondProfile },
-            { if (it == firstProfile) firstDestination else secondDestination },
-        )
+        val journal =
+            DiagnosticsOwnership(
+                { store },
+                Executor { it.run() },
+                { secondProfile },
+                { if (it == firstProfile) firstDestination else secondDestination },
+            )
         journal.record("vpn_stop", mapOf("reason" to "User"), firstProfile)
         journal.record("vpn_start_failed", emptyMap(), DiagnosticsProfile(1, null))
         assertEquals(0, store.eventCount())
@@ -167,7 +182,13 @@ class DiagnosticsOwnershipTest {
         val first = store.prepare(firstDestination.owner, JsonObject(emptyMap()), null, emptyList())!!
         assertEquals(listOf("vpn_stop"), first.envelope.array("events").map { it.jsonObject.string("kind") })
         assertEquals(2, store.eventCount())
-        assertTrue(store.prepare(secondDestination.owner, JsonObject(emptyMap()), null, emptyList())!!.envelope.array("events").isEmpty())
+        assertTrue(
+            store
+                .prepare(secondDestination.owner, JsonObject(emptyMap()), null, emptyList())!!
+                .envelope
+                .array("events")
+                .isEmpty(),
+        )
     }
 
     @Test
@@ -183,12 +204,32 @@ class DiagnosticsOwnershipTest {
             val reopened = DiagnosticsStore(directory)
             assertEquals(1000, reopened.eventCount())
             val entries = reopened.eventsFile.readLines().map { Json.parseToJsonElement(it).jsonObject }
-            assertEquals("100", entries.first().obj("event")!!.obj("detail")!!.string("version_code"))
-            assertEquals("1099", entries.last().obj("event")!!.obj("detail")!!.string("version_code"))
+            assertEquals(
+                "100",
+                entries
+                    .first()
+                    .obj("event")!!
+                    .obj("detail")!!
+                    .string("version_code"),
+            )
+            assertEquals(
+                "1099",
+                entries
+                    .last()
+                    .obj("event")!!
+                    .obj("detail")!!
+                    .string("version_code"),
+            )
             assertTrue(entries.all { it.string("owner") == profile.localOwner })
             assertFalse(reopened.eventsFile.readText().contains("https://"))
             assertTrue(reopened.eventsFile.length() <= 512 * 1024)
-            assertTrue(reopened.prepare(firstDestination.owner, JsonObject(emptyMap()), null, emptyList())!!.envelope.array("events").isEmpty())
+            assertTrue(
+                reopened
+                    .prepare(firstDestination.owner, JsonObject(emptyMap()), null, emptyList())!!
+                    .envelope
+                    .array("events")
+                    .isEmpty(),
+            )
         }
     }
 
@@ -198,12 +239,13 @@ class DiagnosticsOwnershipTest {
         val store = DiagnosticsStore(directory)
         val writes = ArrayDeque<Runnable>()
         var selected: DiagnosticsProfile? = null
-        val journal = DiagnosticsOwnership(
-            { store },
-            Executor { writes.addLast(it) },
-            { selected },
-            { if (it == firstProfile) firstDestination else secondDestination },
-        )
+        val journal =
+            DiagnosticsOwnership(
+                { store },
+                Executor { writes.addLast(it) },
+                { selected },
+                { if (it == firstProfile) firstDestination else secondDestination },
+            )
         journal.record("process_start", emptyMap())
         assertTrue(writes.isEmpty())
         journal.preferencesReady()
@@ -213,7 +255,13 @@ class DiagnosticsOwnershipTest {
 
         val reopened = DiagnosticsStore(directory)
         assertEquals(1, reopened.eventCount())
-        assertTrue(reopened.prepare(secondDestination.owner, JsonObject(emptyMap()), null, emptyList())!!.envelope.array("events").isEmpty())
+        assertTrue(
+            reopened
+                .prepare(secondDestination.owner, JsonObject(emptyMap()), null, emptyList())!!
+                .envelope
+                .array("events")
+                .isEmpty(),
+        )
         assertFalse(reopened.eventsFile.readText().contains("https://"))
     }
 
@@ -223,13 +271,14 @@ class DiagnosticsOwnershipTest {
         var selected = firstProfile
         var available: DiagnosticsDestination? = null
         var discoveries = 0
-        fun journal(store: DiagnosticsStore) = DiagnosticsOwnership(
-            { store },
-            Executor { it.run() },
-            { selected },
-            { available },
-            { discoveries++ },
-        ).apply { preferencesReady() }
+        fun journal(store: DiagnosticsStore) =
+            DiagnosticsOwnership(
+                { store },
+                Executor { it.run() },
+                { selected },
+                { available },
+                { discoveries++ },
+            ).apply { preferencesReady() }
         val initial = DiagnosticsStore(directory)
         journal(initial).reportFound("crash_report", "private-crash-id")
         assertEquals(1, initial.eventCount())
@@ -256,7 +305,14 @@ class DiagnosticsOwnershipTest {
         assertEquals(1, reopened.eventCount())
         assertEquals(1, discoveries)
         assertEquals(setOf(DiagnosticsStore.crashKey("crash_report", "private-crash-id")), reopened.unsentDiscoveries(firstDestination.owner))
-        assertEquals(1, reopened.prepare(firstDestination.owner, JsonObject(emptyMap()), null, emptyList(), firstDestination.association)!!.envelope.array("events").size)
+        assertEquals(
+            1,
+            reopened
+                .prepare(firstDestination.owner, JsonObject(emptyMap()), null, emptyList(), firstDestination.association)!!
+                .envelope
+                .array("events")
+                .size,
+        )
         assertFalse(directory.walkTopDown().filter { it.isFile }.any { it.readText().contains("https://") || it.readText().contains("private-crash-id") })
     }
 
@@ -287,7 +343,13 @@ class DiagnosticsOwnershipTest {
         val second = reopened.prepare(secondDestination.owner, JsonObject(emptyMap()), null, emptyList(), secondDestination.association)!!
         assertEquals(listOf("core_ready"), second.envelope.array("events").map { it.jsonObject.string("kind") })
         val replacement = firstDestination.copy(url = "https://first.example/new-report")
-        assertTrue(reopened.prepare(replacement.owner, JsonObject(emptyMap()), null, emptyList(), replacement.association)!!.envelope.array("events").isEmpty())
+        assertTrue(
+            reopened
+                .prepare(replacement.owner, JsonObject(emptyMap()), null, emptyList(), replacement.association)!!
+                .envelope
+                .array("events")
+                .isEmpty(),
+        )
         val restarted = DiagnosticsStore(directory)
         assertEquals(first.body, restarted.pending(firstDestination.owner)!!.body)
         assertEquals(DiagnosticsStore.Outcome.ACKNOWLEDGED, restarted.respond(firstDestination.owner, first.id, 200))
@@ -303,18 +365,19 @@ class DiagnosticsOwnershipTest {
         val writes = ArrayDeque<Runnable>()
         var rejecting = true
         var selected = firstProfile
-        val journal = DiagnosticsOwnership(
-            {
-                storageThreads += Thread.currentThread()
-                store
-            },
-            Executor {
-                if (rejecting) throw java.util.concurrent.RejectedExecutionException("saturated")
-                writes.addLast(it)
-            },
-            { selected },
-            { if (it == firstProfile) firstDestination else secondDestination },
-        )
+        val journal =
+            DiagnosticsOwnership(
+                {
+                    storageThreads += Thread.currentThread()
+                    store
+                },
+                Executor {
+                    if (rejecting) throw java.util.concurrent.RejectedExecutionException("saturated")
+                    writes.addLast(it)
+                },
+                { selected },
+                { if (it == firstProfile) firstDestination else secondDestination },
+            )
         journal.record("process_start", emptyMap())
         journal.preferencesReady()
         journal.record("core_ready", emptyMap())
@@ -333,7 +396,13 @@ class DiagnosticsOwnershipTest {
         assertFalse(storageThreads.contains(lifecycleThread))
         val first = store.prepare(firstDestination.owner, JsonObject(emptyMap()), null, emptyList())!!
         assertEquals(listOf("process_start", "core_ready", "oom_report"), first.envelope.array("events").map { it.jsonObject.string("kind") })
-        assertTrue(store.prepare(secondDestination.owner, JsonObject(emptyMap()), null, emptyList())!!.envelope.array("events").isEmpty())
+        assertTrue(
+            store
+                .prepare(secondDestination.owner, JsonObject(emptyMap()), null, emptyList())!!
+                .envelope
+                .array("events")
+                .isEmpty(),
+        )
     }
 
     @Test
@@ -341,15 +410,16 @@ class DiagnosticsOwnershipTest {
         val store = DiagnosticsStore(temporary.newFolder())
         var failing = true
         val writes = ArrayDeque<Runnable>()
-        val journal = DiagnosticsOwnership(
-            { store },
-            Executor {
-                if (failing) throw IllegalStateException("writer unavailable")
-                writes.addLast(it)
-            },
-            { firstProfile },
-            { firstDestination },
-        )
+        val journal =
+            DiagnosticsOwnership(
+                { store },
+                Executor {
+                    if (failing) throw IllegalStateException("writer unavailable")
+                    writes.addLast(it)
+                },
+                { firstProfile },
+                { firstDestination },
+            )
         journal.record("process_start", emptyMap())
         journal.preferencesReady()
         journal.record("core_ready", emptyMap())
@@ -374,12 +444,13 @@ class DiagnosticsOwnershipTest {
         val replacementSource = "https://first.example/replaced"
         val replacementDestination = firstDestination.copy(source = replacementSource)
         val writes = ArrayDeque<Runnable>()
-        val journal = DiagnosticsOwnership(
-            { store },
-            Executor { writes.addLast(it) },
-            { DiagnosticsProfile(firstProfile.id, null, sources.capture(firstProfile.id)) },
-            { if (it.source == firstProfile.source) firstDestination else replacementDestination },
-        )
+        val journal =
+            DiagnosticsOwnership(
+                { store },
+                Executor { writes.addLast(it) },
+                { DiagnosticsProfile(firstProfile.id, null, sources.capture(firstProfile.id)) },
+                { if (it.source == firstProfile.source) firstDestination else replacementDestination },
+            )
         journal.preferencesReady()
         journal.record("process_start", emptyMap())
         journal.reportFound("crash_report", "crash-1")
@@ -403,31 +474,35 @@ class DiagnosticsOwnershipTest {
         val store = DiagnosticsStore(temporary.newFolder())
         val access = Any()
         var reads = 0
-        val sources = DiagnosticsSources(access) {
-            reads++
-            firstProfile.source
-        }
+        val sources =
+            DiagnosticsSources(access) {
+                reads++
+                firstProfile.source
+            }
         val writes = ArrayDeque<Runnable>()
-        val journal = DiagnosticsOwnership(
-            { store },
-            Executor { writes.addLast(it) },
-            { DiagnosticsProfile(firstProfile.id, null, sources.capture(firstProfile.id)) },
-            { firstDestination },
-        )
+        val journal =
+            DiagnosticsOwnership(
+                { store },
+                Executor { writes.addLast(it) },
+                { DiagnosticsProfile(firstProfile.id, null, sources.capture(firstProfile.id)) },
+                { firstDestination },
+            )
         journal.preferencesReady()
         val locked = CountDownLatch(1)
         val release = CountDownLatch(1)
         val captured = CountDownLatch(1)
-        val storage = Thread {
-            synchronized(access) {
-                locked.countDown()
-                release.await()
+        val storage =
+            Thread {
+                synchronized(access) {
+                    locked.countDown()
+                    release.await()
+                }
             }
-        }
-        val lifecycle = Thread {
-            journal.record("core_ready", emptyMap())
-            captured.countDown()
-        }
+        val lifecycle =
+            Thread {
+                journal.record("core_ready", emptyMap())
+                captured.countDown()
+            }
         storage.start()
         var capturedWithoutStorage = false
         try {
@@ -452,12 +527,13 @@ class DiagnosticsOwnershipTest {
         val store = DiagnosticsStore(temporary.newFolder())
         var failing = true
         var selected = firstProfile
-        val journal = DiagnosticsOwnership(
-            { if (failing) throw IllegalStateException("storage unavailable") else store },
-            Executor { it.run() },
-            { selected },
-            { if (it == firstProfile) firstDestination else secondDestination },
-        )
+        val journal =
+            DiagnosticsOwnership(
+                { if (failing) throw IllegalStateException("storage unavailable") else store },
+                Executor { it.run() },
+                { selected },
+                { if (it == firstProfile) firstDestination else secondDestination },
+            )
         journal.preferencesReady()
         journal.record("core_ready", emptyMap())
         journal.reportFound("oom_report", "oom-1")
@@ -471,7 +547,13 @@ class DiagnosticsOwnershipTest {
         assertFalse(journal.hasPending())
         val first = store.prepare(firstDestination.owner, JsonObject(emptyMap()), null, emptyList())!!
         assertEquals(listOf("core_ready", "oom_report"), first.envelope.array("events").map { it.jsonObject.string("kind") })
-        assertTrue(store.prepare(secondDestination.owner, JsonObject(emptyMap()), null, emptyList())!!.envelope.array("events").isEmpty())
+        assertTrue(
+            store
+                .prepare(secondDestination.owner, JsonObject(emptyMap()), null, emptyList())!!
+                .envelope
+                .array("events")
+                .isEmpty(),
+        )
     }
 
     @Test
@@ -481,12 +563,13 @@ class DiagnosticsOwnershipTest {
         store.record(firstDestination.owner, DiagnosticsProjection.event("crash_report", emptyMap()))
         store.discover(firstDestination.owner, "crash_report", "legacy-crash")
         val reopened = DiagnosticsStore(directory)
-        val journal = DiagnosticsOwnership(
-            { reopened },
-            Executor { it.run() },
-            { firstProfile },
-            { firstDestination },
-        )
+        val journal =
+            DiagnosticsOwnership(
+                { reopened },
+                Executor { it.run() },
+                { firstProfile },
+                { firstDestination },
+            )
         journal.preferencesReady()
         journal.reportFound("crash_report", "legacy-crash")
 

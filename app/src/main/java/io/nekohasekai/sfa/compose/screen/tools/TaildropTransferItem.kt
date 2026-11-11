@@ -33,9 +33,10 @@ fun TaildropTransferItem(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(
@@ -67,14 +68,16 @@ fun TaildropTransferItem(
                 ) {
                     Icon(
                         Icons.Default.Close,
-                        contentDescription = stringResource(
-                            if (finished) R.string.taildrop_dismiss else android.R.string.cancel,
-                        ),
-                        tint = if (finished) {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        } else {
-                            MaterialTheme.colorScheme.error
-                        },
+                        contentDescription =
+                            stringResource(
+                                if (finished) R.string.taildrop_dismiss else android.R.string.cancel,
+                            ),
+                        tint =
+                            if (finished) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.error
+                            },
                     )
                 }
             }
@@ -101,11 +104,12 @@ private fun transferSubtitle(
     totalBytes: Long,
     finished: Boolean,
 ): String {
-    val progress = when {
-        totalBytes < 0 -> Libbox.formatBytes(transferredBytes)
-        finished && transferredBytes >= totalBytes -> Libbox.formatBytes(totalBytes)
-        else -> "${Libbox.formatBytes(transferredBytes)} / ${Libbox.formatBytes(totalBytes)}"
-    }
+    val progress =
+        when {
+            totalBytes < 0 -> Libbox.formatBytes(transferredBytes)
+            finished && transferredBytes >= totalBytes -> Libbox.formatBytes(totalBytes)
+            else -> "${Libbox.formatBytes(transferredBytes)} / ${Libbox.formatBytes(totalBytes)}"
+        }
     if (peerLabel.isEmpty()) {
         return progress
     }

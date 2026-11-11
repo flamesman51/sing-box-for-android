@@ -47,15 +47,19 @@ data class OpenConnectBrowserRequestData(
 ) {
     val completionMode: OpenConnectBrowserCompletionMode
         get() {
-            val callbackValid = callbackURLPrefixes.isNotEmpty() && callbackURLPrefixes.all(String::isNotEmpty) &&
-                callbackURLPrefixes.toSet().size == callbackURLPrefixes.size
-            val cookieNamesValid = cookieNames.isNotEmpty() && cookieNames.all(String::isNotEmpty) &&
-                cookieNames.toSet().size == cookieNames.size
-            val earlyCookieNamesValid = earlyCookieNames.all(String::isNotEmpty) &&
-                earlyCookieNames.toSet().size == earlyCookieNames.size &&
-                cookieNames.toSet().intersect(earlyCookieNames.toSet()).isEmpty()
-            val headerNamesValid = headerNames.isNotEmpty() && headerNames.all(String::isNotEmpty) &&
-                headerNames.map(String::lowercase).toSet().size == headerNames.size
+            val callbackValid =
+                callbackURLPrefixes.isNotEmpty() && callbackURLPrefixes.all(String::isNotEmpty) &&
+                    callbackURLPrefixes.toSet().size == callbackURLPrefixes.size
+            val cookieNamesValid =
+                cookieNames.isNotEmpty() && cookieNames.all(String::isNotEmpty) &&
+                    cookieNames.toSet().size == cookieNames.size
+            val earlyCookieNamesValid =
+                earlyCookieNames.all(String::isNotEmpty) &&
+                    earlyCookieNames.toSet().size == earlyCookieNames.size &&
+                    cookieNames.toSet().intersect(earlyCookieNames.toSet()).isEmpty()
+            val headerNamesValid =
+                headerNames.isNotEmpty() && headerNames.all(String::isNotEmpty) &&
+                    headerNames.map(String::lowercase).toSet().size == headerNames.size
             return when {
                 callbackValid && finalURL.isEmpty() && cookieNames.isEmpty() && earlyCookieNames.isEmpty() && headerNames.isEmpty() -> OpenConnectBrowserCompletionMode.CALLBACK
                 callbackURLPrefixes.isEmpty() && finalURL.isNotEmpty() && cookieNamesValid && earlyCookieNamesValid && headerNames.isEmpty() -> OpenConnectBrowserCompletionMode.COOKIE
@@ -174,21 +178,30 @@ class OpenConnectStatusViewModel : BaseViewModel<OpenConnectStatusState, Nothing
 
     fun endpoint(tag: String): OpenConnectEndpointData? = currentState.endpoints.firstOrNull { it.endpointTag == tag }
 
-    suspend fun submitAuthFormResponse(endpointTag: String, challengeID: String, values: Map<String, String>): String? = withContext(Dispatchers.IO) {
-        try {
-            val formValues = Libbox.newOpenConnectFormValues()
-            for ((key, value) in values) {
-                formValues.add(key, value)
+    suspend fun submitAuthFormResponse(
+        endpointTag: String,
+        challengeID: String,
+        values: Map<String, String>,
+    ): String? =
+        withContext(Dispatchers.IO) {
+            try {
+                val formValues = Libbox.newOpenConnectFormValues()
+                for ((key, value) in values) {
+                    formValues.add(key, value)
+                }
+                val response = Libbox.newOpenConnectAuthFormResponse(formValues)
+                CommandTarget.standaloneClient().submitOpenConnectAuthResponse(endpointTag, challengeID, response)
+                null
+            } catch (e: Exception) {
+                e.message ?: "submit auth form failed"
             }
-            val response = Libbox.newOpenConnectAuthFormResponse(formValues)
-            CommandTarget.standaloneClient().submitOpenConnectAuthResponse(endpointTag, challengeID, response)
-            null
-        } catch (e: Exception) {
-            e.message ?: "submit auth form failed"
         }
-    }
 
-    fun submitBrowserResponse(endpointTag: String, challengeID: String, result: OpenConnectBrowserResultData) {
+    fun submitBrowserResponse(
+        endpointTag: String,
+        challengeID: String,
+        result: OpenConnectBrowserResultData,
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val browserResult = Libbox.newOpenConnectBrowserResult(result.finalURL)
@@ -203,7 +216,10 @@ class OpenConnectStatusViewModel : BaseViewModel<OpenConnectStatusState, Nothing
         }
     }
 
-    fun cancelAuthChallenge(endpointTag: String, challengeID: String) {
+    fun cancelAuthChallenge(
+        endpointTag: String,
+        challengeID: String,
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 CommandTarget.standaloneClient().cancelOpenConnectAuthChallenge(endpointTag, challengeID)
@@ -276,34 +292,36 @@ class OpenConnectStatusViewModel : BaseViewModel<OpenConnectStatusState, Nothing
             message = challenge.message,
             error = challenge.error,
             form = if (form != null) OpenConnectAuthFormData(fields) else null,
-            browser = if (browser != null) {
-                OpenConnectBrowserRequestData(
-                    url = browser.url,
-                    finalURL = browser.finalURL,
-                    cacheID = browser.cacheID,
-                    cookieNames = browser.cookieNames().toList(),
-                    earlyCookieNames = browser.earlyCookieNames().toList(),
-                    headerNames = browser.headerNames().toList(),
-                    callbackURLPrefixes = browser.callbackURLPrefixes().toList(),
-                )
-            } else {
-                null
-            },
+            browser =
+                if (browser != null) {
+                    OpenConnectBrowserRequestData(
+                        url = browser.url,
+                        finalURL = browser.finalURL,
+                        cacheID = browser.cacheID,
+                        cookieNames = browser.cookieNames().toList(),
+                        earlyCookieNames = browser.earlyCookieNames().toList(),
+                        headerNames = browser.headerNames().toList(),
+                        callbackURLPrefixes = browser.callbackURLPrefixes().toList(),
+                    )
+                } else {
+                    null
+                },
         )
     }
 
     private fun convertTunnelInfo(
         info: io.nekohasekai.libbox.OpenConnectTunnelInfo,
-    ): OpenConnectTunnelInfoData = OpenConnectTunnelInfoData(
-        server = info.server,
-        flavor = info.flavor,
-        transport = info.transport,
-        ipv4 = info.iPv4().toList(),
-        ipv6 = info.iPv6().toList(),
-        dns = info.dns().toList(),
-        mtu = info.mtu,
-        connectedSince = info.connectedSince,
-    )
+    ): OpenConnectTunnelInfoData =
+        OpenConnectTunnelInfoData(
+            server = info.server,
+            flavor = info.flavor,
+            transport = info.transport,
+            ipv4 = info.iPv4().toList(),
+            ipv6 = info.iPv6().toList(),
+            dns = info.dns().toList(),
+            mtu = info.mtu,
+            connectedSince = info.connectedSince,
+        )
 
     private fun io.nekohasekai.libbox.StringIterator.toList(): List<String> {
         val values = mutableListOf<String>()

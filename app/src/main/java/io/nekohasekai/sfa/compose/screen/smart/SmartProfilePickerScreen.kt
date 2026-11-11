@@ -46,18 +46,22 @@ import kotlinx.serialization.json.jsonPrimitive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SmartProfilePickerScreen(navController: NavController, serviceStatus: Status) {
+fun SmartProfilePickerScreen(
+    navController: NavController,
+    serviceStatus: Status,
+) {
     val notifyApplyChange = rememberApplyServiceChangeNotifier(serviceStatus)
     val stored = remember { Settings.smartPolicy }
     val catalog = remember { runCatching { smartProfileCatalog() } }
     var error by remember { mutableStateOf(catalog.exceptionOrNull()?.localizedMessage) }
-    val selected = if (stored.isEmpty()) {
-        ""
-    } else if (smartPolicyIsCustom(stored)) {
-        "custom"
-    } else {
-        smartPolicyBase(stored)
-    }
+    val selected =
+        if (stored.isEmpty()) {
+            ""
+        } else if (smartPolicyIsCustom(stored)) {
+            "custom"
+        } else {
+            smartPolicyBase(stored)
+        }
     OverrideTopBar {
         TopAppBar(
             title = { Text(stringResource(R.string.smart_selection_profile)) },
@@ -113,13 +117,22 @@ fun SmartProfilePickerScreen(navController: NavController, serviceStatus: Status
 }
 
 @Composable
-private fun SmartProfileHeader(resource: Int, spaced: Boolean) {
+private fun SmartProfileHeader(
+    resource: Int,
+    spaced: Boolean,
+) {
     if (spaced) Spacer(Modifier.height(16.dp))
     Text(stringResource(resource), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp))
 }
 
 @Composable
-private fun SmartProfileChoice(name: String, description: String, selected: Boolean, custom: Boolean = false, onClick: () -> Unit) {
+private fun SmartProfileChoice(
+    name: String,
+    description: String,
+    selected: Boolean,
+    custom: Boolean = false,
+    onClick: () -> Unit,
+) {
     ListItem(
         headlineContent = { Text(smartProfileLabel(name), style = MaterialTheme.typography.bodyLarge) },
         supportingContent = { Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) },
@@ -131,27 +144,28 @@ private fun SmartProfileChoice(name: String, description: String, selected: Bool
 }
 
 @Composable
-internal fun smartProfileLabel(name: String): String = when (name) {
-    "" -> stringResource(R.string.smart_profile_from)
-    "default" -> stringResource(R.string.smart_profile_classic)
-    "stability-downtime" -> stringResource(R.string.smart_profile_always_online)
-    "stability-connections" -> stringResource(R.string.smart_profile_connections)
-    "balance-speed-720p" -> stringResource(R.string.smart_profile_balanced, "720p")
-    "balance-speed-1080p" -> stringResource(R.string.smart_profile_balanced, "1080p")
-    "balance-speed-1440p" -> stringResource(R.string.smart_profile_balanced, "1440p")
-    "balance-speed-4k" -> stringResource(R.string.smart_profile_balanced, "4K")
-    "speed-max" -> stringResource(R.string.smart_profile_fastest)
-    "speed-upload" -> stringResource(R.string.smart_profile_fastest_upload)
-    "responsive" -> stringResource(R.string.smart_profile_responsive)
-    "realtime-calls" -> stringResource(R.string.smart_profile_calls)
-    "realtime-gaming" -> stringResource(R.string.smart_profile_gaming)
-    "data-saver" -> stringResource(R.string.smart_profile_data_saver)
-    "phone" -> stringResource(R.string.smart_profile_phone)
-    "desktop" -> stringResource(R.string.smart_profile_desktop)
-    "server" -> stringResource(R.string.smart_profile_server)
-    "custom" -> stringResource(R.string.smart_profile_custom)
-    else -> name
-}
+internal fun smartProfileLabel(name: String): String =
+    when (name) {
+        "" -> stringResource(R.string.smart_profile_from)
+        "default" -> stringResource(R.string.smart_profile_classic)
+        "stability-downtime" -> stringResource(R.string.smart_profile_always_online)
+        "stability-connections" -> stringResource(R.string.smart_profile_connections)
+        "balance-speed-720p" -> stringResource(R.string.smart_profile_balanced, "720p")
+        "balance-speed-1080p" -> stringResource(R.string.smart_profile_balanced, "1080p")
+        "balance-speed-1440p" -> stringResource(R.string.smart_profile_balanced, "1440p")
+        "balance-speed-4k" -> stringResource(R.string.smart_profile_balanced, "4K")
+        "speed-max" -> stringResource(R.string.smart_profile_fastest)
+        "speed-upload" -> stringResource(R.string.smart_profile_fastest_upload)
+        "responsive" -> stringResource(R.string.smart_profile_responsive)
+        "realtime-calls" -> stringResource(R.string.smart_profile_calls)
+        "realtime-gaming" -> stringResource(R.string.smart_profile_gaming)
+        "data-saver" -> stringResource(R.string.smart_profile_data_saver)
+        "phone" -> stringResource(R.string.smart_profile_phone)
+        "desktop" -> stringResource(R.string.smart_profile_desktop)
+        "server" -> stringResource(R.string.smart_profile_server)
+        "custom" -> stringResource(R.string.smart_profile_custom)
+        else -> name
+    }
 
 @Composable
 internal fun smartRunningProfileLabel(preference: SmartPreference?): String {
@@ -160,29 +174,64 @@ internal fun smartRunningProfileLabel(preference: SmartPreference?): String {
     return if (preference.custom) stringResource(R.string.smart_profile_custom_based, base) else base
 }
 
-internal fun smartProfileSection(name: String): Int? = when {
-    name.startsWith("stability-") -> R.string.smart_profile_section_stability
-    name.startsWith("balance-speed-") -> R.string.smart_profile_section_video
-    name == "speed-max" || name == "speed-upload" || name == "responsive" -> R.string.smart_profile_section_speed
-    name.startsWith("realtime-") -> R.string.smart_profile_section_realtime
-    name == "data-saver" -> R.string.smart_profile_section_saving
-    name == "phone" || name == "desktop" || name == "server" -> R.string.smart_profile_section_devices
-    else -> null
-}
+internal fun smartProfileSection(name: String): Int? =
+    when {
+        name.startsWith("stability-") -> R.string.smart_profile_section_stability
+        name.startsWith("balance-speed-") -> R.string.smart_profile_section_video
+        name == "speed-max" || name == "speed-upload" || name == "responsive" -> R.string.smart_profile_section_speed
+        name.startsWith("realtime-") -> R.string.smart_profile_section_realtime
+        name == "data-saver" -> R.string.smart_profile_section_saving
+        name == "phone" || name == "desktop" || name == "server" -> R.string.smart_profile_section_devices
+        else -> null
+    }
 
 @Composable
-private fun smartProfileDescription(profile: SmartProfileEntry): String = when (profile.name) {
-    "default" -> stringResource(R.string.smart_profile_classic_description)
-    "stability-downtime" -> stringResource(R.string.smart_profile_always_online_description)
-    "stability-connections" -> stringResource(R.string.smart_profile_connections_description)
-    "speed-max" -> stringResource(R.string.smart_profile_fastest_description)
-    "speed-upload" -> stringResource(R.string.smart_profile_fastest_upload_description)
-    "responsive" -> stringResource(R.string.smart_profile_responsive_description)
-    "realtime-calls" -> stringResource(R.string.smart_profile_calls_description)
-    "realtime-gaming" -> stringResource(R.string.smart_profile_gaming_description)
-    "data-saver" -> stringResource(R.string.smart_profile_data_saver_description)
-    "phone" -> smartProfileLabel("balance-speed-1080p")
-    "desktop" -> smartProfileLabel("balance-speed-4k")
-    "server" -> stringResource(R.string.smart_profile_server_description)
-    else -> stringResource(R.string.smart_profile_balanced_description, profile.policy.getValue("throughput").jsonObject.getValue("target_mbps").jsonPrimitive.content)
-}
+private fun smartProfileDescription(profile: SmartProfileEntry): String =
+    when (profile.name) {
+        "default" -> {
+            stringResource(R.string.smart_profile_classic_description)
+        }
+        "stability-downtime" -> {
+            stringResource(R.string.smart_profile_always_online_description)
+        }
+        "stability-connections" -> {
+            stringResource(R.string.smart_profile_connections_description)
+        }
+        "speed-max" -> {
+            stringResource(R.string.smart_profile_fastest_description)
+        }
+        "speed-upload" -> {
+            stringResource(R.string.smart_profile_fastest_upload_description)
+        }
+        "responsive" -> {
+            stringResource(R.string.smart_profile_responsive_description)
+        }
+        "realtime-calls" -> {
+            stringResource(R.string.smart_profile_calls_description)
+        }
+        "realtime-gaming" -> {
+            stringResource(R.string.smart_profile_gaming_description)
+        }
+        "data-saver" -> {
+            stringResource(R.string.smart_profile_data_saver_description)
+        }
+        "phone" -> {
+            smartProfileLabel("balance-speed-1080p")
+        }
+        "desktop" -> {
+            smartProfileLabel("balance-speed-4k")
+        }
+        "server" -> {
+            stringResource(R.string.smart_profile_server_description)
+        }
+        else -> {
+            stringResource(
+                R.string.smart_profile_balanced_description,
+                profile.policy
+                    .getValue("throughput")
+                    .jsonObject
+                    .getValue("target_mbps")
+                    .jsonPrimitive.content,
+            )
+        }
+    }

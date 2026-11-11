@@ -30,12 +30,16 @@ object Settings {
 
     @OptIn(DelicateCoroutinesApi::class)
     private val instance by lazy {
-        Application.application.getDatabasePath(Path.SETTINGS_DATABASE_PATH).parentFile?.mkdirs()
-        Room.databaseBuilder(
-            Application.application,
-            KeyValueDatabase::class.java,
-            Path.SETTINGS_DATABASE_PATH,
-        ).fallbackToDestructiveMigration()
+        Application.application
+            .getDatabasePath(Path.SETTINGS_DATABASE_PATH)
+            .parentFile
+            ?.mkdirs()
+        Room
+            .databaseBuilder(
+                Application.application,
+                KeyValueDatabase::class.java,
+                Path.SETTINGS_DATABASE_PATH,
+            ).fallbackToDestructiveMigration()
             .enableMultiInstanceInvalidation()
             .setQueryExecutor { GlobalScope.launch { it.run() } }
             .build()
@@ -91,24 +95,27 @@ object Settings {
     var perAppProxyManagedRegions by dataStore.stringSet(SettingsKey.PER_APP_PROXY_MANAGED_REGIONS) { setOf("China") }
     var perAppProxySelectedRegions by dataStore.stringSet(SettingsKey.PER_APP_PROXY_SELECTED_REGIONS) {
         managedRegionSelection(perAppProxyManagedMode, perAppProxyManagedRegions)
-            .map { it.name }.toSet()
+            .map { it.name }
+            .toSet()
     }
 
     const val PACKAGE_QUERY_MODE_SHIZUKU = "SHIZUKU"
     const val PACKAGE_QUERY_MODE_ROOT = "ROOT"
     var perAppProxyPackageQueryMode by dataStore.string(SettingsKey.PER_APP_PROXY_PACKAGE_QUERY_MODE) { PACKAGE_QUERY_MODE_SHIZUKU }
 
-    fun getEffectivePerAppProxyMode(): Int = if (perAppProxyManagedMode) {
-        PER_APP_PROXY_EXCLUDE
-    } else {
-        perAppProxyMode
-    }
+    fun getEffectivePerAppProxyMode(): Int =
+        if (perAppProxyManagedMode) {
+            PER_APP_PROXY_EXCLUDE
+        } else {
+            perAppProxyMode
+        }
 
-    fun getEffectivePerAppProxyList(): Set<String> = if (perAppProxyManagedMode) {
-        perAppProxyManagedList
-    } else {
-        perAppProxyList
-    }
+    fun getEffectivePerAppProxyList(): Set<String> =
+        if (perAppProxyManagedMode) {
+            perAppProxyManagedList
+        } else {
+            perAppProxyList
+        }
 
     var allowBypass by dataStore.boolean(SettingsKey.ALLOW_BYPASS) { false }
     var systemProxyEnabled by dataStore.boolean(SettingsKey.SYSTEM_PROXY_ENABLED) { true }
@@ -152,10 +159,11 @@ object Settings {
     val serverUpdateStateFile: File
         get() = File(Application.application.noBackupFilesDir, SettingsKey.SERVER_UPDATE_STATE)
 
-    fun serviceClass(): Class<*> = when (serviceMode) {
-        ServiceMode.VPN -> VPNService::class.java
-        else -> ProxyService::class.java
-    }
+    fun serviceClass(): Class<*> =
+        when (serviceMode) {
+            ServiceMode.VPN -> VPNService::class.java
+            else -> ProxyService::class.java
+        }
 
     suspend fun rebuildServiceMode(): Boolean {
         var newMode = ServiceMode.NORMAL

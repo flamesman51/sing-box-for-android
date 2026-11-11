@@ -6,7 +6,9 @@ import de.robv.android.xposed.XposedHelpers
 import io.nekohasekai.sfa.xposed.VpnSanitizer
 import io.nekohasekai.sfa.xposed.hooks.SafeMethodHook
 
-class HookConnectivityManagerConnectivityAction(private val helper: ConnectivityServiceHookHelper) {
+class HookConnectivityManagerConnectivityAction(
+    private val helper: ConnectivityServiceHookHelper,
+) {
     private companion object {
         private const val SOURCE = "HookConnectivityManagerConnectivityAction"
     }
@@ -21,13 +23,15 @@ class HookConnectivityManagerConnectivityAction(private val helper: Connectivity
                 override fun beforeHook(param: MethodHookParam) {
                     val info = param.args[0] as? NetworkInfo ?: return
                     if (info.type != ConnectivityManager.TYPE_VPN) return
-                    val defaultNai = XposedHelpers.callMethod(param.thisObject, "getDefaultNetwork")
-                        ?: return
+                    val defaultNai =
+                        XposedHelpers.callMethod(param.thisObject, "getDefaultNetwork")
+                            ?: return
                     if (helper.isVpnNai(defaultNai)) {
                         return
                     }
-                    val replacement = XposedHelpers.getObjectField(defaultNai, "networkInfo") as? NetworkInfo
-                        ?: return
+                    val replacement =
+                        XposedHelpers.getObjectField(defaultNai, "networkInfo") as? NetworkInfo
+                            ?: return
                     param.args[0] = VpnSanitizer.cloneNetworkInfo(replacement)
                 }
             },

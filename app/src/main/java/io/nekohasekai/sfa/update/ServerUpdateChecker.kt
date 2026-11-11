@@ -29,18 +29,19 @@ object ServerUpdateChecker {
         val snapshot = ServerUpdates.state.value
         if (snapshot.origin != null && snapshot.manifestUrl != null) {
             try {
-                val candidate = response(snapshot.manifestUrl, snapshot.origin) { connection ->
-                    connection.inputStream.use {
-                        ServerUpdatePolicy.parseManifest(
-                            ServerUpdatePolicy.readManifest(it),
-                            snapshot.manifestUrl,
-                            snapshot.origin,
-                            BuildConfig.APPLICATION_ID,
-                            Build.SUPPORTED_ABIS.toList(),
-                            System.currentTimeMillis(),
-                        )
+                val candidate =
+                    response(snapshot.manifestUrl, snapshot.origin) { connection ->
+                        connection.inputStream.use {
+                            ServerUpdatePolicy.parseManifest(
+                                ServerUpdatePolicy.readManifest(it),
+                                snapshot.manifestUrl,
+                                snapshot.origin,
+                                BuildConfig.APPLICATION_ID,
+                                Build.SUPPORTED_ABIS.toList(),
+                                System.currentTimeMillis(),
+                            )
+                        }
                     }
-                }
                 ServerUpdatePolicy.checkInterrupted()
                 ServerUpdates.accept(candidate, snapshot.manifestUrl, installedVersion(context))
             } catch (exception: CancellationException) {
@@ -58,87 +59,91 @@ object ServerUpdateChecker {
         }
     }
 
-    suspend fun download(context: Context): File? = runInterruptible(Dispatchers.IO) {
-        synchronized(artifactLock) {
-            ServerUpdatePolicy.checkInterrupted()
-            ServerUpdates.initialize()
-            verifiedReadyApk(context)?.let { return@synchronized it }
-            val snapshot = ServerUpdates.state.value
-            val pending = snapshot.pending ?: return@synchronized null
-            // Forgetting discovery must not strand an already accepted, immutable update.
-            val origin = ServerUpdatePolicy.origin(pending.artifact.url) ?: throw IOException("Invalid artifact origin")
-            if (pending.versionCode <= installedVersion(context)) return@synchronized null
-            val directory = updatesDirectory(context)
-            if (!directory.isDirectory && !directory.mkdirs()) throw IOException("Cannot create update storage")
-            val apk = artifactFile(context, pending)
-            if (apk.exists()) {
-                if (verifyApk(context, apk, pending)) {
-                    if (!apk.setReadOnly()) throw IOException("Cannot protect update artifact")
-                    syncServerUpdateDirectory(directory)
-                    if (ServerUpdates.publishReady(pending, apk.absolutePath)) {
-                        deleteOlderArtifacts(context, apk)
-                        ServerUpdateNotifier.refresh(context)
-                        return@synchronized apk
+    suspend fun download(context: Context): File? =
+        runInterruptible(Dispatchers.IO) {
+            synchronized(artifactLock) {
+                ServerUpdatePolicy.checkInterrupted()
+                ServerUpdates.initialize()
+                verifiedReadyApk(context)?.let { return@synchronized it }
+                val snapshot = ServerUpdates.state.value
+                val pending = snapshot.pending ?: return@synchronized null
+                // Forgetting discovery must not strand an already accepted, immutable update.
+                val origin = ServerUpdatePolicy.origin(pending.artifact.url) ?: throw IOException("Invalid artifact origin")
+                if (pending.versionCode <= installedVersion(context)) return@synchronized null
+                val directory = updatesDirectory(context)
+                if (!directory.isDirectory && !directory.mkdirs()) throw IOException("Cannot create update storage")
+                val apk = artifactFile(context, pending)
+                if (apk.exists()) {
+                    if (verifyApk(context, apk, pending)) {
+                        if (!apk.setReadOnly()) throw IOException("Cannot protect update artifact")
+                        syncServerUpdateDirectory(directory)
+                        if (ServerUpdates.publishReady(pending, apk.absolutePath)) {
+                            deleteOlderArtifacts(context, apk)
+                            ServerUpdateNotifier.refresh(context)
+                            return@synchronized apk
+                        }
+                        return@synchronized null
                     }
-                    return@synchronized null
+                    if (!apk.delete()) throw IOException("Cannot remove invalid update artifact")
                 }
-                if (!apk.delete()) throw IOException("Cannot remove invalid update artifact")
-            }
-            val temporary = File(directory, "${apk.name}.part")
-            if (temporary.exists() && !temporary.delete()) throw IOException("Cannot remove temporary update artifact")
-            try {
-                response(pending.artifact.url, origin) { connection ->
-                    connection.inputStream.use { input ->
-                        FileOutputStream(temporary).use { output ->
-                            val size = ServerUpdatePolicy.copyBounded(input, output, pending.artifact.size)
-                            if (size != pending.artifact.size) throw IOException("Update artifact size mismatch")
-                            output.fd.sync()
+                val temporary = File(directory, "${apk.name}.part")
+                if (temporary.exists() && !temporary.delete()) throw IOException("Cannot remove temporary update artifact")
+                try {
+                    response(pending.artifact.url, origin) { connection ->
+                        connection.inputStream.use { input ->
+                            FileOutputStream(temporary).use { output ->
+                                val size = ServerUpdatePolicy.copyBounded(input, output, pending.artifact.size)
+                                if (size != pending.artifact.size) throw IOException("Update artifact size mismatch")
+                                output.fd.sync()
+                            }
                         }
                     }
+                    if (!verifyApk(context, temporary, pending)) throw IOException("Update artifact verification failed")
+                    ServerUpdatePolicy.checkInterrupted()
+                    if (!temporary.setReadOnly()) throw IOException("Cannot protect update artifact")
+                    if (apk.exists() || !temporary.renameTo(apk)) throw IOException("Cannot promote update artifact")
+                    syncServerUpdateDirectory(directory)
+                    if (!ServerUpdates.publishReady(pending, apk.absolutePath)) return@synchronized null
+                    deleteOlderArtifacts(context, apk)
+                    ServerUpdateNotifier.refresh(context)
+                    apk
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    DiagnosticsJournal.record("update_failed", mapOf("stage" to "download") + DiagnosticsProjection.failure(error))
+                    throw error
+                } finally {
+                    if (temporary.exists() && !temporary.delete()) Log.w("ServerUpdates", "Could not remove temporary update artifact")
                 }
-                if (!verifyApk(context, temporary, pending)) throw IOException("Update artifact verification failed")
-                ServerUpdatePolicy.checkInterrupted()
-                if (!temporary.setReadOnly()) throw IOException("Cannot protect update artifact")
-                if (apk.exists() || !temporary.renameTo(apk)) throw IOException("Cannot promote update artifact")
-                syncServerUpdateDirectory(directory)
-                if (!ServerUpdates.publishReady(pending, apk.absolutePath)) return@synchronized null
-                deleteOlderArtifacts(context, apk)
-                ServerUpdateNotifier.refresh(context)
-                apk
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                DiagnosticsJournal.record("update_failed", mapOf("stage" to "download") + DiagnosticsProjection.failure(error))
-                throw error
-            } finally {
-                if (temporary.exists() && !temporary.delete()) Log.w("ServerUpdates", "Could not remove temporary update artifact")
             }
         }
-    }
 
     /** Every installation rechecks the exact ready identity, not a cached nonempty file. */
-    fun verifiedReadyApk(context: Context): File? = synchronized(artifactLock) {
-        ServerUpdates.initialize()
-        val snapshot = ServerUpdates.state.value
-        val pending = snapshot.pending ?: return@synchronized null
-        val ready = snapshot.ready ?: return@synchronized null
-        val expected = artifactFile(context, pending)
-        val identityMatches = ready.versionCode == pending.versionCode && ready.sha256 == pending.artifact.sha256 && ready.path == expected.absolutePath
-        val valid = identityMatches && try {
-            verifyApk(context, expected, pending)
-        } catch (exception: CancellationException) {
-            throw exception
-        } catch (_: Exception) {
-            false
+    fun verifiedReadyApk(context: Context): File? =
+        synchronized(artifactLock) {
+            ServerUpdates.initialize()
+            val snapshot = ServerUpdates.state.value
+            val pending = snapshot.pending ?: return@synchronized null
+            val ready = snapshot.ready ?: return@synchronized null
+            val expected = artifactFile(context, pending)
+            val identityMatches = ready.versionCode == pending.versionCode && ready.sha256 == pending.artifact.sha256 && ready.path == expected.absolutePath
+            val valid =
+                identityMatches &&
+                    try {
+                        verifyApk(context, expected, pending)
+                    } catch (exception: CancellationException) {
+                        throw exception
+                    } catch (_: Exception) {
+                        false
+                    }
+            if (!valid) {
+                ServerUpdates.discardReady(ready)
+                if (identityMatches && expected.exists() && !expected.delete()) Log.w("ServerUpdates", "Could not remove invalid update artifact")
+                return@synchronized null
+            }
+            if (ServerUpdates.state.value.pending != pending || ServerUpdates.state.value.ready != ready) return@synchronized null
+            expected
         }
-        if (!valid) {
-            ServerUpdates.discardReady(ready)
-            if (identityMatches && expected.exists() && !expected.delete()) Log.w("ServerUpdates", "Could not remove invalid update artifact")
-            return@synchronized null
-        }
-        if (ServerUpdates.state.value.pending != pending || ServerUpdates.state.value.ready != ready) return@synchronized null
-        expected
-    }
 
     @Suppress("DEPRECATION")
     internal fun installedVersion(context: Context): Long = version(context.packageManager.getPackageInfo(BuildConfig.APPLICATION_ID, 0))
@@ -147,14 +152,26 @@ object ServerUpdateChecker {
     private fun version(info: PackageInfo): Long = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.longVersionCode else info.versionCode.toLong()
 
     @Suppress("DEPRECATION")
-    private fun signers(info: PackageInfo): Set<String> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-        info.signingInfo?.apkContentsSigners?.map { it.toCharsString() }?.toSet().orEmpty()
-    } else {
-        info.signatures?.map { it.toCharsString() }?.toSet().orEmpty()
-    }
+    private fun signers(info: PackageInfo): Set<String> =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            info.signingInfo
+                ?.apkContentsSigners
+                ?.map { it.toCharsString() }
+                ?.toSet()
+                .orEmpty()
+        } else {
+            info.signatures
+                ?.map { it.toCharsString() }
+                ?.toSet()
+                .orEmpty()
+        }
 
     @Suppress("DEPRECATION")
-    private fun verifyApk(context: Context, file: File, pending: PendingServerUpdate): Boolean {
+    private fun verifyApk(
+        context: Context,
+        file: File,
+        pending: PendingServerUpdate,
+    ): Boolean {
         if (!file.isFile || file.length() != pending.artifact.size) return false
         val digest = MessageDigest.getInstance("SHA-256")
         file.inputStream().use { input ->
@@ -185,25 +202,51 @@ object ServerUpdateChecker {
 
     private fun updatesDirectory(context: Context) = File(context.noBackupFilesDir, "updates")
 
-    private fun artifactFile(context: Context, pending: PendingServerUpdate) = File(updatesDirectory(context), "${pending.versionCode}-${pending.artifact.sha256.take(16)}.apk")
+    private fun artifactFile(
+        context: Context,
+        pending: PendingServerUpdate,
+    ) = File(updatesDirectory(context), "${pending.versionCode}-${pending.artifact.sha256.take(16)}.apk")
 
-    internal fun deleteInstalledArtifacts(context: Context) = synchronized(artifactLock) {
-        val installed = installedVersion(context)
-        updatesDirectory(context).listFiles()?.forEach { file ->
-            val version = artifactName.matchEntire(file.name)?.groupValues?.get(1)?.toLongOrNull()
-            if (version != null && version <= installed && !file.delete()) Log.w("ServerUpdates", "Could not remove installed update artifact")
+    internal fun deleteInstalledArtifacts(context: Context) =
+        synchronized(artifactLock) {
+            val installed = installedVersion(context)
+            updatesDirectory(context).listFiles()?.forEach { file ->
+                val version =
+                    artifactName
+                        .matchEntire(file.name)
+                        ?.groupValues
+                        ?.get(1)
+                        ?.toLongOrNull()
+                if (version != null && version <= installed && !file.delete()) Log.w("ServerUpdates", "Could not remove installed update artifact")
+            }
         }
-    }
 
-    private fun deleteOlderArtifacts(context: Context, keep: File) {
-        val keepVersion = artifactName.matchEntire(keep.name)?.groupValues?.get(1)?.toLongOrNull() ?: return
+    private fun deleteOlderArtifacts(
+        context: Context,
+        keep: File,
+    ) {
+        val keepVersion =
+            artifactName
+                .matchEntire(keep.name)
+                ?.groupValues
+                ?.get(1)
+                ?.toLongOrNull() ?: return
         updatesDirectory(context).listFiles()?.forEach { file ->
-            val version = artifactName.matchEntire(file.name)?.groupValues?.get(1)?.toLongOrNull()
+            val version =
+                artifactName
+                    .matchEntire(file.name)
+                    ?.groupValues
+                    ?.get(1)
+                    ?.toLongOrNull()
             if (file != keep && version != null && version <= keepVersion && !file.delete()) Log.w("ServerUpdates", "Could not remove older update artifact")
         }
     }
 
-    private fun <T> response(url: String, origin: String, read: (HttpURLConnection) -> T): T {
+    private fun <T> response(
+        url: String,
+        origin: String,
+        read: (HttpURLConnection) -> T,
+    ): T {
         require(ServerUpdatePolicy.origin(url) == origin) { "Invalid update origin" }
         ServerUpdatePolicy.checkInterrupted()
         val connection = URL(url).openConnection() as HttpURLConnection

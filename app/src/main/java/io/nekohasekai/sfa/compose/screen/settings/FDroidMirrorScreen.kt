@@ -98,26 +98,28 @@ fun FDroidMirrorScreen(navController: NavController) {
     val invalidUrlMessage = stringResource(R.string.fdroid_mirror_invalid_url)
     var customMirrors by remember { mutableStateOf(Settings.fdroidCustomMirrors) }
 
-    val builtinMirrors = remember {
-        val mirrors = mutableListOf<MirrorEntry>()
-        val iter = Libbox.getFDroidMirrors()
-        while (iter.hasNext()) {
-            val m = iter.next()
-            mirrors.add(MirrorEntry(url = m.url, name = m.name, country = m.country))
+    val builtinMirrors =
+        remember {
+            val mirrors = mutableListOf<MirrorEntry>()
+            val iter = Libbox.getFDroidMirrors()
+            while (iter.hasNext()) {
+                val m = iter.next()
+                mirrors.add(MirrorEntry(url = m.url, name = m.name, country = m.country))
+            }
+            mirrors
         }
-        mirrors
-    }
 
-    val parsedCustomMirrors = remember(customMirrors) {
-        customMirrors.map { entry ->
-            val parts = entry.split("|", limit = 2)
-            if (parts.size == 2) {
-                MirrorEntry(url = parts[1], name = parts[0], country = "", isCustom = true)
-            } else {
-                MirrorEntry(url = entry, name = entry, country = "", isCustom = true)
+    val parsedCustomMirrors =
+        remember(customMirrors) {
+            customMirrors.map { entry ->
+                val parts = entry.split("|", limit = 2)
+                if (parts.size == 2) {
+                    MirrorEntry(url = parts[1], name = parts[0], country = "", isCustom = true)
+                } else {
+                    MirrorEntry(url = entry, name = entry, country = "", isCustom = true)
+                }
             }
         }
-    }
 
     val allMirrors = builtinMirrors + parsedCustomMirrors
 
@@ -131,18 +133,19 @@ fun FDroidMirrorScreen(navController: NavController) {
         latencyResults.clear()
         latencyErrors.clear()
         scope.launch {
-            allMirrors.map { mirror ->
-                async(Dispatchers.IO) {
-                    val r = Libbox.pingFDroidMirror(mirror.url)
-                    withContext(Dispatchers.Main) {
-                        if (r.latencyMs < 0) {
-                            latencyErrors[r.url] = true
-                        } else {
-                            latencyResults[r.url] = r.latencyMs
+            allMirrors
+                .map { mirror ->
+                    async(Dispatchers.IO) {
+                        val r = Libbox.pingFDroidMirror(mirror.url)
+                        withContext(Dispatchers.Main) {
+                            if (r.latencyMs < 0) {
+                                latencyErrors[r.url] = true
+                            } else {
+                                latencyResults[r.url] = r.latencyMs
+                            }
                         }
                     }
-                }
-            }.awaitAll()
+                }.awaitAll()
             val fastest = latencyResults.minByOrNull { it.value }
             if (fastest != null) {
                 selectMirror(fastest.key)
@@ -151,29 +154,32 @@ fun FDroidMirrorScreen(navController: NavController) {
         }
     }
 
-    val grouped = remember(builtinMirrors) {
-        builtinMirrors.groupBy { it.country }
-    }
+    val grouped =
+        remember(builtinMirrors) {
+            builtinMirrors.groupBy { it.country }
+        }
     val countryOrder = remember(grouped) { grouped.keys.toList() }
 
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .verticalScroll(rememberScrollState())
-            .padding(
-                top = scaffoldPadding.calculateTopPadding() + 8.dp,
-                bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
-            ),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    top = scaffoldPadding.calculateTopPadding() + 8.dp,
+                    bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
+                ),
     ) {
         FilledTonalButton(
             onClick = { testAllMirrors() },
             enabled = !isTesting,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
         ) {
             if (isTesting) {
                 CircularProgressIndicator(
@@ -206,24 +212,35 @@ fun FDroidMirrorScreen(navController: NavController) {
             )
 
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    ),
             ) {
                 Column {
                     mirrors.forEachIndexed { index, mirror ->
-                        val shape = when {
-                            mirrors.size == 1 -> RoundedCornerShape(12.dp)
-                            index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                            index == mirrors.lastIndex -> RoundedCornerShape(
-                                bottomStart = 12.dp,
-                                bottomEnd = 12.dp,
-                            )
-                            else -> RoundedCornerShape(0.dp)
-                        }
+                        val shape =
+                            when {
+                                mirrors.size == 1 -> {
+                                    RoundedCornerShape(12.dp)
+                                }
+                                index == 0 -> {
+                                    RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                                }
+                                index == mirrors.lastIndex -> {
+                                    RoundedCornerShape(
+                                        bottomStart = 12.dp,
+                                        bottomEnd = 12.dp,
+                                    )
+                                }
+                                else -> {
+                                    RoundedCornerShape(0.dp)
+                                }
+                            }
                         ListItem(
                             headlineContent = {
                                 Text(
@@ -244,12 +261,14 @@ fun FDroidMirrorScreen(navController: NavController) {
                                     latencyErrors = latencyErrors,
                                 )
                             },
-                            modifier = Modifier
-                                .clip(shape)
-                                .clickable { selectMirror(mirror.url) },
-                            colors = ListItemDefaults.colors(
-                                containerColor = Color.Transparent,
-                            ),
+                            modifier =
+                                Modifier
+                                    .clip(shape)
+                                    .clickable { selectMirror(mirror.url) },
+                            colors =
+                                ListItemDefaults.colors(
+                                    containerColor = Color.Transparent,
+                                ),
                         )
                     }
                 }
@@ -266,25 +285,36 @@ fun FDroidMirrorScreen(navController: NavController) {
         )
 
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
         ) {
             Column {
                 parsedCustomMirrors.forEachIndexed { index, mirror ->
                     val isLast = index == parsedCustomMirrors.lastIndex && !showAddForm
-                    val shape = when {
-                        index == 0 && isLast -> RoundedCornerShape(12.dp)
-                        index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                        isLast -> RoundedCornerShape(
-                            bottomStart = 12.dp,
-                            bottomEnd = 12.dp,
-                        )
-                        else -> RoundedCornerShape(0.dp)
-                    }
+                    val shape =
+                        when {
+                            index == 0 && isLast -> {
+                                RoundedCornerShape(12.dp)
+                            }
+                            index == 0 -> {
+                                RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                            }
+                            isLast -> {
+                                RoundedCornerShape(
+                                    bottomStart = 12.dp,
+                                    bottomEnd = 12.dp,
+                                )
+                            }
+                            else -> {
+                                RoundedCornerShape(0.dp)
+                            }
+                        }
                     ListItem(
                         headlineContent = {
                             Text(
@@ -332,20 +362,23 @@ fun FDroidMirrorScreen(navController: NavController) {
                                 }
                             }
                         },
-                        modifier = Modifier
-                            .clip(shape)
-                            .clickable { selectMirror(mirror.url) },
-                        colors = ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        ),
+                        modifier =
+                            Modifier
+                                .clip(shape)
+                                .clickable { selectMirror(mirror.url) },
+                        colors =
+                            ListItemDefaults.colors(
+                                containerColor = Color.Transparent,
+                            ),
                     )
                 }
 
                 if (showAddForm) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         OutlinedTextField(
@@ -409,18 +442,19 @@ fun FDroidMirrorScreen(navController: NavController) {
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         },
-                        modifier = Modifier
-                            .clip(
-                                if (parsedCustomMirrors.isEmpty()) {
-                                    RoundedCornerShape(12.dp)
-                                } else {
-                                    RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
-                                },
-                            )
-                            .clickable { showAddForm = true },
-                        colors = ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        ),
+                        modifier =
+                            Modifier
+                                .clip(
+                                    if (parsedCustomMirrors.isEmpty()) {
+                                        RoundedCornerShape(12.dp)
+                                    } else {
+                                        RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+                                    },
+                                ).clickable { showAddForm = true },
+                        colors =
+                            ListItemDefaults.colors(
+                                containerColor = Color.Transparent,
+                            ),
                     )
                 }
             }
@@ -443,11 +477,12 @@ private fun LatencyBadge(
             Text(
                 text = stringResource(R.string.fdroid_mirror_latency, latency),
                 style = MaterialTheme.typography.labelMedium,
-                color = when {
-                    latency < 100 -> MaterialTheme.colorScheme.primary
-                    latency < 500 -> MaterialTheme.colorScheme.onSurfaceVariant
-                    else -> MaterialTheme.colorScheme.error
-                },
+                color =
+                    when {
+                        latency < 100 -> MaterialTheme.colorScheme.primary
+                        latency < 500 -> MaterialTheme.colorScheme.onSurfaceVariant
+                        else -> MaterialTheme.colorScheme.error
+                    },
             )
         }
         failed -> {

@@ -78,18 +78,20 @@ fun ConnectionDetailsScreen(
     val scaffoldPadding = if (asSheet) PaddingValues(0.dp) else LocalScaffoldPadding.current
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .then(scrollModifier)
-            .verticalScrollCompat(scrollState, overscrollEffect = if (asSheet) null else rememberOverscrollEffectCompat())
-            .padding(scaffoldPadding),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .then(scrollModifier)
+                .verticalScrollCompat(scrollState, overscrollEffect = if (asSheet) null else rememberOverscrollEffectCompat())
+                .padding(scaffoldPadding),
     ) {
         if (showHeader) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .padding(bottom = 16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .padding(bottom = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -131,16 +133,18 @@ fun ConnectionDetailsScreen(
         DetailSection(title = stringResource(R.string.connection_section_basic)) {
             DetailRow(
                 label = stringResource(R.string.connection_state),
-                value = if (connection.isActive) {
-                    stringResource(R.string.connection_state_active)
-                } else {
-                    stringResource(R.string.connection_state_closed)
-                },
-                valueColor = if (connection.isActive) {
-                    MaterialTheme.colorScheme.tertiary
-                } else {
-                    MaterialTheme.colorScheme.error
-                },
+                value =
+                    if (connection.isActive) {
+                        stringResource(R.string.connection_state_active)
+                    } else {
+                        stringResource(R.string.connection_state_closed)
+                    },
+                valueColor =
+                    if (connection.isActive) {
+                        MaterialTheme.colorScheme.tertiary
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    },
             )
             DetailRow(
                 label = stringResource(R.string.connection_created_at),
@@ -303,11 +307,15 @@ fun ConnectionDetailsScreen(
 }
 
 @Composable
-private fun DetailSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+private fun DetailSection(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
     ) {
         Text(
             text = title,
@@ -317,9 +325,10 @@ private fun DetailSection(title: String, content: @Composable ColumnScope.() -> 
         )
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-            ),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                ),
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -331,7 +340,12 @@ private fun DetailSection(title: String, content: @Composable ColumnScope.() -> 
 }
 
 @Composable
-private fun DetailRow(label: String, value: String, monospace: Boolean = false, valueColor: Color = MaterialTheme.colorScheme.onSurface) {
+private fun DetailRow(
+    label: String,
+    value: String,
+    monospace: Boolean = false,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -346,11 +360,12 @@ private fun DetailRow(label: String, value: String, monospace: Boolean = false, 
         SelectionContainer(modifier = Modifier.weight(1f)) {
             Text(
                 text = value,
-                style = if (monospace) {
-                    MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace)
-                } else {
-                    MaterialTheme.typography.bodyMedium
-                },
+                style =
+                    if (monospace) {
+                        MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace)
+                    } else {
+                        MaterialTheme.typography.bodyMedium
+                    },
                 color = valueColor,
                 textAlign = TextAlign.End,
                 modifier = Modifier.fillMaxWidth(),
@@ -360,10 +375,18 @@ private fun DetailRow(label: String, value: String, monospace: Boolean = false, 
 }
 
 @Composable
-private fun rememberBounceBlockingNestedScrollConnection(scrollState: ScrollState): NestedScrollConnection = remember(scrollState) {
-    object : NestedScrollConnection {
-        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset = if (available.y < 0) available else Offset.Zero
+private fun rememberBounceBlockingNestedScrollConnection(scrollState: ScrollState): NestedScrollConnection =
+    remember(scrollState) {
+        object : NestedScrollConnection {
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource,
+            ): Offset = if (available.y < 0) available else Offset.Zero
 
-        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity = if (available.y < 0) available else Velocity.Zero
+            override suspend fun onPostFling(
+                consumed: Velocity,
+                available: Velocity,
+            ): Velocity = if (available.y < 0) available else Velocity.Zero
+        }
     }
-}

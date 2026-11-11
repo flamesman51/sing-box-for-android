@@ -60,7 +60,10 @@ private enum class ProbeState { Idle, Checking, Available, Unavailable }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditRemoteServerScreen(navController: NavController, serverId: Long = -1L) {
+fun EditRemoteServerScreen(
+    navController: NavController,
+    serverId: Long = -1L,
+) {
     val isNewServer = serverId == -1L
 
     OverrideTopBar {
@@ -107,21 +110,22 @@ fun EditRemoteServerScreen(navController: NavController, serverId: Long = -1L) {
         if (userEdited) {
             delay(300)
         }
-        val reachable = withContext(Dispatchers.IO) {
-            var client: io.nekohasekai.libbox.CommandClient? = null
-            try {
-                val options = RemoteConnectionOptions()
-                options.setURL(RemoteServer.connectURL(url))
-                options.secret = secret
-                client = Libbox.newStandaloneRemoteCommandClient(options)
-                client.getStartedAt()
-                true
-            } catch (_: Exception) {
-                false
-            } finally {
-                runCatching { client?.disconnect() }
+        val reachable =
+            withContext(Dispatchers.IO) {
+                var client: io.nekohasekai.libbox.CommandClient? = null
+                try {
+                    val options = RemoteConnectionOptions()
+                    options.setURL(RemoteServer.connectURL(url))
+                    options.secret = secret
+                    client = Libbox.newStandaloneRemoteCommandClient(options)
+                    client.getStartedAt()
+                    true
+                } catch (_: Exception) {
+                    false
+                } finally {
+                    runCatching { client?.disconnect() }
+                }
             }
-        }
         probeState = if (reachable) ProbeState.Available else ProbeState.Unavailable
     }
 
@@ -148,15 +152,15 @@ fun EditRemoteServerScreen(navController: NavController, serverId: Long = -1L) {
 
     Column(
         modifier =
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp)
-            .padding(
-                top = scaffoldPadding.calculateTopPadding() + 16.dp,
-                bottom = scaffoldPadding.calculateBottomPadding() + 16.dp,
-            ),
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .padding(
+                    top = scaffoldPadding.calculateTopPadding() + 16.dp,
+                    bottom = scaffoldPadding.calculateBottomPadding() + 16.dp,
+                ),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         OutlinedTextField(
@@ -180,11 +184,11 @@ fun EditRemoteServerScreen(navController: NavController, serverId: Long = -1L) {
             placeholder = { Text(stringResource(R.string.profile_input_required)) },
             isError = urlError,
             supportingText =
-            if (urlError) {
-                { Text(stringResource(R.string.remote_invalid_url, url)) }
-            } else {
-                null
-            },
+                if (urlError) {
+                    { Text(stringResource(R.string.remote_invalid_url, url)) }
+                } else {
+                    null
+                },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
         )
@@ -200,20 +204,20 @@ fun EditRemoteServerScreen(navController: NavController, serverId: Long = -1L) {
             placeholder = { Text(stringResource(R.string.remote_optional)) },
             singleLine = true,
             visualTransformation =
-            if (secretVisible) {
-                VisualTransformation.None
-            } else {
-                PasswordVisualTransformation()
-            },
+                if (secretVisible) {
+                    VisualTransformation.None
+                } else {
+                    PasswordVisualTransformation()
+                },
             trailingIcon = {
                 IconButton(onClick = { secretVisible = !secretVisible }) {
                     Icon(
                         imageVector =
-                        if (secretVisible) {
-                            Icons.Default.VisibilityOff
-                        } else {
-                            Icons.Default.Visibility
-                        },
+                            if (secretVisible) {
+                                Icons.Default.VisibilityOff
+                            } else {
+                                Icons.Default.Visibility
+                            },
                         contentDescription = null,
                     )
                 }
@@ -234,33 +238,33 @@ fun EditRemoteServerScreen(navController: NavController, serverId: Long = -1L) {
                 } else {
                     Box(
                         modifier =
-                        Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (probeState == ProbeState.Available) {
-                                    ServiceRunning
-                                } else {
-                                    ServiceError
-                                },
-                            ),
+                            Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (probeState == ProbeState.Available) {
+                                        ServiceRunning
+                                    } else {
+                                        ServiceError
+                                    },
+                                ),
                     )
                 }
                 Text(
                     text =
-                    stringResource(
-                        when (probeState) {
-                            ProbeState.Available -> R.string.remote_available
-                            ProbeState.Checking -> R.string.remote_checking
-                            else -> R.string.remote_unavailable
-                        },
-                    ),
+                        stringResource(
+                            when (probeState) {
+                                ProbeState.Available -> R.string.remote_available
+                                ProbeState.Checking -> R.string.remote_checking
+                                else -> R.string.remote_unavailable
+                            },
+                        ),
                     color =
-                    when (probeState) {
-                        ProbeState.Available -> ServiceRunning
-                        ProbeState.Unavailable -> ServiceError
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    },
+                        when (probeState) {
+                            ProbeState.Available -> ServiceRunning
+                            ProbeState.Unavailable -> ServiceError
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     style = MaterialTheme.typography.bodySmall,
                 )
             }

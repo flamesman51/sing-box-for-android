@@ -37,13 +37,17 @@ import io.nekohasekai.sfa.compose.util.ProfileIcon
 import io.nekohasekai.sfa.compose.util.ProfileIcons
 
 @Composable
-fun IconSelectionDialog(currentIconId: String?, onIconSelected: (String?) -> Unit, onDismiss: () -> Unit) {
+fun IconSelectionDialog(
+    currentIconId: String?,
+    onIconSelected: (String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier =
-            Modifier
-                .fillMaxWidth()
-                .heightIn(max = 500.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 500.dp),
             shape = RoundedCornerShape(16.dp),
         ) {
             Column(
@@ -61,9 +65,9 @@ fun IconSelectionDialog(currentIconId: String?, onIconSelected: (String?) -> Uni
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                        Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                 ) {
                     // Add option to remove custom icon (use default)
                     item {
@@ -106,35 +110,40 @@ fun IconSelectionDialog(currentIconId: String?, onIconSelected: (String?) -> Uni
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun IconOption(icon: ProfileIcon?, label: String, isSelected: Boolean, onClick: () -> Unit) {
+private fun IconOption(
+    icon: ProfileIcon?,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
     Card(
         modifier =
-        Modifier
-            .fillMaxWidth()
-            .aspectRatio(1f)
-            .clip(RoundedCornerShape(8.dp))
-            .clickable { onClick() },
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { onClick() },
         colors =
-        CardDefaults.cardColors(
-            containerColor =
-            if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            },
-        ),
+            CardDefaults.cardColors(
+                containerColor =
+                    if (isSelected) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    },
+            ),
         border =
-        if (isSelected) {
-            CardDefaults.outlinedCardBorder()
-        } else {
-            null
-        },
+            if (isSelected) {
+                CardDefaults.outlinedCardBorder()
+            } else {
+                null
+            },
     ) {
         Column(
             modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(8.dp),
+                Modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -144,11 +153,11 @@ private fun IconOption(icon: ProfileIcon?, label: String, isSelected: Boolean, o
                     contentDescription = label,
                     modifier = Modifier.size(28.dp),
                     tint =
-                    if (isSelected) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
+                        if (isSelected) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                 )
             } else {
                 // Default icon indicator
@@ -156,11 +165,11 @@ private fun IconOption(icon: ProfileIcon?, label: String, isSelected: Boolean, o
                     text = stringResource(R.string.auto),
                     style = MaterialTheme.typography.bodyMedium,
                     color =
-                    if (isSelected) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
+                        if (isSelected) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                 )
             }
 
@@ -170,11 +179,11 @@ private fun IconOption(icon: ProfileIcon?, label: String, isSelected: Boolean, o
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
                 color =
-                if (isSelected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
+                    if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,

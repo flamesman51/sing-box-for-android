@@ -15,7 +15,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-enum class MaxRuntimeOption(val seconds: Int, val labelRes: Int) {
+enum class MaxRuntimeOption(
+    val seconds: Int,
+    val labelRes: Int,
+) {
     THIRTY(30, R.string.network_quality_max_runtime_30s),
     SIXTY(60, R.string.network_quality_max_runtime_60s),
 }
@@ -71,7 +74,10 @@ class NetworkQualityViewModel : BaseViewModel<NetworkQualityState, Nothing>() {
         updateState { copy(selectedOutbound = "") }
     }
 
-    fun requestStartTest(context: Context, vpnRunning: Boolean) {
+    fun requestStartTest(
+        context: Context,
+        vpnRunning: Boolean,
+    ) {
         val connectivityManager =
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         if (connectivityManager.isActiveNetworkMetered) {
@@ -118,7 +124,8 @@ class NetworkQualityViewModel : BaseViewModel<NetworkQualityState, Nothing>() {
             viewModelScope.launch(Dispatchers.IO) {
                 try {
                     nqSession =
-                        CommandTarget.standaloneClient()
+                        CommandTarget
+                            .standaloneClient()
                             .startNetworkQualityTest(
                                 configURL,
                                 outboundTag,

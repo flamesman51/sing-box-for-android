@@ -394,14 +394,6 @@ spotless {
     kotlin {
         target("src/**/*.kt")
         ktlint(libs.versions.ktlint.get())
-            .editorConfigOverride(mapOf(
-                "ktlint_standard_backing-property-naming" to "disabled",
-                "ktlint_standard_blank-line-before-declaration" to "disabled",
-                "ktlint_standard_blank-line-between-when-conditions" to "disabled",
-                "ktlint_standard_filename" to "disabled",
-                "ktlint_standard_max-line-length" to "disabled",
-                "ktlint_standard_property-naming" to "disabled",
-            ))
     }
     java {
         target("src/**/*.java")

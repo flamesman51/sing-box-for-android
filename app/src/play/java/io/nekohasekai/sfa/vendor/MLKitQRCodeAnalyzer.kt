@@ -20,7 +20,8 @@ class MLKitQRCodeAnalyzer(
 ) : ImageAnalysis.Analyzer {
     private val barcodeScanner =
         BarcodeScanning.getClient(
-            BarcodeScannerOptions.Builder()
+            BarcodeScannerOptions
+                .Builder()
                 .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
                 .build(),
         )
@@ -48,7 +49,8 @@ class MLKitQRCodeAnalyzer(
         }
 
         failureOccurred = false
-        barcodeScanner.process(image.toInputImage())
+        barcodeScanner
+            .process(image.toInputImage())
             .addOnSuccessListener { codes ->
                 val rawValue = codes.firstOrNull()?.rawValue
                 if (rawValue != null) {
@@ -65,16 +67,18 @@ class MLKitQRCodeAnalyzer(
                     } else {
                         val cropWidth = cropArea.right - cropArea.left
                         val cropHeight = cropArea.bottom - cropArea.top
-                        val bitmap = toLumaBitmap(
-                            yData,
-                            image.width,
-                            cropArea.left,
-                            cropArea.top,
-                            cropWidth,
-                            cropHeight,
-                            invert = false,
-                        )
-                        barcodeScanner.process(InputImage.fromBitmap(bitmap, rotation))
+                        val bitmap =
+                            toLumaBitmap(
+                                yData,
+                                image.width,
+                                cropArea.left,
+                                cropArea.top,
+                                cropWidth,
+                                cropHeight,
+                                invert = false,
+                            )
+                        barcodeScanner
+                            .process(InputImage.fromBitmap(bitmap, rotation))
                             .addOnSuccessListener { cropCodes ->
                                 val cropValue = cropCodes.firstOrNull()?.rawValue
                                 if (cropValue != null) {
@@ -83,17 +87,14 @@ class MLKitQRCodeAnalyzer(
                                 } else {
                                     tryInvertedScan(yData, image.width, image.height, rotation) { image.close() }
                                 }
-                            }
-                            .addOnFailureListener {
+                            }.addOnFailureListener {
                                 tryInvertedScan(yData, image.width, image.height, rotation) { image.close() }
-                            }
-                            .addOnCompleteListener {
+                            }.addOnCompleteListener {
                                 bitmap.recycle()
                             }
                     }
                 }
-            }
-            .addOnFailureListener {
+            }.addOnFailureListener {
                 failureOccurred = true
                 failureTimestamp = System.currentTimeMillis()
                 onCropArea?.invoke(null)
@@ -102,13 +103,19 @@ class MLKitQRCodeAnalyzer(
             }
     }
 
-    private fun tryInvertedScan(yData: ByteArray, width: Int, height: Int, rotationDegrees: Int, onComplete: () -> Unit) {
+    private fun tryInvertedScan(
+        yData: ByteArray,
+        width: Int,
+        height: Int,
+        rotationDegrees: Int,
+        onComplete: () -> Unit,
+    ) {
         val inverted = toLumaBitmap(yData, width, 0, 0, width, height, invert = true)
-        barcodeScanner.process(InputImage.fromBitmap(inverted, rotationDegrees))
+        barcodeScanner
+            .process(InputImage.fromBitmap(inverted, rotationDegrees))
             .addOnSuccessListener { codes ->
                 codes.firstOrNull()?.rawValue?.let { onSuccess(it) }
-            }
-            .addOnCompleteListener {
+            }.addOnCompleteListener {
                 inverted.recycle()
                 onComplete()
             }
@@ -134,7 +141,15 @@ class MLKitQRCodeAnalyzer(
         return yData
     }
 
-    private fun toLumaBitmap(yData: ByteArray, srcWidth: Int, left: Int, top: Int, width: Int, height: Int, invert: Boolean): Bitmap {
+    private fun toLumaBitmap(
+        yData: ByteArray,
+        srcWidth: Int,
+        left: Int,
+        top: Int,
+        width: Int,
+        height: Int,
+        invert: Boolean,
+    ): Bitmap {
         val size = width * height
         val pixels = pixelBuffer?.takeIf { it.size >= size } ?: IntArray(size).also { pixelBuffer = it }
 

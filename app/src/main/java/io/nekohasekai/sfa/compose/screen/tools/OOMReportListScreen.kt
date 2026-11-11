@@ -173,9 +173,10 @@ fun OOMReportListScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         if (isLoading) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surface),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surface),
                 contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator()
@@ -183,14 +184,15 @@ fun OOMReportListScreen(
         } else {
             val scaffoldPadding = LocalScaffoldPadding.current
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .verticalScroll(rememberScrollState())
-                    .padding(
-                        top = scaffoldPadding.calculateTopPadding() + 8.dp,
-                        bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
-                    ),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .verticalScroll(rememberScrollState())
+                        .padding(
+                            top = scaffoldPadding.calculateTopPadding() + 8.dp,
+                            bottom = scaffoldPadding.calculateBottomPadding() + 8.dp,
+                        ),
             ) {
                 // Reports section
                 Text(
@@ -201,12 +203,14 @@ fun OOMReportListScreen(
                 )
                 if (reports.isEmpty()) {
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        ),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            ),
                     ) {
                         ListItem(
                             headlineContent = {
@@ -220,24 +224,35 @@ fun OOMReportListScreen(
                     }
                 } else {
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        ),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            ),
                     ) {
                         Column {
                             reports.forEachIndexed { index, report ->
-                                val shape = when {
-                                    reports.size == 1 -> RoundedCornerShape(12.dp)
-                                    index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                                    index == reports.lastIndex -> RoundedCornerShape(
-                                        bottomStart = 12.dp,
-                                        bottomEnd = 12.dp,
-                                    )
-                                    else -> RoundedCornerShape(0.dp)
-                                }
+                                val shape =
+                                    when {
+                                        reports.size == 1 -> {
+                                            RoundedCornerShape(12.dp)
+                                        }
+                                        index == 0 -> {
+                                            RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                                        }
+                                        index == reports.lastIndex -> {
+                                            RoundedCornerShape(
+                                                bottomStart = 12.dp,
+                                                bottomEnd = 12.dp,
+                                            )
+                                        }
+                                        else -> {
+                                            RoundedCornerShape(0.dp)
+                                        }
+                                    }
                                 ListItem(
                                     headlineContent = {
                                         Text(
@@ -246,20 +261,22 @@ fun OOMReportListScreen(
                                             fontWeight = if (report.isRead) FontWeight.Normal else FontWeight.SemiBold,
                                         )
                                     },
-                                    leadingContent = if (!report.isRead) {
-                                        {
-                                            Badge(
-                                                containerColor = MaterialTheme.colorScheme.primary,
-                                            )
-                                        }
-                                    } else {
-                                        null
-                                    },
-                                    modifier = Modifier
-                                        .clip(shape)
-                                        .clickable {
-                                            navController.navigate("tools/oom_report/${report.id}")
+                                    leadingContent =
+                                        if (!report.isRead) {
+                                            {
+                                                Badge(
+                                                    containerColor = MaterialTheme.colorScheme.primary,
+                                                )
+                                            }
+                                        } else {
+                                            null
                                         },
+                                    modifier =
+                                        Modifier
+                                            .clip(shape)
+                                            .clickable {
+                                                navController.navigate("tools/oom_report/${report.id}")
+                                            },
                                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                                 )
                             }
@@ -281,12 +298,14 @@ fun OOMReportListScreen(
                     modifier = Modifier.padding(start = 32.dp, end = 32.dp, top = 16.dp, bottom = 8.dp),
                 )
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        ),
                 ) {
                     Column {
                         ListItem(
@@ -395,19 +414,20 @@ fun OOMReportListScreen(
                                     onClick = null,
                                 )
                             },
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable {
-                                    oomMemoryLimitMB = value
-                                    showMemoryLimitDialog = false
-                                    scope.launch(Dispatchers.IO) {
-                                        Settings.oomMemoryLimitMB = value
-                                        Application.application.reloadSetupOptions()
-                                        withContext(Dispatchers.Main) {
-                                            notifyApplyChange(UiEvent.ApplyServiceChange.Mode.Restart)
+                            modifier =
+                                Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        oomMemoryLimitMB = value
+                                        showMemoryLimitDialog = false
+                                        scope.launch(Dispatchers.IO) {
+                                            Settings.oomMemoryLimitMB = value
+                                            Application.application.reloadSetupOptions()
+                                            withContext(Dispatchers.Main) {
+                                                notifyApplyChange(UiEvent.ApplyServiceChange.Mode.Restart)
+                                            }
                                         }
-                                    }
-                                },
+                                    },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         )
                     }

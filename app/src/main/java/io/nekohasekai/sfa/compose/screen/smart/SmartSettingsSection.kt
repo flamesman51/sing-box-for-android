@@ -47,14 +47,16 @@ fun SmartHistoryPermissionDialog(
     val activity = LocalActivity.current
     var revision by remember { mutableStateOf(0) }
     val permissions = rememberSmartHistoryPermissions(revision)
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        revision++
-        onPermissionsChanged()
-    }
-    val requestable = !SmartSettings.historyForegroundRequested || activity?.let {
-        (permissions.fine || ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_FINE_LOCATION)) &&
-            (permissions.phone || ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.READ_PHONE_STATE))
-    } == true
+    val launcher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            revision++
+            onPermissionsChanged()
+        }
+    val requestable =
+        !SmartSettings.historyForegroundRequested || activity?.let {
+            (permissions.fine || ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_FINE_LOCATION)) &&
+                (permissions.phone || ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.READ_PHONE_STATE))
+        } == true
     val step = permissions.nextStep(Build.VERSION.SDK_INT, requestable)
 
     AlertDialog(
@@ -104,11 +106,15 @@ fun SmartHistoryPermissionDialog(
                         SmartSettings.historyForegroundRequested = true
                         revision++
                     }
-                    SmartPermissionStep.BackgroundRequest -> launcher.launch(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION))
+                    SmartPermissionStep.BackgroundRequest -> {
+                        launcher.launch(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION))
+                    }
                     SmartPermissionStep.ForegroundSettings, SmartPermissionStep.BackgroundSettings -> {
                         context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
                     }
-                    SmartPermissionStep.Done -> onDismiss()
+                    SmartPermissionStep.Done -> {
+                        onDismiss()
+                    }
                 }
             }) {
                 Text(
@@ -134,7 +140,10 @@ fun SmartHistoryPermissionDialog(
 }
 
 @Composable
-private fun PermissionStatusRow(label: String, granted: Boolean) {
+private fun PermissionStatusRow(
+    label: String,
+    granted: Boolean,
+) {
     Row(
         modifier = Modifier.padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),

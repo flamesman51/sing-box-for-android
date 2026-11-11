@@ -12,8 +12,9 @@ import org.junit.Test
 class SmartPolicyTest {
     @Test
     fun convertsEveryCatalogFieldToTheFullOverrideShapeWithoutChangingValues() {
-        val entries = smartProfileCatalog(
-            """[
+        val entries =
+            smartProfileCatalog(
+                """[
                 {"name":"future-profile","rank":["udp","latency"],"min_stability":"C",
                  "target_mbps":17.125,"throughput_enabled":false,"streams":7,"heartbeat_interval":"7.5s",
                  "standby_interval":"3m2s","background_interval":"9m1s","interrupt_on_failover":false,
@@ -25,7 +26,7 @@ class SmartPolicyTest {
                  "quic_policy":"off","improvement":true,"dwell":"4s","confirmations":6,
                  "confirmation_interval":"5s","tier_restore":"6s","hysteresis":0,"speed_margin":2}
             ]""",
-        )
+            )
         assertEquals(listOf("future-profile", "another-profile"), entries.map { it.name })
         assertEquals(
             Json.parseToJsonElement(
@@ -68,19 +69,28 @@ class SmartPolicyTest {
 
     @Test
     fun statusDecodesPreferenceAndStillAcceptsLegacyDocuments() {
-        val fixture = requireNotNull(javaClass.getResourceAsStream("/smart/status.json"))
-            .bufferedReader().use { it.readText() }
+        val fixture =
+            requireNotNull(javaClass.getResourceAsStream("/smart/status.json"))
+                .bufferedReader()
+                .use { it.readText() }
         val document = Json.parseToJsonElement(fixture) as JsonObject
         val legacy = SmartJson.status(JsonObject(document - "preference").toString())
         assertNull(legacy.preference)
         val resolved = Json.parseToJsonElement("""{"preference":{"profile":"phone"},"throughput":{"target_mbps":17.123456789}}""")
-        val preference = Json.parseToJsonElement(
-            """{"engine":"profile","base":"phone","custom":true,"source":"override","override_hash":"exact-hash","resolved":$resolved}""",
-        )
+        val preference =
+            Json.parseToJsonElement(
+                """{"engine":"profile","base":"phone","custom":true,"source":"override","override_hash":"exact-hash","resolved":$resolved}""",
+            )
         val parsed = SmartJson.status(JsonObject(document + ("preference" to preference)).toString())
         assertEquals(SmartPreference("profile", "phone", true, "override", "exact-hash", resolved as JsonObject), parsed.preference)
         assertEquals(legacy, parsed.copy(preference = null))
         assertNull(SmartJson.status(JsonObject(document + ("preference" to kotlinx.serialization.json.JsonNull)).toString()).preference)
-        assertEquals(JsonPrimitive("phone"), parsed.preference?.resolved?.get("preference")?.let { (it as JsonObject)["profile"] })
+        assertEquals(
+            JsonPrimitive("phone"),
+            parsed.preference
+                ?.resolved
+                ?.get("preference")
+                ?.let { (it as JsonObject)["profile"] },
+        )
     }
 }

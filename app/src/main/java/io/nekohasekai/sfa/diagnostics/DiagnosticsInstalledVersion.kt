@@ -8,7 +8,10 @@ import kotlinx.coroutines.launch
 internal class DiagnosticsInstalledVersion {
     private val previousVersion = CompletableDeferred<Int?>()
 
-    fun load(preferences: () -> SharedPreferences, installedVersion: Int) {
+    fun load(
+        preferences: () -> SharedPreferences,
+        installedVersion: Int,
+    ) {
         var previous: Int? = null
         try {
             val stored = preferences()
@@ -20,7 +23,11 @@ internal class DiagnosticsInstalledVersion {
         }
     }
 
-    fun recordUpdate(scope: CoroutineScope, installedVersion: Int, record: (Map<String, Any?>) -> Unit) = scope.launch {
+    fun recordUpdate(
+        scope: CoroutineScope,
+        installedVersion: Int,
+        record: (Map<String, Any?>) -> Unit,
+    ) = scope.launch {
         record(mapOf("from" to previousVersion.await(), "to" to installedVersion))
     }
 }

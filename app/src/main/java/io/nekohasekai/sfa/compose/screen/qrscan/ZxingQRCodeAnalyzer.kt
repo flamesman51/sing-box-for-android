@@ -41,16 +41,17 @@ class ZxingQRCodeAnalyzer(
             if (cropArea != null) {
                 val cropWidth = cropArea.right - cropArea.left
                 val cropHeight = cropArea.bottom - cropArea.top
-                val smartSource = PlanarYUVLuminanceSource(
-                    yData,
-                    width,
-                    height,
-                    cropArea.left,
-                    cropArea.top,
-                    cropWidth,
-                    cropHeight,
-                    false,
-                )
+                val smartSource =
+                    PlanarYUVLuminanceSource(
+                        yData,
+                        width,
+                        height,
+                        cropArea.left,
+                        cropArea.top,
+                        cropWidth,
+                        cropHeight,
+                        false,
+                    )
                 tryDecode(BinaryBitmap(HybridBinarizer(smartSource)))?.let {
                     onSuccess(it.text)
                     return
@@ -109,10 +110,11 @@ class ZxingQRCodeAnalyzer(
         return yData
     }
 
-    private fun tryDecode(bitmap: BinaryBitmap): Result? = try {
-        qrCodeReader.decode(bitmap)
-    } catch (_: NotFoundException) {
-        qrCodeReader.reset()
-        null
-    }
+    private fun tryDecode(bitmap: BinaryBitmap): Result? =
+        try {
+            qrCodeReader.decode(bitmap)
+        } catch (_: NotFoundException) {
+            qrCodeReader.reset()
+            null
+        }
 }

@@ -36,7 +36,10 @@ class USBIPService : Service() {
 
     private val detachReceiver =
         object : BroadcastReceiver() {
-            override fun onReceive(context: Context, intent: Intent) {
+            override fun onReceive(
+                context: Context,
+                intent: Intent,
+            ) {
                 if (intent.action != UsbManager.ACTION_USB_DEVICE_DETACHED) return
                 val device = IntentCompat.getParcelableExtra(intent, UsbManager.EXTRA_DEVICE, UsbDevice::class.java) ?: return
                 USBIPManager.detachByDevice(device)
@@ -45,7 +48,11 @@ class USBIPService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int,
+    ): Int {
         if (intent?.action == ACTION_STOP) {
             USBIPManager.shutdown()
             stopSelf()
@@ -92,36 +99,37 @@ class USBIPService : Service() {
         )
     }
 
-    private fun buildNotification(count: Int) = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL)
-        .setShowWhen(false)
-        .setOngoing(true)
-        .setOnlyAlertOnce(true)
-        .setSmallIcon(R.drawable.ic_menu)
-        .setCategory(NotificationCompat.CATEGORY_SERVICE)
-        .setPriority(NotificationCompat.PRIORITY_LOW)
-        .setContentTitle(getString(R.string.usbip_notification_title))
-        .setContentText(resources.getQuantityString(R.plurals.usbip_notification_text, count, count))
-        .setContentIntent(
-            PendingIntent.getActivity(
-                this,
-                0,
-                Intent(this, MainActivity::class.java).setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
-                pendingIntentFlags(),
-            ),
-        )
-        .addAction(
-            NotificationCompat.Action.Builder(
-                0,
-                getText(R.string.stop),
-                PendingIntent.getService(
+    private fun buildNotification(count: Int) =
+        NotificationCompat
+            .Builder(this, NOTIFICATION_CHANNEL)
+            .setShowWhen(false)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setSmallIcon(R.drawable.ic_menu)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setContentTitle(getString(R.string.usbip_notification_title))
+            .setContentText(resources.getQuantityString(R.plurals.usbip_notification_text, count, count))
+            .setContentIntent(
+                PendingIntent.getActivity(
                     this,
                     0,
-                    Intent(this, USBIPService::class.java).setAction(ACTION_STOP),
+                    Intent(this, MainActivity::class.java).setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
                     pendingIntentFlags(),
                 ),
-            ).build(),
-        )
-        .build()
+            ).addAction(
+                NotificationCompat.Action
+                    .Builder(
+                        0,
+                        getText(R.string.stop),
+                        PendingIntent.getService(
+                            this,
+                            0,
+                            Intent(this, USBIPService::class.java).setAction(ACTION_STOP),
+                            pendingIntentFlags(),
+                        ),
+                    ).build(),
+            ).build()
 
     override fun onDestroy() {
         super.onDestroy()

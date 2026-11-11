@@ -65,20 +65,21 @@ fun ServiceStatusBar(
         ) {
             Row(
                 modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // Status text
                 StatusItem(
-                    text = when (serviceStatus) {
-                        Status.Starting -> stringResource(R.string.status_starting)
-                        Status.Started -> stringResource(R.string.status_started)
-                        Status.Stopping -> stringResource(R.string.status_stopping)
-                        else -> ""
-                    },
+                    text =
+                        when (serviceStatus) {
+                            Status.Starting -> stringResource(R.string.status_starting)
+                            Status.Started -> stringResource(R.string.status_started)
+                            Status.Stopping -> stringResource(R.string.status_stopping)
+                            else -> ""
+                        },
                     modifier = Modifier.weight(1f),
                 )
 
@@ -86,11 +87,11 @@ fun ServiceStatusBar(
                 if (serviceStatus == Status.Started) {
                     Row(
                         modifier =
-                        Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.secondaryContainer)
-                            .clickable(onClick = onConnectionsClick)
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                            Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                                .clickable(onClick = onConnectionsClick)
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                     ) {
@@ -114,11 +115,11 @@ fun ServiceStatusBar(
                 if (hasGroups) {
                     Row(
                         modifier =
-                        Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.secondaryContainer)
-                            .clickable(onClick = onGroupsClick)
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                            Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                                .clickable(onClick = onGroupsClick)
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                     ) {
@@ -141,11 +142,11 @@ fun ServiceStatusBar(
                 // Stop button
                 Row(
                     modifier =
-                    Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .clickable(onClick = onStopClick)
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .clickable(onClick = onStopClick)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {
@@ -166,7 +167,10 @@ fun ServiceStatusBar(
 }
 
 @Composable
-private fun StatusItem(text: String, modifier: Modifier = Modifier) {
+private fun StatusItem(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
     Text(
         text = text,
         style = MaterialTheme.typography.titleMedium,
@@ -177,7 +181,10 @@ private fun StatusItem(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun UptimeText(startTime: Long, modifier: Modifier = Modifier) {
+fun UptimeText(
+    startTime: Long,
+    modifier: Modifier = Modifier,
+) {
     var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
     LaunchedEffect(startTime) {

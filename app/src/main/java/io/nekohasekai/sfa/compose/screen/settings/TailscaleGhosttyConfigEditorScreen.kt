@@ -45,7 +45,10 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TailscaleGhosttyConfigEditorScreen(navController: NavController, isDark: Boolean) {
+fun TailscaleGhosttyConfigEditorScreen(
+    navController: NavController,
+    isDark: Boolean,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var menuExpanded by remember { mutableStateOf(false) }
@@ -53,11 +56,12 @@ fun TailscaleGhosttyConfigEditorScreen(navController: NavController, isDark: Boo
         mutableStateOf(if (isDark) Settings.tailscaleSSHDarkConfig else Settings.tailscaleSSHLightConfig)
     }
 
-    val editor = remember {
-        ProfileCodeEditor(context, CodeEditorSyntax.GHOSTTY_CONFIG).apply {
-            setText(content)
+    val editor =
+        remember {
+            ProfileCodeEditor(context, CodeEditorSyntax.GHOSTTY_CONFIG).apply {
+                setText(content)
+            }
         }
-    }
     editor.onTextChanged = { content = editor.getText() }
 
     LaunchedEffect(content) {
@@ -73,20 +77,22 @@ fun TailscaleGhosttyConfigEditorScreen(navController: NavController, isDark: Boo
         onDispose { editor.release() }
     }
 
-    val importLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-    ) { uri ->
-        if (uri != null) {
-            scope.launch {
-                val imported = withContext(Dispatchers.IO) {
-                    context.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() }
-                }
-                if (imported != null) {
-                    editor.setText(imported)
+    val importLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent(),
+        ) { uri ->
+            if (uri != null) {
+                scope.launch {
+                    val imported =
+                        withContext(Dispatchers.IO) {
+                            context.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() }
+                        }
+                    if (imported != null) {
+                        editor.setText(imported)
+                    }
                 }
             }
         }
-    }
 
     OverrideTopBar {
         TopAppBar(
@@ -131,32 +137,34 @@ fun TailscaleGhosttyConfigEditorScreen(navController: NavController, isDark: Boo
     }
 
     val colorScheme = MaterialTheme.colorScheme
-    val editorColors = remember(colorScheme) {
-        ProfileEditorColors(
-            background = colorScheme.background.toArgb(),
-            foreground = colorScheme.onSurface.toArgb(),
-            lineNumber = colorScheme.onSurfaceVariant.toArgb(),
-            lineNumberBackground = colorScheme.background.toArgb(),
-            selectionBackground = colorScheme.primary.copy(alpha = 0.35f).toArgb(),
-            currentLineBackground = colorScheme.surfaceContainer.toArgb(),
-            cursor = colorScheme.primary.toArgb(),
-            matchedTextBackground = colorScheme.tertiary.copy(alpha = 0.35f).toArgb(),
-            comment = colorScheme.onSurfaceVariant.toArgb(),
-            key = colorScheme.primary.toArgb(),
-            string = colorScheme.tertiary.toArgb(),
-            number = colorScheme.secondary.toArgb(),
-            literal = colorScheme.primary.toArgb(),
-        )
-    }
+    val editorColors =
+        remember(colorScheme) {
+            ProfileEditorColors(
+                background = colorScheme.background.toArgb(),
+                foreground = colorScheme.onSurface.toArgb(),
+                lineNumber = colorScheme.onSurfaceVariant.toArgb(),
+                lineNumberBackground = colorScheme.background.toArgb(),
+                selectionBackground = colorScheme.primary.copy(alpha = 0.35f).toArgb(),
+                currentLineBackground = colorScheme.surfaceContainer.toArgb(),
+                cursor = colorScheme.primary.toArgb(),
+                matchedTextBackground = colorScheme.tertiary.copy(alpha = 0.35f).toArgb(),
+                comment = colorScheme.onSurfaceVariant.toArgb(),
+                key = colorScheme.primary.toArgb(),
+                string = colorScheme.tertiary.toArgb(),
+                number = colorScheme.secondary.toArgb(),
+                literal = colorScheme.primary.toArgb(),
+            )
+        }
 
     val scaffoldPadding = LocalScaffoldPadding.current
 
     AndroidView(
         factory = { editor.view },
         update = { editor.applyColors(editorColors) },
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = scaffoldPadding.calculateTopPadding())
-            .imePadding(),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(top = scaffoldPadding.calculateTopPadding())
+                .imePadding(),
     )
 }

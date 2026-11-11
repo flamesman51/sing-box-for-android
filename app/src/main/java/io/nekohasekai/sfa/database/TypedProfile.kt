@@ -16,10 +16,11 @@ class TypedProfile() : Parcelable {
         Remote,
         ;
 
-        fun getString(context: Context): String = when (this) {
-            Local -> context.getString(R.string.profile_type_local)
-            Remote -> context.getString(R.string.profile_type_remote)
-        }
+        fun getString(context: Context): String =
+            when (this) {
+                Local -> context.getString(R.string.profile_type_local)
+                Remote -> context.getString(R.string.profile_type_remote)
+            }
 
         companion object {
             fun valueOf(value: Int): Type {
@@ -59,7 +60,10 @@ class TypedProfile() : Parcelable {
         }
     }
 
-    override fun writeToParcel(writer: Parcel, flags: Int) {
+    override fun writeToParcel(
+        writer: Parcel,
+        flags: Int,
+    ) {
         writer.writeInt(3)
         writer.writeString(path)
         writer.writeInt(type.ordinal)

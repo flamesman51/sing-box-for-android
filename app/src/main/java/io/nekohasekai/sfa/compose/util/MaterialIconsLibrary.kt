@@ -9,7 +9,10 @@ import androidx.compose.material.icons.sharp.*
 import androidx.compose.material.icons.twotone.*
 import androidx.compose.ui.graphics.vector.ImageVector
 
-data class IconCategory(val name: String, val icons: List<ProfileIcon>)
+data class IconCategory(
+    val name: String,
+    val icons: List<ProfileIcon>,
+)
 
 object MaterialIconsLibrary {
     val categories =
@@ -420,9 +423,11 @@ object MaterialIconsLibrary {
         return getAllIcons().find { it.id == id }?.icon
     }
 
-    fun getCategoryForIcon(iconId: String): String? = categories.find { category ->
-        category.icons.any { it.id == iconId }
-    }?.name
+    fun getCategoryForIcon(iconId: String): String? =
+        categories
+            .find { category ->
+                category.icons.any { it.id == iconId }
+            }?.name
 
     fun searchIcons(query: String): List<ProfileIcon> {
         val lowercaseQuery = query.lowercase()

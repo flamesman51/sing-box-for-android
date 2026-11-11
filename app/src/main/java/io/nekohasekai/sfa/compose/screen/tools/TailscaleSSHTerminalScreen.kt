@@ -105,19 +105,21 @@ fun TailscaleSSHTerminalScreen(
     val quickConnectPeerIDs = Settings.tailscaleSSHQuickConnectPeers
     val activePeerAddress = activeSession?.presentedSession?.peerAddress
     val activeEndpointTag = activeSession?.presentedSession?.endpointTag
-    val otherQuickConnectPeers = remember(tailscaleState, quickConnectPeerIDs, activePeerAddress, activeEndpointTag) {
-        tailscaleState.endpoints.flatMap { endpoint ->
-            endpoint.userGroups.flatMap { group ->
-                group.peers.filter { peer ->
-                    peer.online && peer.sshHostKeys.isNotEmpty() &&
-                        peer.tailscaleIPs.isNotEmpty() &&
-                        peer.id != endpoint.selfPeer?.id &&
-                        quickConnectPeerIDs.contains(peer.stableID) &&
-                        !(endpoint.endpointTag == activeEndpointTag && peer.tailscaleIPs.firstOrNull() == activePeerAddress)
-                }.map { peer -> peer to endpoint.endpointTag }
+    val otherQuickConnectPeers =
+        remember(tailscaleState, quickConnectPeerIDs, activePeerAddress, activeEndpointTag) {
+            tailscaleState.endpoints.flatMap { endpoint ->
+                endpoint.userGroups.flatMap { group ->
+                    group.peers
+                        .filter { peer ->
+                            peer.online && peer.sshHostKeys.isNotEmpty() &&
+                                peer.tailscaleIPs.isNotEmpty() &&
+                                peer.id != endpoint.selfPeer?.id &&
+                                quickConnectPeerIDs.contains(peer.stableID) &&
+                                !(endpoint.endpointTag == activeEndpointTag && peer.tailscaleIPs.firstOrNull() == activePeerAddress)
+                        }.map { peer -> peer to endpoint.endpointTag }
+                }
             }
         }
-    }
 
     OverrideTopBar {
         TopAppBar(
@@ -129,11 +131,14 @@ fun TailscaleSSHTerminalScreen(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    val workingDirectory = if (activeSession != null) {
-                        activeSession.terminalSession.workingDirectory.collectAsState().value
-                    } else {
-                        null
-                    }
+                    val workingDirectory =
+                        if (activeSession != null) {
+                            activeSession.terminalSession.workingDirectory
+                                .collectAsState()
+                                .value
+                        } else {
+                            null
+                        }
                     if (!workingDirectory.isNullOrEmpty()) {
                         Text(
                             workingDirectory,
@@ -220,10 +225,12 @@ fun TailscaleSSHTerminalScreen(
                                                     endpointTag = endpointTag,
                                                     peerHostName = peer.hostName,
                                                     peerAddress = peer.tailscaleIPs.first(),
-                                                    username = rememberedUsernames[peer.stableID]?.takeIf { it.isNotBlank() }
-                                                        ?: DEFAULT_SSH_USERNAME,
-                                                    terminalType = rememberedTerminalTypes[peer.stableID]?.takeIf { it.isNotBlank() }
-                                                        ?: DEFAULT_SSH_TERMINAL_TYPE,
+                                                    username =
+                                                        rememberedUsernames[peer.stableID]?.takeIf { it.isNotBlank() }
+                                                            ?: DEFAULT_SSH_USERNAME,
+                                                    terminalType =
+                                                        rememberedTerminalTypes[peer.stableID]?.takeIf { it.isNotBlank() }
+                                                            ?: DEFAULT_SSH_TERMINAL_TYPE,
                                                     hostKeys = peer.sshHostKeys,
                                                 ),
                                             )
@@ -240,7 +247,9 @@ fun TailscaleSSHTerminalScreen(
                                     showSessionMenu = false
                                     expandedNewSession = false
                                     sessionStore.removeSession(activeSession.id)
-                                    if (sessionStore.state.value.sessions.isEmpty()) {
+                                    if (sessionStore.state.value.sessions
+                                            .isEmpty()
+                                    ) {
                                         keyboardController?.hide()
                                         navController.navigateUp()
                                     }
@@ -275,9 +284,11 @@ fun TailscaleSSHTerminalScreen(
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier = Modifier.fillMaxSize()
-            .padding(scaffoldPadding)
-            .imePadding(),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(scaffoldPadding)
+                .imePadding(),
     ) {
         if (activeSession != null) {
             GhosttyProgressIndicator(
@@ -287,30 +298,34 @@ fun TailscaleSSHTerminalScreen(
             Box(modifier = Modifier.weight(1f)) {
                 val context = LocalContext.current
                 val themeName = if (isDark) Settings.tailscaleSSHDarkTheme else Settings.tailscaleSSHLightTheme
-                val customConfig = remember(themeName, isDark) {
-                    if (themeName.isEmpty()) {
-                        GhosttyCustomConfig.parse(
-                            if (isDark) Settings.tailscaleSSHDarkConfig else Settings.tailscaleSSHLightConfig,
-                        )
-                    } else {
-                        null
+                val customConfig =
+                    remember(themeName, isDark) {
+                        if (themeName.isEmpty()) {
+                            GhosttyCustomConfig.parse(
+                                if (isDark) Settings.tailscaleSSHDarkConfig else Settings.tailscaleSSHLightConfig,
+                            )
+                        } else {
+                            null
+                        }
                     }
-                }
-                val theme = remember(themeName, isDark, customConfig) {
-                    customConfig?.theme ?: GhosttyThemeStore.loadThemeOrDefault(context, themeName, isDark)
-                }
-                val typeface = remember(customConfig) {
-                    if (Settings.tailscaleSSHFontFollowTheme) {
-                        customConfig?.fontFamily
-                            ?.takeIf { it.isNotBlank() }
-                            ?.let { Typeface.create(it, Typeface.NORMAL) }
-                    } else {
-                        GhosttyFontStore.resolveTypeface(
-                            Settings.tailscaleSSHFontFamily,
-                            Settings.tailscaleSSHCustomFontPath,
-                        )
-                    } ?: Typeface.MONOSPACE
-                }
+                val theme =
+                    remember(themeName, isDark, customConfig) {
+                        customConfig?.theme ?: GhosttyThemeStore.loadThemeOrDefault(context, themeName, isDark)
+                    }
+                val typeface =
+                    remember(customConfig) {
+                        if (Settings.tailscaleSSHFontFollowTheme) {
+                            customConfig
+                                ?.fontFamily
+                                ?.takeIf { it.isNotBlank() }
+                                ?.let { Typeface.create(it, Typeface.NORMAL) }
+                        } else {
+                            GhosttyFontStore.resolveTypeface(
+                                Settings.tailscaleSSHFontFamily,
+                                Settings.tailscaleSSHCustomFontPath,
+                            )
+                        } ?: Typeface.MONOSPACE
+                    }
                 val fontSize = remember { Settings.tailscaleSSHFontSize }
 
                 GhosttyTerminal(
@@ -326,7 +341,9 @@ fun TailscaleSSHTerminalScreen(
                         val active = sessionStore.state.value.activeSession
                         if (active != null) {
                             sessionStore.removeSession(active.id)
-                            if (sessionStore.state.value.sessions.isEmpty()) {
+                            if (sessionStore.state.value.sessions
+                                    .isEmpty()
+                            ) {
                                 keyboardController?.hide()
                                 navController.navigateUp()
                             }
@@ -358,9 +375,10 @@ fun TailscaleSSHTerminalScreen(
                                 Surface(
                                     color = MaterialTheme.colorScheme.surfaceVariant,
                                     shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier
-                                        .padding(top = 16.dp, start = 16.dp, end = 16.dp)
-                                        .widthIn(max = 480.dp),
+                                    modifier =
+                                        Modifier
+                                            .padding(top = 16.dp, start = 16.dp, end = 16.dp)
+                                            .widthIn(max = 480.dp),
                                 ) {
                                     Text(
                                         remember(banner, linkColor) { bannerAnnotatedString(banner, linkColor) },
@@ -403,7 +421,10 @@ fun TailscaleSSHTerminalScreen(
 @Composable
 private fun sessionTitle(session: ManagedSession): String {
     val phase = session.phase.collectAsState().value
-    val terminalTitle = session.terminalSession.title.collectAsState().value
+    val terminalTitle =
+        session.terminalSession.title
+            .collectAsState()
+            .value
     if (phase == TerminalSessionPhase.CONNECTING || terminalTitle.isNullOrBlank()) {
         return session.presentedSession.peerHostName
     }
@@ -412,7 +433,10 @@ private fun sessionTitle(session: ManagedSession): String {
 
 private val bannerUrlRegex = Regex("""https?://\S+""")
 
-private fun bannerAnnotatedString(text: String, linkColor: Color) = buildAnnotatedString {
+private fun bannerAnnotatedString(
+    text: String,
+    linkColor: Color,
+) = buildAnnotatedString {
     var lastIndex = 0
     for (match in bannerUrlRegex.findAll(text)) {
         if (match.range.first > lastIndex) {

@@ -113,12 +113,13 @@ fun USBIPServerScreen(
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .verticalScroll(rememberScrollState())
-            .padding(scaffoldPadding)
-            .padding(vertical = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .verticalScroll(rememberScrollState())
+                .padding(scaffoldPadding)
+                .padding(vertical = 8.dp),
     ) {
         if (server == null) {
             Text(
@@ -149,9 +150,10 @@ fun USBIPServerScreen(
             )
         } else {
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
             ) {
                 Column {
@@ -173,7 +175,10 @@ fun USBIPServerScreen(
 }
 
 @Composable
-private fun AddDeviceMenu(provided: List<ProvidedDevice>, onPick: (android.hardware.usb.UsbDevice) -> Unit) {
+private fun AddDeviceMenu(
+    provided: List<ProvidedDevice>,
+    onPick: (android.hardware.usb.UsbDevice) -> Unit,
+) {
     val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
     Box {
@@ -221,32 +226,40 @@ private fun AddDeviceMenu(provided: List<ProvidedDevice>, onPick: (android.hardw
 }
 
 @Composable
-private fun DeviceItem(row: UsbDeviceRow, onOpen: () -> Unit, onDetach: (String) -> Unit) {
+private fun DeviceItem(
+    row: UsbDeviceRow,
+    onOpen: () -> Unit,
+    onDetach: (String) -> Unit,
+) {
     val (label, tone) = stateInfo(row)
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .clickable(enabled = row.deviceData != null, onClick = onOpen)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clickable(enabled = row.deviceData != null, onClick = onOpen)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(toneColor(tone)),
+                modifier =
+                    Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(toneColor(tone)),
             )
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 12.dp),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .padding(start = 12.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -271,10 +284,11 @@ private fun DeviceItem(row: UsbDeviceRow, onOpen: () -> Unit, onDetach: (String)
         }
         if (row.providedDeviceId != null) {
             Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(52.dp)
-                    .clickable { onDetach(row.providedDeviceId) },
+                modifier =
+                    Modifier
+                        .fillMaxHeight()
+                        .width(52.dp)
+                        .clickable { onDetach(row.providedDeviceId) },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -306,14 +320,18 @@ private fun stateInfo(row: UsbDeviceRow): Pair<String, Tone> {
 }
 
 @Composable
-private fun toneColor(tone: Tone): Color = when (tone) {
-    Tone.GOOD -> Color(0xFF4CAF50)
-    Tone.MEDIUM -> MaterialTheme.colorScheme.primary
-    Tone.BAD -> MaterialTheme.colorScheme.error
-    Tone.NEUTRAL -> Color.Gray
-}
+private fun toneColor(tone: Tone): Color =
+    when (tone) {
+        Tone.GOOD -> Color(0xFF4CAF50)
+        Tone.MEDIUM -> MaterialTheme.colorScheme.primary
+        Tone.BAD -> MaterialTheme.colorScheme.error
+        Tone.NEUTRAL -> Color.Gray
+    }
 
-private fun mergeRows(server: UsbipServerData, provided: List<ProvidedDevice>): List<UsbDeviceRow> {
+private fun mergeRows(
+    server: UsbipServerData,
+    provided: List<ProvidedDevice>,
+): List<UsbDeviceRow> {
     val providedByBusId =
         provided.filter { it.state == ProvidedDeviceState.READY && it.busId != null }.associateBy { it.busId!! }
     val matched = HashSet<String>()

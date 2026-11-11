@@ -55,11 +55,16 @@ enum class ProfileSource {
     Import,
 }
 
-class NewProfileViewModel(application: Application) : AndroidViewModel(application) {
+class NewProfileViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(NewProfileUiState())
     val uiState: StateFlow<NewProfileUiState> = _uiState.asStateFlow()
 
-    fun initializeFromQRImport(name: String?, url: String?) {
+    fun initializeFromQRImport(
+        name: String?,
+        url: String?,
+    ) {
         if (name != null && url != null) {
             _uiState.update {
                 it.copy(
@@ -71,7 +76,10 @@ class NewProfileViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun initializeFromQRSImport(name: String?, qrsData: ByteArray) {
+    fun initializeFromQRSImport(
+        name: String?,
+        qrsData: ByteArray,
+    ) {
         _uiState.update {
             it.copy(
                 name = name ?: "",
@@ -122,18 +130,21 @@ class NewProfileViewModel(application: Application) : AndroidViewModel(applicati
         _uiState.update { it.copy(autoUpdateInterval = intValue.coerceAtLeast(15)) }
     }
 
-    fun setImportUri(uri: Uri, fileName: String?) {
+    fun setImportUri(
+        uri: Uri,
+        fileName: String?,
+    ) {
         _uiState.update {
             it.copy(
                 importUri = uri,
                 importFileName = fileName,
                 importError = null, // Clear error when file is selected
                 name =
-                if (it.name.isEmpty()) {
-                    fileName?.substringBeforeLast(".") ?: "Imported Profile"
-                } else {
-                    it.name
-                },
+                    if (it.name.isEmpty()) {
+                        fileName?.substringBeforeLast(".") ?: "Imported Profile"
+                    } else {
+                        it.name
+                    },
             )
         }
     }
@@ -240,7 +251,9 @@ class NewProfileViewModel(application: Application) : AndroidViewModel(applicati
         // Get config content
         val configContent =
             when (state.profileSource) {
-                ProfileSource.CreateNew -> "{}"
+                ProfileSource.CreateNew -> {
+                    "{}"
+                }
                 ProfileSource.Import -> {
                     if (state.qrsData != null) {
                         val content = Libbox.decodeProfileContent(state.qrsData)
@@ -259,7 +272,9 @@ class NewProfileViewModel(application: Application) : AndroidViewModel(applicati
                                 sourceURL.startsWith("http://") || sourceURL.startsWith("https://") -> {
                                     HTTPClient().use { it.getProfile(sourceURL).content }
                                 }
-                                else -> throw Exception("Unsupported source: $sourceURL")
+                                else -> {
+                                    throw Exception("Unsupported source: $sourceURL")
+                                }
                             }
                         } ?: "{}"
                     }

@@ -67,7 +67,10 @@ import java.text.DateFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CrashReportDetailScreen(navController: NavController, reportId: String) {
+fun CrashReportDetailScreen(
+    navController: NavController,
+    reportId: String,
+) {
     val reports by CrashReportManager.reports.collectAsState()
     val report = reports.find { it.id == reportId }
     var files by remember { mutableStateOf<List<CrashReportFile>>(emptyList()) }
@@ -77,21 +80,22 @@ fun CrashReportDetailScreen(navController: NavController, reportId: String) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    val saveLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/zip"),
-    ) { uri ->
-        val zipFile = pendingZipFile
-        pendingZipFile = null
-        if (uri != null && zipFile != null) {
-            scope.launch(Dispatchers.IO) {
-                runCatching {
-                    context.contentResolver.openOutputStream(uri)?.use { output ->
-                        zipFile.inputStream().use { input -> input.copyTo(output) }
+    val saveLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("application/zip"),
+        ) { uri ->
+            val zipFile = pendingZipFile
+            pendingZipFile = null
+            if (uri != null && zipFile != null) {
+                scope.launch(Dispatchers.IO) {
+                    runCatching {
+                        context.contentResolver.openOutputStream(uri)?.use { output ->
+                            zipFile.inputStream().use { input -> input.copyTo(output) }
+                        }
                     }
                 }
             }
         }
-    }
 
     LaunchedEffect(report) {
         if (report != null) {
@@ -103,24 +107,30 @@ fun CrashReportDetailScreen(navController: NavController, reportId: String) {
         isLoading = false
     }
 
-    val title = if (report != null) {
-        DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(report.date)
-    } else {
-        reportId
-    }
+    val title =
+        if (report != null) {
+            DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(report.date)
+        } else {
+            reportId
+        }
 
     val hasConfig = report != null && CrashReportManager.hasConfigFile(report)
 
-    fun shareReport(includeConfig: Boolean, includeLog: Boolean, useAgeEncryption: Boolean) {
+    fun shareReport(
+        includeConfig: Boolean,
+        includeLog: Boolean,
+        useAgeEncryption: Boolean,
+    ) {
         val currentReport = report ?: return
         scope.launch {
             val zipFile = CrashReportManager.createZipArchive(currentReport, includeConfig, includeLog, useAgeEncryption)
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.cache", zipFile)
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = if (useAgeEncryption) "application/octet-stream" else "application/zip"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
+            val intent =
+                Intent(Intent.ACTION_SEND).apply {
+                    type = if (useAgeEncryption) "application/octet-stream" else "application/zip"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
             context.startActivity(Intent.createChooser(intent, null))
         }
     }
@@ -159,18 +169,20 @@ fun CrashReportDetailScreen(navController: NavController, reportId: String) {
 
     if (isLoading) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center,
         ) {
             CircularProgressIndicator()
         }
     } else if (files.isEmpty()) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -182,12 +194,13 @@ fun CrashReportDetailScreen(navController: NavController, reportId: String) {
         val scaffoldPadding = LocalScaffoldPadding.current
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .verticalScroll(rememberScrollState())
-                .padding(scaffoldPadding)
-                .padding(vertical = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .verticalScroll(rememberScrollState())
+                    .padding(scaffoldPadding)
+                    .padding(vertical = 8.dp),
         ) {
             Text(
                 stringResource(R.string.report_section_files),
@@ -196,30 +209,42 @@ fun CrashReportDetailScreen(navController: NavController, reportId: String) {
                 modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
             )
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    ),
             ) {
                 Column {
                     files.forEachIndexed { index, file ->
-                        val shape = when {
-                            files.size == 1 -> RoundedCornerShape(12.dp)
-                            index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                            index == files.lastIndex -> RoundedCornerShape(
-                                bottomStart = 12.dp,
-                                bottomEnd = 12.dp,
-                            )
-                            else -> RoundedCornerShape(0.dp)
-                        }
-                        val icon = when (file.kind) {
-                            CrashReportFile.Kind.METADATA -> Icons.Default.DataObject
-                            CrashReportFile.Kind.GO_LOG -> Icons.Default.Terminal
-                            CrashReportFile.Kind.JVM_LOG -> Icons.Outlined.BugReport
-                            CrashReportFile.Kind.CONFIG -> Icons.Outlined.Settings
-                        }
+                        val shape =
+                            when {
+                                files.size == 1 -> {
+                                    RoundedCornerShape(12.dp)
+                                }
+                                index == 0 -> {
+                                    RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                                }
+                                index == files.lastIndex -> {
+                                    RoundedCornerShape(
+                                        bottomStart = 12.dp,
+                                        bottomEnd = 12.dp,
+                                    )
+                                }
+                                else -> {
+                                    RoundedCornerShape(0.dp)
+                                }
+                            }
+                        val icon =
+                            when (file.kind) {
+                                CrashReportFile.Kind.METADATA -> Icons.Default.DataObject
+                                CrashReportFile.Kind.GO_LOG -> Icons.Default.Terminal
+                                CrashReportFile.Kind.JVM_LOG -> Icons.Outlined.BugReport
+                                CrashReportFile.Kind.CONFIG -> Icons.Outlined.Settings
+                            }
                         ListItem(
                             headlineContent = {
                                 Text(
@@ -234,15 +259,16 @@ fun CrashReportDetailScreen(navController: NavController, reportId: String) {
                                     tint = MaterialTheme.colorScheme.primary,
                                 )
                             },
-                            modifier = Modifier
-                                .clip(shape)
-                                .clickable {
-                                    if (file.kind == CrashReportFile.Kind.METADATA) {
-                                        navController.navigate("tools/crash_report/$reportId/metadata")
-                                    } else {
-                                        navController.navigate("tools/crash_report/$reportId/file/${file.kind.name}")
-                                    }
-                                },
+                            modifier =
+                                Modifier
+                                    .clip(shape)
+                                    .clickable {
+                                        if (file.kind == CrashReportFile.Kind.METADATA) {
+                                            navController.navigate("tools/crash_report/$reportId/metadata")
+                                        } else {
+                                            navController.navigate("tools/crash_report/$reportId/file/${file.kind.name}")
+                                        }
+                                    },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         )
                     }
@@ -273,7 +299,10 @@ fun CrashReportDetailScreen(navController: NavController, reportId: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CrashReportMetadataScreen(navController: NavController, reportId: String) {
+fun CrashReportMetadataScreen(
+    navController: NavController,
+    reportId: String,
+) {
     val reports by CrashReportManager.reports.collectAsState()
     val report = reports.find { it.id == reportId }
     var entries by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
@@ -301,18 +330,20 @@ fun CrashReportMetadataScreen(navController: NavController, reportId: String) {
 
     if (isLoading) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center,
         ) {
             CircularProgressIndicator()
         }
     } else if (entries.isEmpty()) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -323,34 +354,46 @@ fun CrashReportMetadataScreen(navController: NavController, reportId: String) {
     } else {
         SelectionContainer {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .verticalScroll(rememberScrollState())
-                    .padding(vertical = 8.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = 8.dp),
             ) {
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        ),
                 ) {
                     Column {
                         entries.forEachIndexed { index, (key, value) ->
-                            val shape = when {
-                                entries.size == 1 -> RoundedCornerShape(12.dp)
-                                index == 0 -> RoundedCornerShape(
-                                    topStart = 12.dp,
-                                    topEnd = 12.dp,
-                                )
-                                index == entries.lastIndex -> RoundedCornerShape(
-                                    bottomStart = 12.dp,
-                                    bottomEnd = 12.dp,
-                                )
-                                else -> RoundedCornerShape(0.dp)
-                            }
+                            val shape =
+                                when {
+                                    entries.size == 1 -> {
+                                        RoundedCornerShape(12.dp)
+                                    }
+                                    index == 0 -> {
+                                        RoundedCornerShape(
+                                            topStart = 12.dp,
+                                            topEnd = 12.dp,
+                                        )
+                                    }
+                                    index == entries.lastIndex -> {
+                                        RoundedCornerShape(
+                                            bottomStart = 12.dp,
+                                            bottomEnd = 12.dp,
+                                        )
+                                    }
+                                    else -> {
+                                        RoundedCornerShape(0.dp)
+                                    }
+                                }
                             ListItem(
                                 headlineContent = {
                                     Text(
@@ -362,9 +405,10 @@ fun CrashReportMetadataScreen(navController: NavController, reportId: String) {
                                     Text(value)
                                 },
                                 modifier = Modifier.clip(shape),
-                                colors = ListItemDefaults.colors(
-                                    containerColor = Color.Transparent,
-                                ),
+                                colors =
+                                    ListItemDefaults.colors(
+                                        containerColor = Color.Transparent,
+                                    ),
                             )
                         }
                     }
@@ -375,33 +419,41 @@ fun CrashReportMetadataScreen(navController: NavController, reportId: String) {
 }
 
 private fun loadMetadataEntries(report: CrashReport): List<Pair<String, String>> {
-    val metadataFile = CrashReportManager.availableFiles(report)
-        .find { it.kind == CrashReportFile.Kind.METADATA } ?: return emptyList()
+    val metadataFile =
+        CrashReportManager
+            .availableFiles(report)
+            .find { it.kind == CrashReportFile.Kind.METADATA } ?: return emptyList()
     val content = metadataFile.file.readText()
     val json = runCatching { JSONObject(content) }.getOrNull() ?: return emptyList()
-    return json.keys().asSequence()
+    return json
+        .keys()
+        .asSequence()
         .mapNotNull { key ->
             val value = json.optString(key, "")
             if (value.isNotBlank()) key to value else null
-        }
-        .toList()
+        }.toList()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CrashReportFileContentScreen(navController: NavController, reportId: String, fileKind: String) {
+fun CrashReportFileContentScreen(
+    navController: NavController,
+    reportId: String,
+    fileKind: String,
+) {
     val reports by CrashReportManager.reports.collectAsState()
     val report = reports.find { it.id == reportId }
     var content by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
 
     val kind = runCatching { CrashReportFile.Kind.valueOf(fileKind) }.getOrNull()
-    val displayName = when (kind) {
-        CrashReportFile.Kind.GO_LOG -> stringResource(R.string.crash_report_go_log)
-        CrashReportFile.Kind.JVM_LOG -> stringResource(R.string.crash_report_jvm_log)
-        CrashReportFile.Kind.CONFIG -> stringResource(R.string.report_configuration)
-        else -> fileKind
-    }
+    val displayName =
+        when (kind) {
+            CrashReportFile.Kind.GO_LOG -> stringResource(R.string.crash_report_go_log)
+            CrashReportFile.Kind.JVM_LOG -> stringResource(R.string.crash_report_jvm_log)
+            CrashReportFile.Kind.CONFIG -> stringResource(R.string.report_configuration)
+            else -> fileKind
+        }
 
     LaunchedEffect(report, kind) {
         if (report != null && kind != null) {
@@ -426,18 +478,20 @@ fun CrashReportFileContentScreen(navController: NavController, reportId: String,
 
     if (isLoading) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center,
         ) {
             CircularProgressIndicator()
         }
     } else if (content.isEmpty()) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -448,25 +502,28 @@ fun CrashReportFileContentScreen(navController: NavController, reportId: String,
     } else {
         SelectionContainer {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
             ) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        ),
                 ) {
                     Text(
                         text = content,
                         fontFamily = FontFamily.Monospace,
                         fontSize = 12.sp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
                     )
                 }
             }

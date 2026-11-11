@@ -7,7 +7,9 @@ import de.robv.android.xposed.XposedHelpers
 import io.nekohasekai.sfa.xposed.VpnSanitizer
 import io.nekohasekai.sfa.xposed.hooks.SafeMethodHook
 
-class HookConnectivityManagerGetDefaultProxy(private val helper: ConnectivityServiceHookHelper) {
+class HookConnectivityManagerGetDefaultProxy(
+    private val helper: ConnectivityServiceHookHelper,
+) {
     private companion object {
         private const val SOURCE = "HookConnectivityManagerGetDefaultProxy"
     }

@@ -12,7 +12,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-class ServiceBinder(private val status: MutableLiveData<Status>) : IService.Stub() {
+class ServiceBinder(
+    private val status: MutableLiveData<Status>,
+) : IService.Stub() {
     private val callbacks = RemoteCallbackList<IServiceCallback>()
     private val broadcastLock = Mutex()
 

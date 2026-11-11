@@ -29,7 +29,10 @@ object HookModuleUpdateNotifier {
         maybeNotify(context, HookStatusClient.status.value)
     }
 
-    fun maybeNotify(context: Context, status: HookStatusClient.Status?) {
+    fun maybeNotify(
+        context: Context,
+        status: HookStatusClient.Status?,
+    ) {
         if (!needsRestart(status)) {
             cancel(context)
             return
@@ -48,7 +51,8 @@ object HookModuleUpdateNotifier {
                 PendingIntent.FLAG_UPDATE_CURRENT or ServiceNotification.flags,
             )
         val builder =
-            NotificationCompat.Builder(context, CHANNEL_ID)
+            NotificationCompat
+                .Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_menu)
                 .setContentTitle(context.getString(R.string.privilege_module_restart_notification_title))
                 .setContentText(context.getString(R.string.privilege_module_restart_notification_message))

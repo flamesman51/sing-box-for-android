@@ -118,21 +118,24 @@ fun OpenVPNEndpointScreen(
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .verticalScroll(rememberScrollState())
-            .padding(scaffoldPadding)
-            .padding(vertical = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .verticalScroll(rememberScrollState())
+                .padding(scaffoldPadding)
+                .padding(vertical = 8.dp),
     ) {
         SectionHeader(stringResource(R.string.endpoint_status))
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -163,12 +166,14 @@ fun OpenVPNEndpointScreen(
                         TunnelInfoRow(tunnelInfo.mtu.toString(), stringResource(R.string.endpoint_mtu))
                     }
                     if (tunnelInfo.connectedSince > 0) {
-                        val connectedText = DateUtils.getRelativeTimeSpanString(
-                            tunnelInfo.connectedSince * 1000,
-                            System.currentTimeMillis(),
-                            DateUtils.MINUTE_IN_MILLIS,
-                            0,
-                        ).toString()
+                        val connectedText =
+                            DateUtils
+                                .getRelativeTimeSpanString(
+                                    tunnelInfo.connectedSince * 1000,
+                                    System.currentTimeMillis(),
+                                    DateUtils.MINUTE_IN_MILLIS,
+                                    0,
+                                ).toString()
                         TunnelInfoRow(connectedText, stringResource(R.string.endpoint_connected))
                     }
                 }
@@ -179,12 +184,14 @@ fun OpenVPNEndpointScreen(
             Spacer(modifier = Modifier.height(16.dp))
             SectionHeader(stringResource(R.string.endpoint_authentication))
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    ),
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -277,11 +284,12 @@ private fun ColumnScope.ChallengeContent(
         Text(
             String.format(Locale.US, "%d:%02d", remainingSeconds / 60, remainingSeconds % 60),
             style = MaterialTheme.typography.labelLarge,
-            color = if (expired) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.tertiary
-            },
+            color =
+                if (expired) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.tertiary
+                },
         )
     }
     if (challenge.kind == "credentials") {
@@ -291,10 +299,11 @@ private fun ColumnScope.ChallengeContent(
             label = { Text(stringResource(R.string.endpoint_username)) },
             singleLine = true,
             enabled = editable,
-            keyboardOptions = KeyboardOptions(
-                capitalization = KeyboardCapitalization.None,
-                autoCorrectEnabled = false,
-            ),
+            keyboardOptions =
+                KeyboardOptions(
+                    capitalization = KeyboardCapitalization.None,
+                    autoCorrectEnabled = false,
+                ),
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
@@ -317,13 +326,14 @@ private fun ColumnScope.ChallengeContent(
         onClick = {
             scope.launch {
                 submitting = true
-                val message = viewModel.submitChallengeResponse(
-                    endpointTag = endpointTag,
-                    challengeID = challenge.id,
-                    username = if (challenge.kind == "credentials") username else "",
-                    password = if (challenge.kind == "credentials") password else "",
-                    secret = secret,
-                )
+                val message =
+                    viewModel.submitChallengeResponse(
+                        endpointTag = endpointTag,
+                        challengeID = challenge.id,
+                        username = if (challenge.kind == "credentials") username else "",
+                        password = if (challenge.kind == "credentials") password else "",
+                        secret = secret,
+                    )
                 submitting = false
                 if (message != null) {
                     viewModel.sendGlobalEvent(UiEvent.ErrorMessage(message))
@@ -354,19 +364,21 @@ private fun SecretField(
         },
         singleLine = true,
         enabled = enabled,
-        visualTransformation = if (challenge.echo) {
-            VisualTransformation.None
-        } else {
-            PasswordVisualTransformation()
-        },
-        keyboardOptions = if (challenge.echo) {
-            KeyboardOptions(
-                capitalization = KeyboardCapitalization.None,
-                autoCorrectEnabled = false,
-            )
-        } else {
-            KeyboardOptions(keyboardType = KeyboardType.Password)
-        },
+        visualTransformation =
+            if (challenge.echo) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
+        keyboardOptions =
+            if (challenge.echo) {
+                KeyboardOptions(
+                    capitalization = KeyboardCapitalization.None,
+                    autoCorrectEnabled = false,
+                )
+            } else {
+                KeyboardOptions(keyboardType = KeyboardType.Password)
+            },
         modifier = Modifier.fillMaxWidth(),
     )
 }
@@ -382,7 +394,10 @@ private fun SectionHeader(title: String) {
 }
 
 @Composable
-private fun StateRow(state: String, stateText: String) {
+private fun StateRow(
+    state: String,
+    stateText: String,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -399,10 +414,11 @@ private fun StateRow(state: String, stateText: String) {
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(stateColor(state)),
+                modifier =
+                    Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(stateColor(state)),
             )
             Text(
                 stateText,
@@ -414,7 +430,10 @@ private fun StateRow(state: String, stateText: String) {
 }
 
 @Composable
-private fun TunnelInfoRow(value: String, label: String) {
+private fun TunnelInfoRow(
+    value: String,
+    label: String,
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             value,
@@ -428,10 +447,11 @@ private fun TunnelInfoRow(value: String, label: String) {
     }
 }
 
-private fun stateColor(state: String): Color = when (state) {
-    "connected" -> Color(0xFF4CAF50)
-    "auth-pending" -> Color(0xFFFF9800)
-    "connecting" -> Color(0xFFFFEB3B)
-    "error" -> Color(0xFFF44336)
-    else -> Color.Gray
-}
+private fun stateColor(state: String): Color =
+    when (state) {
+        "connected" -> Color(0xFF4CAF50)
+        "auth-pending" -> Color(0xFFFF9800)
+        "connecting" -> Color(0xFFFFEB3B)
+        "error" -> Color(0xFFF44336)
+        else -> Color.Gray
+    }

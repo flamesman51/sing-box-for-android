@@ -91,10 +91,11 @@ fun NetworkQualityScreen(
         }
     }
 
-    val selectedOutboundResult = navController.currentBackStackEntry
-        ?.savedStateHandle
-        ?.getStateFlow("selected_outbound", state.selectedOutbound)
-        ?.collectAsState()
+    val selectedOutboundResult =
+        navController.currentBackStackEntry
+            ?.savedStateHandle
+            ?.getStateFlow("selected_outbound", state.selectedOutbound)
+            ?.collectAsState()
     LaunchedEffect(selectedOutboundResult?.value) {
         selectedOutboundResult?.value?.let { viewModel.selectOutbound(it) }
     }
@@ -147,19 +148,21 @@ fun NetworkQualityScreen(
     val scaffoldPadding = LocalScaffoldPadding.current
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .verticalScroll(rememberScrollState())
-            .padding(scaffoldPadding)
-            .padding(16.dp),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .verticalScroll(rememberScrollState())
+                .padding(scaffoldPadding)
+                .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-            ),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                ),
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -172,17 +175,19 @@ fun NetworkQualityScreen(
                 )
 
                 Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { showConfigURLDialog = true },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { showConfigURLDialog = true },
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(12.dp),
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
@@ -247,17 +252,19 @@ fun NetworkQualityScreen(
                 )
 
                 Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable(enabled = !state.isRunning) { showMaxRuntimeDialog = true },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable(enabled = !state.isRunning) { showMaxRuntimeDialog = true },
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(12.dp),
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
@@ -300,9 +307,10 @@ fun NetworkQualityScreen(
             Button(
                 onClick = { viewModel.cancelTest() },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                ),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                    ),
             ) {
                 Text(stringResource(R.string.network_quality_cancel))
             }
@@ -326,9 +334,10 @@ fun NetworkQualityScreen(
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
-                ),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
+                    ),
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -398,11 +407,12 @@ fun NetworkQualityScreen(
 }
 
 @Composable
-private fun accuracyLabel(value: Int): Pair<String, Color> = when (value) {
-    Libbox.NetworkQualityAccuracyHigh -> stringResource(R.string.network_quality_confidence_high) to Color.Green
-    Libbox.NetworkQualityAccuracyMedium -> stringResource(R.string.network_quality_confidence_medium) to Color.Yellow
-    else -> stringResource(R.string.network_quality_confidence_low) to Color.Red
-}
+private fun accuracyLabel(value: Int): Pair<String, Color> =
+    when (value) {
+        Libbox.NetworkQualityAccuracyHigh -> stringResource(R.string.network_quality_confidence_high) to Color.Green
+        Libbox.NetworkQualityAccuracyMedium -> stringResource(R.string.network_quality_confidence_medium) to Color.Yellow
+        else -> stringResource(R.string.network_quality_confidence_low) to Color.Red
+    }
 
 @Composable
 private fun ConfigURLDialog(
@@ -450,11 +460,12 @@ private fun MaxRuntimeDialog(
             Column {
                 MaxRuntimeOption.entries.forEach { option ->
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onOptionSelected(option) }
-                            .padding(vertical = 8.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onOptionSelected(option) }
+                                .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(

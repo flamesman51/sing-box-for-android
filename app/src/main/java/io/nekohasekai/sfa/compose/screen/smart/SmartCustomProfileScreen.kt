@@ -85,7 +85,10 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SmartCustomProfileScreen(navController: NavController, serviceStatus: Status) {
+fun SmartCustomProfileScreen(
+    navController: NavController,
+    serviceStatus: Status,
+) {
     val requiredBaseMessage = stringResource(R.string.smart_editor_require_base)
     val locale = ConfigurationCompat.getLocales(LocalConfiguration.current)[0] ?: Locale.ROOT
     val separator = DecimalFormatSymbols.getInstance(locale).decimalSeparator
@@ -118,12 +121,13 @@ fun SmartCustomProfileScreen(navController: NavController, serviceStatus: Status
             initialized = true
         }.onFailure { failure = it.message ?: it.toString() }
     }
-    val policy = remember(source, catalog) {
-        source?.let { raw ->
-            val draft = SmartEditorPolicy(raw)
-            catalog?.first { it.name == (draft.text("preference.profile") ?: "default") }?.let { draft.withDefaults(it.policy) }
+    val policy =
+        remember(source, catalog) {
+            source?.let { raw ->
+                val draft = SmartEditorPolicy(raw)
+                catalog?.first { it.name == (draft.text("preference.profile") ?: "default") }?.let { draft.withDefaults(it.policy) }
+            }
         }
-    }
     fun leave() {
         if (jsonMode) {
             jsonMode = false
@@ -135,14 +139,15 @@ fun SmartCustomProfileScreen(navController: NavController, serviceStatus: Status
     fun back() {
         if (if (jsonMode) jsonText != source else source != initialSource) discard = true else leave()
     }
-    fun accept(candidate: SmartEditorPolicy): Boolean = try {
-        Libbox.checkSmartPolicy(candidate.source)
-        source = candidate.source
-        true
-    } catch (exception: Exception) {
-        failure = exception.message ?: exception.toString()
-        false
-    }
+    fun accept(candidate: SmartEditorPolicy): Boolean =
+        try {
+            Libbox.checkSmartPolicy(candidate.source)
+            source = candidate.source
+            true
+        } catch (exception: Exception) {
+            failure = exception.message ?: exception.toString()
+            false
+        }
     BackHandler { back() }
     OverrideTopBar {
         TopAppBar(
@@ -157,12 +162,13 @@ fun SmartCustomProfileScreen(navController: NavController, serviceStatus: Status
                     if (jsonMode) {
                         try {
                             val validation = runCatching { Libbox.checkSmartPolicy(jsonText) }
-                            val candidate = try {
-                                SmartEditorPolicy(jsonText)
-                            } catch (exception: Exception) {
-                                validation.getOrThrow()
-                                throw exception
-                            }
+                            val candidate =
+                                try {
+                                    SmartEditorPolicy(jsonText)
+                                } catch (exception: Exception) {
+                                    validation.getOrThrow()
+                                    throw exception
+                                }
                             require(catalog.orEmpty().any { it.name == candidate.text("preference.profile") }) {
                                 requiredBaseMessage
                             }
@@ -204,10 +210,11 @@ fun SmartCustomProfileScreen(navController: NavController, serviceStatus: Status
         )
     }
     val padding = LocalScaffoldPadding.current
-    val screen = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).padding(
-        top = padding.calculateTopPadding() + 8.dp,
-        bottom = padding.calculateBottomPadding() + 8.dp,
-    )
+    val screen =
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).padding(
+            top = padding.calculateTopPadding() + 8.dp,
+            bottom = padding.calculateBottomPadding() + 8.dp,
+        )
     if (jsonMode) {
         OutlinedTextField(
             value = jsonText,
@@ -280,12 +287,13 @@ fun SmartCustomProfileScreen(navController: NavController, serviceStatus: Status
                                     }
                                 }
                             },
-                            modifier = Modifier.focusRequester(requester).semantics { stateDescription = state }.toggleable(
-                                value = included,
-                                enabled = !included || rank.size > 1,
-                                role = Role.Checkbox,
-                                onValueChange = { checked -> updateRank(if (checked) rank + id else rank - id) },
-                            ),
+                            modifier =
+                                Modifier.focusRequester(requester).semantics { stateDescription = state }.toggleable(
+                                    value = included,
+                                    enabled = !included || rank.size > 1,
+                                    role = Role.Checkbox,
+                                    onValueChange = { checked -> updateRank(if (checked) rank + id else rank - id) },
+                                ),
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         )
                     }
@@ -370,29 +378,36 @@ fun SmartCustomProfileScreen(navController: NavController, serviceStatus: Status
                             Text(stringResource(R.string.smart_editor_stability_description), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(bottom = 16.dp))
                         }
                         when (selected) {
-                            "base" -> catalog.orEmpty().forEach { entry ->
-                                EditorChoice(smartProfileLabel(entry.name), policy.text("preference.profile") == entry.name) {
-                                    if (accept(SmartEditorPolicy(entry.policy.toString()))) {
-                                        warningGroup = null
-                                        choice = null
+                            "base" -> {
+                                catalog.orEmpty().forEach { entry ->
+                                    EditorChoice(smartProfileLabel(entry.name), policy.text("preference.profile") == entry.name) {
+                                        if (accept(SmartEditorPolicy(entry.policy.toString()))) {
+                                            warningGroup = null
+                                            choice = null
+                                        }
                                     }
                                 }
                             }
-                            "stability" -> listOf("none", "C", "B", "A").forEach { value ->
-                                EditorChoice(editorStabilityLabel(value), policy.text("preference.min_stability") == value) {
-                                    if (accept(policy.withValue("preference.min_stability", JsonPrimitive(value)))) choice = null
+                            "stability" -> {
+                                listOf("none", "C", "B", "A").forEach { value ->
+                                    EditorChoice(editorStabilityLabel(value), policy.text("preference.min_stability") == value) {
+                                        if (accept(policy.withValue("preference.min_stability", JsonPrimitive(value)))) choice = null
+                                    }
                                 }
                             }
-                            "quic" -> listOf("auto", "route_only", "off").forEach { value ->
-                                val description = stringResource(
-                                    when (value) {
-                                        "auto" -> R.string.smart_editor_quic_auto_description
-                                        "route_only" -> R.string.smart_editor_quic_route_description
-                                        else -> R.string.smart_editor_quic_off_description
-                                    },
-                                )
-                                EditorChoice(editorQuicLabel(value), policy.text("udp.quic_policy") == value, description) {
-                                    if (accept(policy.withValue("udp.quic_policy", JsonPrimitive(value)))) choice = null
+                            "quic" -> {
+                                listOf("auto", "route_only", "off").forEach { value ->
+                                    val description =
+                                        stringResource(
+                                            when (value) {
+                                                "auto" -> R.string.smart_editor_quic_auto_description
+                                                "route_only" -> R.string.smart_editor_quic_route_description
+                                                else -> R.string.smart_editor_quic_off_description
+                                            },
+                                        )
+                                    EditorChoice(editorQuicLabel(value), policy.text("udp.quic_policy") == value, description) {
+                                        if (accept(policy.withValue("udp.quic_policy", JsonPrimitive(value)))) choice = null
+                                    }
                                 }
                             }
                         }
@@ -404,22 +419,27 @@ fun SmartCustomProfileScreen(navController: NavController, serviceStatus: Status
     }
 }
 
-private data class EditorCriterion(val id: String, val label: Int, val description: Int)
-
-private val editorCriteria = listOf(
-    EditorCriterion("stability", R.string.smart_editor_stability, R.string.smart_editor_stability_hint),
-    EditorCriterion("speed_floor", R.string.smart_editor_target, R.string.smart_editor_target_hint),
-    EditorCriterion("download", R.string.smart_editor_download, R.string.smart_editor_download_hint),
-    EditorCriterion("throughput", R.string.smart_editor_throughput, R.string.smart_editor_throughput_hint),
-    EditorCriterion("latency", R.string.smart_editor_latency, R.string.smart_editor_latency_hint),
-    EditorCriterion("rtt_spread", R.string.smart_editor_spread, R.string.smart_editor_spread_hint),
-    EditorCriterion("udp", R.string.smart_editor_udp, R.string.smart_editor_udp_hint),
-    EditorCriterion("quic", R.string.smart_editor_quic_works, R.string.smart_editor_quic_hint),
-    EditorCriterion("outages", R.string.smart_editor_outages, R.string.smart_editor_outages_hint),
-    EditorCriterion("upload", R.string.smart_editor_upload, R.string.smart_editor_upload_hint),
-    EditorCriterion("rtt", R.string.smart_editor_rtt, R.string.smart_editor_rtt_hint),
-    EditorCriterion("jitter", R.string.smart_editor_jitter, R.string.smart_editor_jitter_hint),
+private data class EditorCriterion(
+    val id: String,
+    val label: Int,
+    val description: Int,
 )
+
+private val editorCriteria =
+    listOf(
+        EditorCriterion("stability", R.string.smart_editor_stability, R.string.smart_editor_stability_hint),
+        EditorCriterion("speed_floor", R.string.smart_editor_target, R.string.smart_editor_target_hint),
+        EditorCriterion("download", R.string.smart_editor_download, R.string.smart_editor_download_hint),
+        EditorCriterion("throughput", R.string.smart_editor_throughput, R.string.smart_editor_throughput_hint),
+        EditorCriterion("latency", R.string.smart_editor_latency, R.string.smart_editor_latency_hint),
+        EditorCriterion("rtt_spread", R.string.smart_editor_spread, R.string.smart_editor_spread_hint),
+        EditorCriterion("udp", R.string.smart_editor_udp, R.string.smart_editor_udp_hint),
+        EditorCriterion("quic", R.string.smart_editor_quic_works, R.string.smart_editor_quic_hint),
+        EditorCriterion("outages", R.string.smart_editor_outages, R.string.smart_editor_outages_hint),
+        EditorCriterion("upload", R.string.smart_editor_upload, R.string.smart_editor_upload_hint),
+        EditorCriterion("rtt", R.string.smart_editor_rtt, R.string.smart_editor_rtt_hint),
+        EditorCriterion("jitter", R.string.smart_editor_jitter, R.string.smart_editor_jitter_hint),
+    )
 
 @Composable
 private fun EditorHeader(label: Int) {
@@ -428,7 +448,10 @@ private fun EditorHeader(label: Int) {
 }
 
 @Composable
-private fun EditorCard(first: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+private fun EditorCard(
+    first: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = if (first) 8.dp else 0.dp),
         shape = RoundedCornerShape(12.dp),
@@ -448,7 +471,13 @@ private fun EditorFooter(text: String) {
 }
 
 @Composable
-private fun EditorRow(label: Int, supporting: String, enabled: Boolean = true, onClick: () -> Unit, leading: (@Composable () -> Unit)? = null) {
+private fun EditorRow(
+    label: Int,
+    supporting: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+    leading: (@Composable () -> Unit)? = null,
+) {
     ListItem(
         headlineContent = { Text(stringResource(label), style = MaterialTheme.typography.bodyLarge) },
         supportingContent = { EditorSupport(supporting) },
@@ -460,7 +489,13 @@ private fun EditorRow(label: Int, supporting: String, enabled: Boolean = true, o
 }
 
 @Composable
-private fun EditorSwitch(policy: SmartEditorPolicy, path: String, label: Int, description: String? = null, onChange: (SmartEditorPolicy) -> Unit) {
+private fun EditorSwitch(
+    policy: SmartEditorPolicy,
+    path: String,
+    label: Int,
+    description: String? = null,
+    onChange: (SmartEditorPolicy) -> Unit,
+) {
     val value = policy.text(path)
     ListItem(
         headlineContent = { Text(stringResource(label), style = MaterialTheme.typography.bodyLarge) },
@@ -471,7 +506,12 @@ private fun EditorSwitch(policy: SmartEditorPolicy, path: String, label: Int, de
 }
 
 @Composable
-private fun EditorChoice(label: String, selected: Boolean, description: String? = null, onClick: () -> Unit) {
+private fun EditorChoice(
+    label: String,
+    selected: Boolean,
+    description: String? = null,
+    onClick: () -> Unit,
+) {
     ListItem(
         headlineContent = { Text(label) },
         supportingContent = if (description != null) ({ Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }) else null,
@@ -482,60 +522,94 @@ private fun EditorChoice(label: String, selected: Boolean, description: String? 
 }
 
 @Composable
-private fun editorStabilityLabel(value: String?): String = when (requireNotNull(value)) {
-    "none" -> stringResource(R.string.smart_editor_stability_any)
-    "C" -> stringResource(R.string.smart_editor_stability_fair)
-    "B" -> stringResource(R.string.smart_editor_stability_good)
-    "A" -> stringResource(R.string.smart_editor_stability_excellent)
-    else -> requireNotNull(value)
-}
-
-@Composable
-private fun editorQuicLabel(value: String?): String = when (requireNotNull(value)) {
-    "auto" -> stringResource(R.string.smart_editor_quic_auto)
-    "route_only" -> stringResource(R.string.smart_editor_quic_route)
-    "off" -> stringResource(R.string.smart_editor_quic_off)
-    else -> requireNotNull(value)
-}
-
-private fun SmartEditorNumber.label(): Int = when (this) {
-    SmartEditorNumber.Target -> R.string.smart_editor_target
-    SmartEditorNumber.Streams -> R.string.smart_editor_streams
-    SmartEditorNumber.Hysteresis -> R.string.smart_editor_hysteresis
-    SmartEditorNumber.Dwell -> R.string.smart_editor_dwell
-    SmartEditorNumber.Confirmations -> R.string.smart_editor_confirmations
-    SmartEditorNumber.ConfirmationInterval -> R.string.smart_editor_confirmation_interval
-    SmartEditorNumber.SpeedMargin -> R.string.smart_editor_speed_margin
-    SmartEditorNumber.TierRestore -> R.string.smart_editor_tier_restore
-    SmartEditorNumber.Heartbeat -> R.string.smart_editor_heartbeat
-    SmartEditorNumber.Standby -> R.string.smart_editor_standby
-    SmartEditorNumber.Background -> R.string.smart_editor_background
-}
-
-@Composable
-private fun EditorNumberRow(policy: SmartEditorPolicy, field: SmartEditorNumber, separator: Char, enabled: Boolean = true, onClick: (SmartEditorNumber) -> Unit) {
-    val value = requireNotNull(field.display(policy, separator))
-    val supporting = when (field) {
-        SmartEditorNumber.Target -> stringResource(R.string.smart_editor_mbps, value)
-        SmartEditorNumber.Streams -> stringResource(R.string.smart_editor_streams_value, policy.text(field.path)!!.toLong())
-        SmartEditorNumber.Hysteresis -> stringResource(R.string.smart_editor_below_target, value)
-        SmartEditorNumber.Dwell -> stringResource(R.string.smart_editor_minutes, value)
-        SmartEditorNumber.Confirmations -> {
-            val count = policy.text(field.path)!!.toLong()
-            val quantity = if (count <= Int.MAX_VALUE) count.toInt() else (100 + count % 100).toInt()
-            pluralStringResource(R.plurals.smart_editor_checks, quantity, policy.text(field.path)!!)
-        }
-        SmartEditorNumber.ConfirmationInterval -> stringResource(R.string.smart_editor_seconds, value)
-        SmartEditorNumber.SpeedMargin -> stringResource(R.string.smart_editor_faster, value)
-        SmartEditorNumber.TierRestore -> if (SmartEditorNumber.durationNanos(policy.text(field.path)!!).signum() == 0) stringResource(R.string.smart_editor_never) else stringResource(R.string.smart_editor_after_seconds, value)
-        SmartEditorNumber.Heartbeat, SmartEditorNumber.Standby -> stringResource(R.string.smart_editor_every_seconds, value)
-        SmartEditorNumber.Background -> stringResource(R.string.smart_editor_every_minutes, value)
+private fun editorStabilityLabel(value: String?): String =
+    when (requireNotNull(value)) {
+        "none" -> stringResource(R.string.smart_editor_stability_any)
+        "C" -> stringResource(R.string.smart_editor_stability_fair)
+        "B" -> stringResource(R.string.smart_editor_stability_good)
+        "A" -> stringResource(R.string.smart_editor_stability_excellent)
+        else -> requireNotNull(value)
     }
+
+@Composable
+private fun editorQuicLabel(value: String?): String =
+    when (requireNotNull(value)) {
+        "auto" -> stringResource(R.string.smart_editor_quic_auto)
+        "route_only" -> stringResource(R.string.smart_editor_quic_route)
+        "off" -> stringResource(R.string.smart_editor_quic_off)
+        else -> requireNotNull(value)
+    }
+
+private fun SmartEditorNumber.label(): Int =
+    when (this) {
+        SmartEditorNumber.Target -> R.string.smart_editor_target
+        SmartEditorNumber.Streams -> R.string.smart_editor_streams
+        SmartEditorNumber.Hysteresis -> R.string.smart_editor_hysteresis
+        SmartEditorNumber.Dwell -> R.string.smart_editor_dwell
+        SmartEditorNumber.Confirmations -> R.string.smart_editor_confirmations
+        SmartEditorNumber.ConfirmationInterval -> R.string.smart_editor_confirmation_interval
+        SmartEditorNumber.SpeedMargin -> R.string.smart_editor_speed_margin
+        SmartEditorNumber.TierRestore -> R.string.smart_editor_tier_restore
+        SmartEditorNumber.Heartbeat -> R.string.smart_editor_heartbeat
+        SmartEditorNumber.Standby -> R.string.smart_editor_standby
+        SmartEditorNumber.Background -> R.string.smart_editor_background
+    }
+
+@Composable
+private fun EditorNumberRow(
+    policy: SmartEditorPolicy,
+    field: SmartEditorNumber,
+    separator: Char,
+    enabled: Boolean = true,
+    onClick: (SmartEditorNumber) -> Unit,
+) {
+    val value = requireNotNull(field.display(policy, separator))
+    val supporting =
+        when (field) {
+            SmartEditorNumber.Target -> {
+                stringResource(R.string.smart_editor_mbps, value)
+            }
+            SmartEditorNumber.Streams -> {
+                stringResource(R.string.smart_editor_streams_value, policy.text(field.path)!!.toLong())
+            }
+            SmartEditorNumber.Hysteresis -> {
+                stringResource(R.string.smart_editor_below_target, value)
+            }
+            SmartEditorNumber.Dwell -> {
+                stringResource(R.string.smart_editor_minutes, value)
+            }
+            SmartEditorNumber.Confirmations -> {
+                val count = policy.text(field.path)!!.toLong()
+                val quantity = if (count <= Int.MAX_VALUE) count.toInt() else (100 + count % 100).toInt()
+                pluralStringResource(R.plurals.smart_editor_checks, quantity, policy.text(field.path)!!)
+            }
+            SmartEditorNumber.ConfirmationInterval -> {
+                stringResource(R.string.smart_editor_seconds, value)
+            }
+            SmartEditorNumber.SpeedMargin -> {
+                stringResource(R.string.smart_editor_faster, value)
+            }
+            SmartEditorNumber.TierRestore -> {
+                if (SmartEditorNumber.durationNanos(policy.text(field.path)!!).signum() == 0) stringResource(R.string.smart_editor_never) else stringResource(R.string.smart_editor_after_seconds, value)
+            }
+            SmartEditorNumber.Heartbeat, SmartEditorNumber.Standby -> {
+                stringResource(R.string.smart_editor_every_seconds, value)
+            }
+            SmartEditorNumber.Background -> {
+                stringResource(R.string.smart_editor_every_minutes, value)
+            }
+        }
     EditorRow(field.label(), supporting, enabled, onClick = { onClick(field) })
 }
 
 @Composable
-private fun EditorNumberDialog(policy: SmartEditorPolicy, field: SmartEditorNumber, separator: Char, onDismiss: () -> Unit, onSave: (SmartEditorPolicy) -> Unit) {
+private fun EditorNumberDialog(
+    policy: SmartEditorPolicy,
+    field: SmartEditorNumber,
+    separator: Char,
+    onDismiss: () -> Unit,
+    onSave: (SmartEditorPolicy) -> Unit,
+) {
     var text by rememberSaveable(field) { mutableStateOf(field.display(policy, separator).orEmpty()) }
     var error by rememberSaveable(field) { mutableStateOf<String?>(null) }
     AlertDialog(
@@ -574,11 +648,12 @@ private fun EditorNumberDialog(policy: SmartEditorPolicy, field: SmartEditorNumb
         confirmButton = {
             TextButton(onClick = {
                 try {
-                    val candidate = try {
-                        field.update(policy, text.replace(separator, '.'))
-                    } catch (_: NumberFormatException) {
-                        policy.withValue(field.path, JsonPrimitive(text))
-                    }
+                    val candidate =
+                        try {
+                            field.update(policy, text.replace(separator, '.'))
+                        } catch (_: NumberFormatException) {
+                            policy.withValue(field.path, JsonPrimitive(text))
+                        }
                     Libbox.checkSmartPolicy(candidate.source)
                     onSave(candidate)
                 } catch (exception: Exception) {

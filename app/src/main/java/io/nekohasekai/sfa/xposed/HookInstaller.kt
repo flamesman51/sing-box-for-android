@@ -8,7 +8,6 @@ import io.nekohasekai.sfa.xposed.hooks.hidevpn.HookNetworkInterfaceGetName
 import io.nekohasekai.sfa.xposed.hooks.hidevpnapp.HookPackageManagerGetInstalledPackages
 
 object HookInstaller {
-
     private const val TAG = "XposedInit"
 
     private val activityThreadClass by lazy { Class.forName("android.app.ActivityThread") }
@@ -18,13 +17,14 @@ object HookInstaller {
     fun install(classLoader: ClassLoader) {
         val systemContext = resolveSystemContext()
         HookErrorStore.i(TAG, "handleSystemServerLoaded")
-        val hooks = arrayOf(
-            ConnectivityServiceHookHelper(classLoader),
-            HookIConnectivityManagerOnTransact(classLoader, systemContext),
-            HookPackageManagerGetInstalledPackages(classLoader),
-            HookNetworkCapabilitiesWriteToParcel(),
-            HookNetworkInterfaceGetName(classLoader),
-        )
+        val hooks =
+            arrayOf(
+                ConnectivityServiceHookHelper(classLoader),
+                HookIConnectivityManagerOnTransact(classLoader, systemContext),
+                HookPackageManagerGetInstalledPackages(classLoader),
+                HookNetworkCapabilitiesWriteToParcel(),
+                HookNetworkInterfaceGetName(classLoader),
+            )
 
         hooks.forEach { hook ->
             try {
@@ -39,11 +39,12 @@ object HookInstaller {
         }
     }
 
-    private fun resolveSystemContext(): Context? = try {
-        val currentThread = currentActivityThreadMethod.invoke(null)
-        getSystemContextMethod.invoke(currentThread) as? Context
-    } catch (e: Throwable) {
-        HookErrorStore.e(TAG, "resolveSystemContext failed", e)
-        null
-    }
+    private fun resolveSystemContext(): Context? =
+        try {
+            val currentThread = currentActivityThreadMethod.invoke(null)
+            getSystemContextMethod.invoke(currentThread) as? Context
+        } catch (e: Throwable) {
+            HookErrorStore.e(TAG, "resolveSystemContext failed", e)
+            null
+        }
 }

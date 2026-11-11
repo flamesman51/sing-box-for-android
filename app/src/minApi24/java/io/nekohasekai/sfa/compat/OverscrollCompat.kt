@@ -27,13 +27,14 @@ fun Modifier.verticalScrollCompat(
     flingBehavior: FlingBehavior? = null,
     reverseScrolling: Boolean = false,
     overscrollEffect: OverscrollEffect? = rememberOverscrollEffect(),
-): Modifier = this.verticalScroll(
-    state = state,
-    enabled = enabled,
-    flingBehavior = flingBehavior,
-    reverseScrolling = reverseScrolling,
-    overscrollEffect = overscrollEffect,
-)
+): Modifier =
+    this.verticalScroll(
+        state = state,
+        enabled = enabled,
+        flingBehavior = flingBehavior,
+        reverseScrolling = reverseScrolling,
+        overscrollEffect = overscrollEffect,
+    )
 
 @Composable
 fun LazyColumnCompat(

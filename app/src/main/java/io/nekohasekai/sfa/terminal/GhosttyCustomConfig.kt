@@ -31,23 +31,36 @@ data class GhosttyCustomConfig(
                             palette[index] = GhosttyColors.parse(entry[1].trim())
                         }
                     }
-                    "foreground" -> foreground = GhosttyColors.parse(value)
-                    "background" -> background = GhosttyColors.parse(value)
-                    "cursor-color" -> cursorColor = GhosttyColors.parse(value)
-                    "selection-background" -> selectionBackground = GhosttyColors.parse(value)
-                    "selection-foreground" -> selectionForeground = GhosttyColors.parse(value)
-                    "font-family" -> fontFamily = value.trim('"')
+                    "foreground" -> {
+                        foreground = GhosttyColors.parse(value)
+                    }
+                    "background" -> {
+                        background = GhosttyColors.parse(value)
+                    }
+                    "cursor-color" -> {
+                        cursorColor = GhosttyColors.parse(value)
+                    }
+                    "selection-background" -> {
+                        selectionBackground = GhosttyColors.parse(value)
+                    }
+                    "selection-foreground" -> {
+                        selectionForeground = GhosttyColors.parse(value)
+                    }
+                    "font-family" -> {
+                        fontFamily = value.trim('"')
+                    }
                 }
             }
             return GhosttyCustomConfig(
-                theme = GhosttyTheme(
-                    foreground,
-                    background,
-                    cursorColor,
-                    selectionBackground,
-                    selectionForeground,
-                    palette.toList(),
-                ),
+                theme =
+                    GhosttyTheme(
+                        foreground,
+                        background,
+                        cursorColor,
+                        selectionBackground,
+                        selectionForeground,
+                        palette.toList(),
+                    ),
                 fontFamily = fontFamily,
             )
         }

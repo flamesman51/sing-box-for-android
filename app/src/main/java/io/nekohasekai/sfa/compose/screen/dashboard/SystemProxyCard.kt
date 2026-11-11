@@ -23,15 +23,20 @@ import androidx.compose.ui.unit.dp
 import io.nekohasekai.sfa.R
 
 @Composable
-fun SystemProxyCard(enabled: Boolean, isSwitching: Boolean, onToggle: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+fun SystemProxyCard(
+    enabled: Boolean,
+    isSwitching: Boolean,
+    onToggle: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Card(
         modifier = modifier.fillMaxWidth(),
     ) {
         Row(
             modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {

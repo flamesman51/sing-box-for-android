@@ -44,11 +44,12 @@ enum class SmartAvailabilityNotice {
     NetworkDown,
 }
 
-fun SmartStatus.availabilityNotice(): SmartAvailabilityNotice? = when {
-    state == "offline" -> SmartAvailabilityNotice.NetworkDown
-    state == "paused" || members.isEmpty() || members.any { it.state == "healthy" } -> null
-    else -> SmartAvailabilityNotice.NoServersResponding
-}
+fun SmartStatus.availabilityNotice(): SmartAvailabilityNotice? =
+    when {
+        state == "offline" -> SmartAvailabilityNotice.NetworkDown
+        state == "paused" || members.isEmpty() || members.any { it.state == "healthy" } -> null
+        else -> SmartAvailabilityNotice.NoServersResponding
+    }
 
 @Serializable
 data class SmartSelected(
@@ -59,7 +60,11 @@ data class SmartSelected(
 )
 
 @Serializable
-data class SmartUdp443(val mode: String, val member: String?, val reason: String)
+data class SmartUdp443(
+    val mode: String,
+    val member: String?,
+    val reason: String,
+)
 
 @Serializable
 data class SmartNetwork(
@@ -163,17 +168,19 @@ fun SmartMember.uploadValue(groupUploadVerified: Boolean?): Double? = if (isUplo
 // Below 0.1 Mbit/s the one-decimal display reads "0.0", which says nothing about the server.
 fun SmartMember.observedDownloadValue(): Double? = observedPeakDown.knownMeasurement()?.takeIf { it >= 0.1 }
 
-fun SmartMember.effectiveFloorState(): SmartFloorState? = floorState?.takeIf {
-    it.effective == true && (it.kind == "revoked" || it.kind == "proven") &&
-        it.target.knownMeasurement() != null && it.value.knownMeasurement() != null &&
-        it.at != null && it.at > 0L
-}
+fun SmartMember.effectiveFloorState(): SmartFloorState? =
+    floorState?.takeIf {
+        it.effective == true && (it.kind == "revoked" || it.kind == "proven") &&
+            it.target.knownMeasurement() != null && it.value.knownMeasurement() != null &&
+            it.at != null && it.at > 0L
+    }
 
-fun SmartMember.legacyEpisodeObservation(engine: String?): SmartLegacyEpisodeObservation? = if (engine == "legacy" && throughputSource == "under_load") {
-    legacyEpisodeObs?.takeIf { it.value.knownMeasurement() != null && it.at != null && it.at > 0L }
-} else {
-    null
-}
+fun SmartMember.legacyEpisodeObservation(engine: String?): SmartLegacyEpisodeObservation? =
+    if (engine == "legacy" && throughputSource == "under_load") {
+        legacyEpisodeObs?.takeIf { it.value.knownMeasurement() != null && it.at != null && it.at > 0L }
+    } else {
+        null
+    }
 
 @Serializable
 data class SmartEvent(
@@ -193,7 +200,10 @@ data class SmartTimeline(
 )
 
 @Serializable
-data class SmartNetworks(val version: Int, val networks: List<SmartNetworkHistory>)
+data class SmartNetworks(
+    val version: Int,
+    val networks: List<SmartNetworkHistory>,
+)
 
 @Serializable
 data class SmartNetworkHistory(
@@ -235,7 +245,10 @@ data class SmartImportApplied(
 )
 
 @Serializable
-data class SmartImportIgnored(val network: String, val reason: String)
+data class SmartImportIgnored(
+    val network: String,
+    val reason: String,
+)
 
 @Serializable
 data class SmartExportMetadata(
@@ -290,7 +303,11 @@ object SmartJson {
 
     fun exportMetadata(data: String): SmartExportMetadata = json.decodeFromString<SmartExportMetadata>(data).also { requireVersion(it.version) }
 
-    fun importTrust(data: String, model: String, carrier: String): Double {
+    fun importTrust(
+        data: String,
+        model: String,
+        carrier: String,
+    ): Double {
         val metadata = exportMetadata(data)
         val localCarrier = carrier.trim()
         if (localCarrier.isEmpty() || metadata.carriers.none { it.equals(localCarrier, ignoreCase = true) }) {
@@ -300,7 +317,12 @@ object SmartJson {
         return if (localModel.isNotEmpty() && metadata.model?.equals(localModel, ignoreCase = true) == true) 0.5 else 0.25
     }
 
-    fun exportWithDevice(data: String, model: String, android: String, app: String): String {
+    fun exportWithDevice(
+        data: String,
+        model: String,
+        android: String,
+        app: String,
+    ): String {
         val document = json.parseToJsonElement(data).jsonObject
         requireVersion(document["version"]?.jsonPrimitive?.intOrNull ?: 0)
         val device = (document["device"]?.takeUnless { it == JsonNull }?.jsonObject ?: emptyMap()).toMutableMap()

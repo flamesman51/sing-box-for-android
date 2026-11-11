@@ -11,7 +11,12 @@ import java.net.URI
 import java.util.concurrent.CancellationException
 
 @Serializable
-data class ServerArtifact(val abi: String, val url: String, val size: Long, val sha256: String)
+data class ServerArtifact(
+    val abi: String,
+    val url: String,
+    val size: Long,
+    val sha256: String,
+)
 
 @Serializable
 data class PendingServerUpdate(
@@ -23,7 +28,11 @@ data class PendingServerUpdate(
 )
 
 @Serializable
-data class ReadyServerUpdate(val versionCode: Int, val sha256: String, val path: String)
+data class ReadyServerUpdate(
+    val versionCode: Int,
+    val sha256: String,
+    val path: String,
+)
 
 @Serializable
 data class ServerUpdateSnapshot(
@@ -41,33 +50,45 @@ internal object ServerUpdatePolicy {
     private val digestPattern = Regex("[0-9a-fA-F]{64}")
     private val json = Json { ignoreUnknownKeys = true }
 
-    data class Discovery(val origin: String, val manifestUrl: String)
+    data class Discovery(
+        val origin: String,
+        val manifestUrl: String,
+    )
 
-    fun origin(url: String): String? = try {
-        val uri = URI(url)
-        if (!uri.scheme.equals("https", ignoreCase = true) || uri.host.isNullOrEmpty() || uri.rawUserInfo != null || uri.rawFragment != null || uri.port !in -1..65535 || uri.port == 0 || '\\' in url) {
+    fun origin(url: String): String? =
+        try {
+            val uri = URI(url)
+            if (!uri.scheme.equals("https", ignoreCase = true) || uri.host.isNullOrEmpty() || uri.rawUserInfo != null || uri.rawFragment != null || uri.port !in -1..65535 || uri.port == 0 || '\\' in url) {
+                null
+            } else {
+                URI("https", null, uri.host.lowercase(), if (uri.port == 443) -1 else uri.port, null, null, null).toASCIIString()
+            }
+        } catch (_: Exception) {
             null
-        } else {
-            URI("https", null, uri.host.lowercase(), if (uri.port == 443) -1 else uri.port, null, null, null).toASCIIString()
         }
-    } catch (_: Exception) {
-        null
-    }
 
-    fun profileDiscoveryUrl(requestedUrl: String, finalUrl: String): String? = finalUrl.takeIf { origin(requestedUrl) != null && origin(finalUrl) != null }
+    fun profileDiscoveryUrl(
+        requestedUrl: String,
+        finalUrl: String,
+    ): String? = finalUrl.takeIf { origin(requestedUrl) != null && origin(finalUrl) != null }
 
-    fun discover(pinnedOrigin: String?, profileUrl: String, header: String): Discovery? = try {
-        val profileOrigin = origin(profileUrl)
-        val path = URI(header.trim())
-        if (profileOrigin == null || (pinnedOrigin != null && pinnedOrigin != profileOrigin) || path.isAbsolute || path.rawAuthority != null || !path.rawPath.orEmpty().startsWith("/") || path.rawPath.startsWith("//") || path.rawQuery != null || path.rawFragment != null || '\\' in path.path) {
+    fun discover(
+        pinnedOrigin: String?,
+        profileUrl: String,
+        header: String,
+    ): Discovery? =
+        try {
+            val profileOrigin = origin(profileUrl)
+            val path = URI(header.trim())
+            if (profileOrigin == null || (pinnedOrigin != null && pinnedOrigin != profileOrigin) || path.isAbsolute || path.rawAuthority != null || !path.rawPath.orEmpty().startsWith("/") || path.rawPath.startsWith("//") || path.rawQuery != null || path.rawFragment != null || '\\' in path.path) {
+                null
+            } else {
+                val resolved = URI(profileOrigin).resolve(path).toASCIIString()
+                if (origin(resolved) == profileOrigin) Discovery(profileOrigin, resolved) else null
+            }
+        } catch (_: Exception) {
             null
-        } else {
-            val resolved = URI(profileOrigin).resolve(path).toASCIIString()
-            if (origin(resolved) == profileOrigin) Discovery(profileOrigin, resolved) else null
         }
-    } catch (_: Exception) {
-        null
-    }
 
     @Serializable
     private data class Manifest(
@@ -81,22 +102,39 @@ internal object ServerUpdatePolicy {
     )
 
     @Serializable
-    private data class Apk(val abi: String, val path: String, val size: Long, val sha256: String)
+    private data class Apk(
+        val abi: String,
+        val path: String,
+        val size: Long,
+        val sha256: String,
+    )
 
-    fun parseManifest(text: String, manifestUrl: String, pinnedOrigin: String, applicationId: String, supportedAbis: List<String>, nowMillis: Long): PendingServerUpdate {
+    fun parseManifest(
+        text: String,
+        manifestUrl: String,
+        pinnedOrigin: String,
+        applicationId: String,
+        supportedAbis: List<String>,
+        nowMillis: Long,
+    ): PendingServerUpdate {
         require(origin(manifestUrl) == pinnedOrigin) { "Invalid update origin" }
         val manifest = json.decodeFromString<Manifest>(text)
         require(manifest.version == 1 && manifest.applicationId == applicationId && manifest.versionCode > 0 && manifest.versionName.isNotBlank() && manifest.publishedAt > 0) { "Invalid update metadata" }
-        val artifacts = manifest.apks.map {
-            require(it.abi.isNotBlank() && it.size in 1L..MAX_APK_BYTES && digestPattern.matches(it.sha256)) { "Invalid update artifact" }
-            ServerArtifact(it.abi, artifactUrl(manifestUrl, pinnedOrigin, it.path), it.size, it.sha256.lowercase())
-        }
+        val artifacts =
+            manifest.apks.map {
+                require(it.abi.isNotBlank() && it.size in 1L..MAX_APK_BYTES && digestPattern.matches(it.sha256)) { "Invalid update artifact" }
+                ServerArtifact(it.abi, artifactUrl(manifestUrl, pinnedOrigin, it.path), it.size, it.sha256.lowercase())
+            }
         val artifact = artifacts.firstOrNull { it.abi in supportedAbis } ?: artifacts.firstOrNull { it.abi == "universal" }
         requireNotNull(artifact) { "No compatible update artifact" }
         return PendingServerUpdate(manifest.versionCode, manifest.versionName, manifest.notes, artifact, nowMillis)
     }
 
-    private fun artifactUrl(manifestUrl: String, pinnedOrigin: String, path: String): String {
+    private fun artifactUrl(
+        manifestUrl: String,
+        pinnedOrigin: String,
+        path: String,
+    ): String {
         val relative = URI(path)
         require(!relative.isAbsolute && relative.rawAuthority == null && relative.rawQuery == null && relative.rawFragment == null && !relative.path.isNullOrBlank() && !relative.path.startsWith("/") && '\\' !in relative.path && relative.path.split('/').none { it == "." || it == ".." }) { "Invalid artifact path" }
         val url = URI(manifestUrl).resolve(relative).toASCIIString()
@@ -111,7 +149,12 @@ internal object ServerUpdatePolicy {
     }
 
     /** Reads only one byte past the limit, without buffering untrusted input ahead. */
-    fun copyBounded(input: InputStream, output: OutputStream, limit: Long, checkCancelled: () -> Unit = ::checkInterrupted): Long {
+    fun copyBounded(
+        input: InputStream,
+        output: OutputStream,
+        limit: Long,
+        checkCancelled: () -> Unit = ::checkInterrupted,
+    ): Long {
         require(limit >= 0 && limit < Long.MAX_VALUE)
         val buffer = ByteArray(16 * 1024)
         var total = 0L
@@ -133,15 +176,23 @@ internal object ServerUpdatePolicy {
 
     fun forget(state: ServerUpdateSnapshot): ServerUpdateSnapshot = state.copy(origin = null, manifestUrl = null)
 
-    fun reconcile(state: ServerUpdateSnapshot, installedVersion: Long): ServerUpdateSnapshot = if (state.pending != null && installedVersion >= state.pending.versionCode) {
-        state.copy(pending = null, ready = null, lastReminderAtMillis = 0)
-    } else if (state.ready != null && installedVersion >= state.ready.versionCode) {
-        state.copy(ready = null)
-    } else {
-        state
-    }
+    fun reconcile(
+        state: ServerUpdateSnapshot,
+        installedVersion: Long,
+    ): ServerUpdateSnapshot =
+        if (state.pending != null && installedVersion >= state.pending.versionCode) {
+            state.copy(pending = null, ready = null, lastReminderAtMillis = 0)
+        } else if (state.ready != null && installedVersion >= state.ready.versionCode) {
+            state.copy(ready = null)
+        } else {
+            state
+        }
 
-    fun accept(state: ServerUpdateSnapshot, candidate: PendingServerUpdate?, installedVersion: Long): ServerUpdateSnapshot {
+    fun accept(
+        state: ServerUpdateSnapshot,
+        candidate: PendingServerUpdate?,
+        installedVersion: Long,
+    ): ServerUpdateSnapshot {
         val current = reconcile(state, installedVersion)
         if (candidate == null || candidate.versionCode <= installedVersion) return current
         val previous = current.pending
@@ -156,12 +207,27 @@ internal object ServerUpdatePolicy {
         return current.copy(pending = candidate, ready = null, lastReminderAtMillis = 0)
     }
 
-    fun fallbackDelayMillis(firstSeenAtMillis: Long, nowMillis: Long): Long {
+    fun fallbackDelayMillis(
+        firstSeenAtMillis: Long,
+        nowMillis: Long,
+    ): Long {
         val deadline = firstSeenAtMillis.coerceAtMost(Long.MAX_VALUE - METERED_DELAY_MILLIS) + METERED_DELAY_MILLIS
         return (deadline - nowMillis.coerceAtLeast(0)).coerceAtLeast(0)
     }
 
-    fun requiresUnmetered(firstSeenAtMillis: Long, nowMillis: Long, downloadNow: Boolean = false): Boolean = !downloadNow && fallbackDelayMillis(firstSeenAtMillis, nowMillis) > 0
+    fun requiresUnmetered(
+        firstSeenAtMillis: Long,
+        nowMillis: Long,
+        downloadNow: Boolean = false,
+    ): Boolean = !downloadNow && fallbackDelayMillis(firstSeenAtMillis, nowMillis) > 0
 
-    fun matchesPackage(packageName: String, versionCode: Long, signers: Set<String>, applicationId: String, expectedVersion: Int, installedVersion: Long, installedSigners: Set<String>): Boolean = packageName == applicationId && versionCode == expectedVersion.toLong() && versionCode > installedVersion && signers.isNotEmpty() && signers == installedSigners
+    fun matchesPackage(
+        packageName: String,
+        versionCode: Long,
+        signers: Set<String>,
+        applicationId: String,
+        expectedVersion: Int,
+        installedVersion: Long,
+        installedSigners: Set<String>,
+    ): Boolean = packageName == applicationId && versionCode == expectedVersion.toLong() && versionCode > installedVersion && signers.isNotEmpty() && signers == installedSigners
 }

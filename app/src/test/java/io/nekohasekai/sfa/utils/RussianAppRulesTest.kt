@@ -86,8 +86,14 @@ class RussianAppRulesTest {
 
     @Test
     fun bundledRulesMatchTheReportedInstalledRussianPackages() {
-        val packages = Json.parseToJsonElement(File("src/main/assets/ru-apps.json").readText())
-            .jsonObject.getValue("packages").jsonArray.map { it.jsonPrimitive.content }.toSet()
+        val packages =
+            Json
+                .parseToJsonElement(File("src/main/assets/ru-apps.json").readText())
+                .jsonObject
+                .getValue("packages")
+                .jsonArray
+                .map { it.jsonPrimitive.content }
+                .toSet()
         val bundledRules = RussianAppRules(packages)
         for (packageName in listOf(
             "com.vk.im",

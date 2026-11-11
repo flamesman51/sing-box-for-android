@@ -87,8 +87,9 @@ object MaterialIconsLibrary {
     /**
      * Get icons by category name
      */
-    fun getIconsByCategory(categoryName: String): List<ProfileIcon> = categories.find { it.name.equals(categoryName, ignoreCase = true) }?.icons
-        ?: emptyList()
+    fun getIconsByCategory(categoryName: String): List<ProfileIcon> =
+        categories.find { it.name.equals(categoryName, ignoreCase = true) }?.icons
+            ?: emptyList()
 
     /**
      * Get total number of icons in the library

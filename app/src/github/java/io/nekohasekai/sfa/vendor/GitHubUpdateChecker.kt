@@ -17,7 +17,10 @@ class GitHubUpdateChecker : Closeable {
         private const val RELEASES_URL = "https://api.github.com/repos/flamesman51/sing-box-for-android-plus/releases"
         private const val METADATA_FILENAME = "SFA-version-metadata.json"
 
-        internal fun selectApkAsset(assets: List<GitHubAsset>, supportedAbis: Array<String>): GitHubAsset? {
+        internal fun selectApkAsset(
+            assets: List<GitHubAsset>,
+            supportedAbis: Array<String>,
+        ): GitHubAsset? {
             if ("arm64-v8a" !in supportedAbis) return null
             var universal: GitHubAsset? = null
             for (asset in assets) {
@@ -29,14 +32,18 @@ class GitHubUpdateChecker : Closeable {
         }
     }
 
-    private val client = Libbox.newHTTPClient().apply {
-        modernTLS()
-        keepAlive()
-    }
+    private val client =
+        Libbox.newHTTPClient().apply {
+            modernTLS()
+            keepAlive()
+        }
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun checkUpdate(track: UpdateTrack, githubToken: String): UpdateInfo? {
+    fun checkUpdate(
+        track: UpdateTrack,
+        githubToken: String,
+    ): UpdateInfo? {
         val request = client.newRequest()
         request.setURL(
             when (track) {
@@ -51,13 +58,15 @@ class GitHubUpdateChecker : Closeable {
         }
         request.setUserAgent(HTTPClient.userAgent)
         val content = request.execute().content.unwrap
-        val releases = when (track) {
-            UpdateTrack.STABLE -> listOf(json.decodeFromString<GitHubRelease>(content))
-            UpdateTrack.BETA -> json.decodeFromString<List<GitHubRelease>>(content)
-        }
-        val release = releases.filter { !it.draft }.reduceOrNull { best, candidate ->
-            if (Libbox.compareSemver(candidate.version, best.version)) candidate else best
-        } ?: return null
+        val releases =
+            when (track) {
+                UpdateTrack.STABLE -> listOf(json.decodeFromString<GitHubRelease>(content))
+                UpdateTrack.BETA -> json.decodeFromString<List<GitHubRelease>>(content)
+            }
+        val release =
+            releases.filter { !it.draft }.reduceOrNull { best, candidate ->
+                if (Libbox.compareSemver(candidate.version, best.version)) candidate else best
+            } ?: return null
         val metadata = downloadMetadata(release) ?: return null
         if (metadata.versionCode <= BuildConfig.VERSION_CODE) return null
         val apkAsset = selectApkAsset(release.assets, Build.SUPPORTED_ABIS) ?: return null
@@ -74,8 +83,9 @@ class GitHubUpdateChecker : Closeable {
     }
 
     private fun downloadMetadata(release: GitHubRelease): VersionMetadata? {
-        val metadataAsset = release.assets.find { it.name == METADATA_FILENAME }
-            ?: return null
+        val metadataAsset =
+            release.assets.find { it.name == METADATA_FILENAME }
+                ?: return null
 
         val request = client.newRequest()
         request.setURL(metadataAsset.browserDownloadUrl)

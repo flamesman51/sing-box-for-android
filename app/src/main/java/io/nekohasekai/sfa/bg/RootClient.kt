@@ -27,7 +27,8 @@ object RootClient {
     init {
         Shell.enableVerboseLogging = BuildConfig.DEBUG
         Shell.setDefaultBuilder(
-            Shell.Builder.create()
+            Shell.Builder
+                .create()
                 .setFlags(Shell.FLAG_MOUNT_MASTER)
                 .setTimeout(10),
         )
@@ -54,63 +55,69 @@ object RootClient {
         }
     }
 
-    suspend fun bindService(): IRootService = connectionMutex.withLock {
-        service?.let { return it }
+    suspend fun bindService(): IRootService =
+        connectionMutex.withLock {
+            service?.let { return it }
 
-        if (Shell.isAppGrantedRoot() == false) {
-            throw IOException("permission denied")
-        }
+            if (Shell.isAppGrantedRoot() == false) {
+                throw IOException("permission denied")
+            }
 
-        return withContext(Dispatchers.Main) {
-            suspendCancellableCoroutine { continuation ->
-                val conn = object : ServiceConnection {
-                    override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-                        val svc = IRootService.Stub.asInterface(binder)
-                        service = svc
-                        connection = this
-                        _serviceConnected.value = true
-                        continuation.resume(svc)
-                    }
-
-                    override fun onServiceDisconnected(name: ComponentName?) {
-                        service = null
-                        connection = null
-                        _serviceConnected.value = false
-                    }
-                }
-
-                val intent = Intent(Application.application, RootServer::class.java)
-                val task = RootService.bindOrTask(
-                    intent,
-                    ContextCompat.getMainExecutor(Application.application),
-                    conn,
-                )
-
-                if (task == null) {
-                    // Already connected, onServiceConnected will fire
-                } else {
-                    Shell.EXECUTOR.execute {
-                        try {
-                            val shell = Shell.getShell()
-                            if (shell.isRoot) {
-                                shell.execTask(task)
-                            } else {
-                                continuation.resumeWithException(
-                                    IOException("permission denied"),
-                                )
+            return withContext(Dispatchers.Main) {
+                suspendCancellableCoroutine { continuation ->
+                    val conn =
+                        object : ServiceConnection {
+                            override fun onServiceConnected(
+                                name: ComponentName?,
+                                binder: IBinder?,
+                            ) {
+                                val svc = IRootService.Stub.asInterface(binder)
+                                service = svc
+                                connection = this
+                                _serviceConnected.value = true
+                                continuation.resume(svc)
                             }
-                        } catch (e: Exception) {
-                            continuation.resumeWithException(e)
+
+                            override fun onServiceDisconnected(name: ComponentName?) {
+                                service = null
+                                connection = null
+                                _serviceConnected.value = false
+                            }
+                        }
+
+                    val intent = Intent(Application.application, RootServer::class.java)
+                    val task =
+                        RootService.bindOrTask(
+                            intent,
+                            ContextCompat.getMainExecutor(Application.application),
+                            conn,
+                        )
+
+                    if (task == null) {
+                        // Already connected, onServiceConnected will fire
+                    } else {
+                        Shell.EXECUTOR.execute {
+                            try {
+                                val shell = Shell.getShell()
+                                if (shell.isRoot) {
+                                    shell.execTask(task)
+                                } else {
+                                    continuation.resumeWithException(
+                                        IOException("permission denied"),
+                                    )
+                                }
+                            } catch (e: Exception) {
+                                continuation.resumeWithException(e)
+                            }
                         }
                     }
-                }
 
-                continuation.invokeOnCancellation {
-                    RootService.unbind(conn)
+                    continuation.invokeOnCancellation {
+                        RootService.unbind(conn)
+                    }
                 }
             }
         }
-    }
 
     fun unbindService() {
         connection?.let {
@@ -122,7 +129,10 @@ object RootClient {
     }
 
     suspend fun getInstalledPackages(flags: Int): List<PackageInfo> {
-        val userId = android.os.Process.myUserHandle().hashCode()
+        val userId =
+            android.os.Process
+                .myUserHandle()
+                .hashCode()
         val svc = bindService()
         return try {
             val slice = svc.getInstalledPackages(flags, userId)
@@ -193,9 +203,10 @@ object RootClient {
         }
     }
 
-    private fun RemoteException.rethrowAsRuntime(): RuntimeException = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        rethrowFromSystemServer()
-    } else {
-        RuntimeException(this)
-    }
+    private fun RemoteException.rethrowAsRuntime(): RuntimeException =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            rethrowFromSystemServer()
+        } else {
+            RuntimeException(this)
+        }
 }

@@ -12,8 +12,10 @@ import android.view.View
 import androidx.core.widget.addTextChangedListener
 import com.blacksquircle.ui.language.json.JsonLanguage
 
-class ProfileCodeEditor(context: Context, syntax: CodeEditorSyntax = CodeEditorSyntax.JSON) {
-
+class ProfileCodeEditor(
+    context: Context,
+    syntax: CodeEditorSyntax = CodeEditorSyntax.JSON,
+) {
     var onTextChanged: (() -> Unit)? = null
     var onSearchResultChanged: ((count: Int, current: Int) -> Unit)? = null
     var onCompletionWindowClosed: (() -> Unit)? = null
@@ -48,9 +50,15 @@ class ProfileCodeEditor(context: Context, syntax: CodeEditorSyntax = CodeEditorS
 
     private val readOnlySelectionCallback =
         object : ActionMode.Callback {
-            override fun onCreateActionMode(mode: ActionMode?, menu: Menu?): Boolean = true
+            override fun onCreateActionMode(
+                mode: ActionMode?,
+                menu: Menu?,
+            ): Boolean = true
 
-            override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+            override fun onPrepareActionMode(
+                mode: ActionMode?,
+                menu: Menu?,
+            ): Boolean {
                 menu?.let { m ->
                     m.removeItem(android.R.id.cut)
                     m.removeItem(android.R.id.paste)
@@ -64,7 +72,10 @@ class ProfileCodeEditor(context: Context, syntax: CodeEditorSyntax = CodeEditorS
                 return true
             }
 
-            override fun onActionItemClicked(mode: ActionMode?, item: MenuItem?): Boolean = false
+            override fun onActionItemClicked(
+                mode: ActionMode?,
+                item: MenuItem?,
+            ): Boolean = false
 
             override fun onDestroyActionMode(mode: ActionMode?) {}
         }
@@ -251,7 +262,10 @@ class ProfileCodeEditor(context: Context, syntax: CodeEditorSyntax = CodeEditorS
         onCompletionWindowClosed = null
     }
 
-    private fun matchIndexAt(text: String, matchStart: Int): Int {
+    private fun matchIndexAt(
+        text: String,
+        matchStart: Int,
+    ): Int {
         var index = text.indexOf(searchQuery, ignoreCase = true)
         var counter = 0
         while (index != -1) {

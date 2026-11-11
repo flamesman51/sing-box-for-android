@@ -16,11 +16,12 @@ class PerAppRoutingPolicyTest {
         for (include in listOf(emptySet(), included)) {
             for (exclude in listOf(emptySet(), excluded)) {
                 val decision = resolvePerAppRouting(include, exclude, false, false, selected, own)
-                val expectedMode = when {
-                    include.isNotEmpty() -> PerAppRoutingMode.Include
-                    exclude.isNotEmpty() -> PerAppRoutingMode.Exclude
-                    else -> PerAppRoutingMode.All
-                }
+                val expectedMode =
+                    when {
+                        include.isNotEmpty() -> PerAppRoutingMode.Include
+                        exclude.isNotEmpty() -> PerAppRoutingMode.Exclude
+                        else -> PerAppRoutingMode.All
+                    }
                 assertEquals(expectedMode, decision.mode)
                 assertEquals(include.isNotEmpty() && exclude.isNotEmpty(), decision.conflictingConfig)
                 assertEquals(

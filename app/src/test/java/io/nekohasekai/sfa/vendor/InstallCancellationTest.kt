@@ -30,16 +30,17 @@ class InstallCancellationTest {
         val staging = CountDownLatch(1)
         val resume = CountDownLatch(1)
         val committed = AtomicBoolean(false)
-        val task = FutureTask {
-            staging.countDown()
-            check(resume.await(10, TimeUnit.SECONDS))
-            try {
-                cancellation.commit { committed.set(true) }
-                false
-            } catch (_: CancellationException) {
-                true
+        val task =
+            FutureTask {
+                staging.countDown()
+                check(resume.await(10, TimeUnit.SECONDS))
+                try {
+                    cancellation.commit { committed.set(true) }
+                    false
+                } catch (_: CancellationException) {
+                    true
+                }
             }
-        }
         val worker = Thread(task).apply { start() }
         try {
             assertTrue(staging.await(10, TimeUnit.SECONDS))
