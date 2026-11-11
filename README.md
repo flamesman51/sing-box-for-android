@@ -1,13 +1,13 @@
-# SFA Smart
+# sing-box-plus for Android
 
-Personal Android fork of SFA, using the `smart` branch of
-[`flamesman51/sing-box-extended`](https://github.com/flamesman51/sing-box-extended).
+Personal Android fork of SFA (repository `sing-box-for-android-plus`), using the `smart` branch of
+[`flamesman51/sing-box-plus`](https://github.com/flamesman51/sing-box-plus).
 The application ID is `io.github.flamesman51.sfa`; the Kotlin namespace remains
 `io.nekohasekai.sfa`. It installs alongside the stock SFA/SFA-extended app with
 separate profiles, settings, providers, notification channels, and Quick Settings tile.
 
 Both apps handle `sing-box://import-remote-profile` links and profile files.
-Android chooses the saved default handler or offers a chooser; select **SFA Smart**
+Android chooses the saved default handler or offers a chooser; select **sing-box-plus**
 when importing into this fork. Only one VPN app can be active in an Android user profile.
 
 ## App behavior
@@ -74,7 +74,7 @@ when importing into this fork. Only one VPN app can be active in an Android user
   installed version catches up. A stale or broken manifest cannot suppress them.
   Background checks can be disabled.
 - The GitHub self-updater remains selectable and uses
-  [`flamesman51/sing-box-for-android` releases](https://github.com/flamesman51/sing-box-for-android/releases),
+  [`flamesman51/sing-box-for-android-plus` releases](https://github.com/flamesman51/sing-box-for-android-plus/releases),
   the `other` arm64 APK, and `SFA-version-metadata.json`.
 - **Settings → Smart → Selection profile** can keep the configuration's own policy,
   select a built-in profile or Classic, or edit a custom ranking and limits.
@@ -207,7 +207,7 @@ to `app/`; it defaults to `release.keystore`. Use your own signing key, for exam
 No signing key is tracked by this fork.
 
 `.github/workflows/build.yml` checks out this app revision and
-`flamesman51/sing-box-extended@smart`, builds arm64 AARs and signed `other` APKs,
+`flamesman51/sing-box-plus@smart`, builds arm64 AARs and signed `other` APKs,
 runs JVM tests, and uploads the arm64 APK with update metadata. Its secrets are
 `KEYSTORE_BASE64` (keystore) and `LOCAL_PROPERTIES` (signing properties).
 Non-tag builds append `-smart.N` using the workflow run number; tag `v*` builds use

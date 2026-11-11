@@ -1,4 +1,4 @@
-name: Build SFA Smart
+name: Build sing-box-plus
 
 # Release builds only: run by hand (gh workflow run build.yml --ref smart) or by a v* tag,
 # never on every push, to keep Actions usage low.
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: sfa-smart-release
+  group: sing-box-plus-release
   cancel-in-progress: false
 
 jobs:
@@ -27,7 +27,7 @@ jobs:
       - name: Checkout smart core
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
-          repository: flamesman51/sing-box-extended
+          repository: flamesman51/sing-box-plus
           ref: smart
           path: core
           fetch-depth: 0
@@ -116,7 +116,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SFA-Smart-Android-${{ github.run_number }}
+          name: sing-box-plus-android-${{ github.run_number }}
           path: dist/
           if-no-files-found: error
       - name: Publish tagged release

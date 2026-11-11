@@ -11,7 +11,7 @@ Core sources:
 - protocol/group/smart_ledger.go: smartBudget and smartLedger.Snapshot.
 - protocol/group/smart_measurement_status.go: nested direction results, UDP RTT/jitter, passive diagnostics, effective floor state, and legacy episode observations.
 
-Generator: app/src/test/fixtures/smart_fixture_test.go in the Android repository. Copy it to protocol/group/smart_android_fixture_test.go in sing-box-extended, then run from that checkout (set ANDROID_ROOT to the Android repository):
+Generator: app/src/test/fixtures/smart_fixture_test.go in the Android repository. Copy it to protocol/group/smart_android_fixture_test.go in the core checkout (sing-box-plus), then run from that checkout (set ANDROID_ROOT to the Android repository):
 
 SMART_ANDROID_FIXTURES="$ANDROID_ROOT/app/src/test/resources/smart" go test ./protocol/group -run '^TestAndroidSmartFixtures$' -count=1
 
