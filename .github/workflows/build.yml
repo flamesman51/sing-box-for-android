@@ -1,8 +1,9 @@
 name: Build SFA Smart
 
+# Release builds only: run by hand (gh workflow run build.yml --ref smart) or by a v* tag,
+# never on every push, to keep Actions usage low.
 on:
   push:
-    branches: [smart]
     tags: ["v*"]
   workflow_dispatch:
 
