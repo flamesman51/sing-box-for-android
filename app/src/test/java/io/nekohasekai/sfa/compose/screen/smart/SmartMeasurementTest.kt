@@ -44,13 +44,15 @@ class SmartMeasurementTest {
 
     @Test
     fun parsesEveryNestedDirectionFieldAndCoreFlags() {
-        val member = member("""{
+        val member = member(
+            """{
             "download":{"value":48.1,"p10":40.2,"mean":45.3,"streams":4,"window":5.5,"source":"active","at":1,"valid":true,"fresh":true},
             "upload":{"value":12.5,"post_min":10.2,"streams":2,"window":6,"source":"active","at":2,"valid":true,"fresh":true},
             "upload_status":"verified","udp_rtt_ms":14,"jitter_ms":3,"observed_peak_down":52.4,
             "floor_state":{"kind":"proven","target":30,"value":32,"at":3,"effective":true},
             "legacy_episode_obs":{"value":28.5,"at":4}
-        }""")
+        }""",
+        )
         val download = requireNotNull(member.download)
         assertEquals(48.1, download.displayValue()!!, 0.0)
         assertEquals(40.2, download.displayP10()!!, 0.0)
@@ -190,9 +192,14 @@ class SmartMeasurementTest {
         }
         val legacy = base.copy(throughputSource = "under_load")
         for (invalid in listOf(
-            null, SmartLegacyEpisodeObservation(), observation.copy(value = -1.0),
-            observation.copy(value = Double.NaN), observation.copy(value = Double.POSITIVE_INFINITY),
-            observation.copy(at = 0L), observation.copy(at = -1L), observation.copy(at = null),
+            null,
+            SmartLegacyEpisodeObservation(),
+            observation.copy(value = -1.0),
+            observation.copy(value = Double.NaN),
+            observation.copy(value = Double.POSITIVE_INFINITY),
+            observation.copy(at = 0L),
+            observation.copy(at = -1L),
+            observation.copy(at = null),
         )) {
             assertNull(legacy.copy(legacyEpisodeObs = invalid).legacyEpisodeObservation("legacy"))
         }

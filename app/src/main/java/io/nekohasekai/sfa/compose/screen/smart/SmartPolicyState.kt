@@ -16,8 +16,7 @@ internal data class SmartPolicySnapshot(
     val loading: Boolean = false,
 )
 
-internal fun smartPolicyStatusEnabled(serviceStatus: Status, remote: Boolean): Boolean =
-    remote || serviceStatus == Status.Started
+internal fun smartPolicyStatusEnabled(serviceStatus: Status, remote: Boolean): Boolean = remote || serviceStatus == Status.Started
 
 internal fun smartPolicySnapshotForTarget(
     serviceStatus: Status,

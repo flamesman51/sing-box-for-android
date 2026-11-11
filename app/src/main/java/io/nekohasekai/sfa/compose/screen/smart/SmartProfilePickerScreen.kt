@@ -51,7 +51,13 @@ fun SmartProfilePickerScreen(navController: NavController, serviceStatus: Status
     val stored = remember { Settings.smartPolicy }
     val catalog = remember { runCatching { smartProfileCatalog() } }
     var error by remember { mutableStateOf(catalog.exceptionOrNull()?.localizedMessage) }
-    val selected = if (stored.isEmpty()) "" else if (smartPolicyIsCustom(stored)) "custom" else smartPolicyBase(stored)
+    val selected = if (stored.isEmpty()) {
+        ""
+    } else if (smartPolicyIsCustom(stored)) {
+        "custom"
+    } else {
+        smartPolicyBase(stored)
+    }
     OverrideTopBar {
         TopAppBar(
             title = { Text(stringResource(R.string.smart_selection_profile)) },

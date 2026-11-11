@@ -152,17 +152,13 @@ data class SmartLegacyEpisodeObservation(
 
 fun Double?.knownMeasurement(): Double? = this?.takeIf { it.isFinite() && it >= 0.0 }
 
-fun SmartDirectionMeasurement?.displayValue(): Double? =
-    if (this?.valid == true && fresh == true) value.knownMeasurement() else null
+fun SmartDirectionMeasurement?.displayValue(): Double? = if (this?.valid == true && fresh == true) value.knownMeasurement() else null
 
-fun SmartDirectionMeasurement?.displayP10(): Double? =
-    if (displayValue() != null) this?.p10.knownMeasurement() else null
+fun SmartDirectionMeasurement?.displayP10(): Double? = if (displayValue() != null) this?.p10.knownMeasurement() else null
 
-fun SmartMember.isUploadUnverified(groupUploadVerified: Boolean?): Boolean =
-    groupUploadVerified == false || uploadStatus == "unverified"
+fun SmartMember.isUploadUnverified(groupUploadVerified: Boolean?): Boolean = groupUploadVerified == false || uploadStatus == "unverified"
 
-fun SmartMember.uploadValue(groupUploadVerified: Boolean?): Double? =
-    if (isUploadUnverified(groupUploadVerified)) null else upload.displayValue()
+fun SmartMember.uploadValue(groupUploadVerified: Boolean?): Double? = if (isUploadUnverified(groupUploadVerified)) null else upload.displayValue()
 
 // Below 0.1 Mbit/s the one-decimal display reads "0.0", which says nothing about the server.
 fun SmartMember.observedDownloadValue(): Double? = observedPeakDown.knownMeasurement()?.takeIf { it >= 0.1 }
@@ -173,12 +169,11 @@ fun SmartMember.effectiveFloorState(): SmartFloorState? = floorState?.takeIf {
         it.at != null && it.at > 0L
 }
 
-fun SmartMember.legacyEpisodeObservation(engine: String?): SmartLegacyEpisodeObservation? =
-    if (engine == "legacy" && throughputSource == "under_load") {
-        legacyEpisodeObs?.takeIf { it.value.knownMeasurement() != null && it.at != null && it.at > 0L }
-    } else {
-        null
-    }
+fun SmartMember.legacyEpisodeObservation(engine: String?): SmartLegacyEpisodeObservation? = if (engine == "legacy" && throughputSource == "under_load") {
+    legacyEpisodeObs?.takeIf { it.value.knownMeasurement() != null && it.at != null && it.at > 0L }
+} else {
+    null
+}
 
 @Serializable
 data class SmartEvent(

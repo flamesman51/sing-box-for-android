@@ -211,7 +211,10 @@ fun SmartCustomProfileScreen(navController: NavController, serviceStatus: Status
     if (jsonMode) {
         OutlinedTextField(
             value = jsonText,
-            onValueChange = { jsonText = it; jsonError = null },
+            onValueChange = {
+                jsonText = it
+                jsonError = null
+            },
             modifier = screen.padding(horizontal = 16.dp),
             label = { Text(stringResource(R.string.smart_editor_json)) },
             textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
@@ -266,12 +269,14 @@ fun SmartCustomProfileScreen(navController: NavController, serviceStatus: Status
                             supportingContent = { EditorSupport(stringResource(criterion.description)) },
                             leadingContent = { Checkbox(checked = included, onCheckedChange = null, enabled = !included || rank.size > 1) },
                             trailingContent = {
-                                if (included) Row {
-                                    IconButton(enabled = index > 0, modifier = Modifier.size(48.dp), onClick = { move(-1) }) {
-                                        Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.smart_editor_move_up, label))
-                                    }
-                                    IconButton(enabled = index < rank.lastIndex, modifier = Modifier.size(48.dp), onClick = { move(1) }) {
-                                        Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.smart_editor_move_down, label))
+                                if (included) {
+                                    Row {
+                                        IconButton(enabled = index > 0, modifier = Modifier.size(48.dp), onClick = { move(-1) }) {
+                                            Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.smart_editor_move_up, label))
+                                        }
+                                        IconButton(enabled = index < rank.lastIndex, modifier = Modifier.size(48.dp), onClick = { move(1) }) {
+                                            Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.smart_editor_move_down, label))
+                                        }
                                     }
                                 }
                             },
@@ -321,7 +326,12 @@ fun SmartCustomProfileScreen(navController: NavController, serviceStatus: Status
         AlertDialog(
             onDismissRequest = { discard = false },
             title = { Text(stringResource(R.string.smart_editor_discard_title)) },
-            confirmButton = { TextButton(onClick = { discard = false; leave() }) { Text(stringResource(R.string.smart_editor_discard)) } },
+            confirmButton = {
+                TextButton(onClick = {
+                    discard = false
+                    leave()
+                }) { Text(stringResource(R.string.smart_editor_discard)) }
+            },
             dismissButton = { TextButton(onClick = { discard = false }) { Text(stringResource(R.string.cancel)) } },
         )
     }
@@ -335,16 +345,25 @@ fun SmartCustomProfileScreen(navController: NavController, serviceStatus: Status
     }
     if (policy != null) {
         number?.let { field ->
-            EditorNumberDialog(policy, field, separator, onDismiss = { number = null }, onSave = { source = it.source; number = null })
+            EditorNumberDialog(policy, field, separator, onDismiss = { number = null }, onSave = {
+                source = it.source
+                number = null
+            })
         }
         choice?.let { selected ->
             AlertDialog(
                 onDismissRequest = { choice = null },
-                title = { Text(stringResource(when (selected) {
-                    "base" -> R.string.smart_editor_start_from
-                    "stability" -> R.string.smart_editor_min_stability
-                    else -> R.string.smart_editor_quic
-                })) },
+                title = {
+                    Text(
+                        stringResource(
+                            when (selected) {
+                                "base" -> R.string.smart_editor_start_from
+                                "stability" -> R.string.smart_editor_min_stability
+                                else -> R.string.smart_editor_quic
+                            },
+                        ),
+                    )
+                },
                 text = {
                     Column(Modifier.verticalScroll(rememberScrollState()).selectableGroup()) {
                         if (selected == "stability") {
@@ -353,7 +372,10 @@ fun SmartCustomProfileScreen(navController: NavController, serviceStatus: Status
                         when (selected) {
                             "base" -> catalog.orEmpty().forEach { entry ->
                                 EditorChoice(smartProfileLabel(entry.name), policy.text("preference.profile") == entry.name) {
-                                    if (accept(SmartEditorPolicy(entry.policy.toString()))) { warningGroup = null; choice = null }
+                                    if (accept(SmartEditorPolicy(entry.policy.toString()))) {
+                                        warningGroup = null
+                                        choice = null
+                                    }
                                 }
                             }
                             "stability" -> listOf("none", "C", "B", "A").forEach { value ->
@@ -362,11 +384,13 @@ fun SmartCustomProfileScreen(navController: NavController, serviceStatus: Status
                                 }
                             }
                             "quic" -> listOf("auto", "route_only", "off").forEach { value ->
-                                val description = stringResource(when (value) {
-                                    "auto" -> R.string.smart_editor_quic_auto_description
-                                    "route_only" -> R.string.smart_editor_quic_route_description
-                                    else -> R.string.smart_editor_quic_off_description
-                                })
+                                val description = stringResource(
+                                    when (value) {
+                                        "auto" -> R.string.smart_editor_quic_auto_description
+                                        "route_only" -> R.string.smart_editor_quic_route_description
+                                        else -> R.string.smart_editor_quic_off_description
+                                    },
+                                )
                                 EditorChoice(editorQuicLabel(value), policy.text("udp.quic_policy") == value, description) {
                                     if (accept(policy.withValue("udp.quic_policy", JsonPrimitive(value)))) choice = null
                                 }
@@ -522,15 +546,24 @@ private fun EditorNumberDialog(policy: SmartEditorPolicy, field: SmartEditorNumb
                 if (field == SmartEditorNumber.Background) Text(stringResource(R.string.smart_editor_idle_description))
                 OutlinedTextField(
                     value = text,
-                    onValueChange = { text = it; error = null },
-                    label = { Text(stringResource(when (field) {
-                        SmartEditorNumber.Dwell, SmartEditorNumber.Background -> R.string.smart_editor_unit_minutes
-                        SmartEditorNumber.ConfirmationInterval, SmartEditorNumber.TierRestore, SmartEditorNumber.Heartbeat, SmartEditorNumber.Standby -> R.string.smart_editor_unit_seconds
-                        SmartEditorNumber.Target -> R.string.smart_editor_unit_mbps
-                        SmartEditorNumber.Streams -> R.string.smart_editor_streams
-                        SmartEditorNumber.Hysteresis, SmartEditorNumber.SpeedMargin -> R.string.smart_editor_unit_percent
-                        SmartEditorNumber.Confirmations -> R.string.smart_editor_confirmations
-                    })) },
+                    onValueChange = {
+                        text = it
+                        error = null
+                    },
+                    label = {
+                        Text(
+                            stringResource(
+                                when (field) {
+                                    SmartEditorNumber.Dwell, SmartEditorNumber.Background -> R.string.smart_editor_unit_minutes
+                                    SmartEditorNumber.ConfirmationInterval, SmartEditorNumber.TierRestore, SmartEditorNumber.Heartbeat, SmartEditorNumber.Standby -> R.string.smart_editor_unit_seconds
+                                    SmartEditorNumber.Target -> R.string.smart_editor_unit_mbps
+                                    SmartEditorNumber.Streams -> R.string.smart_editor_streams
+                                    SmartEditorNumber.Hysteresis, SmartEditorNumber.SpeedMargin -> R.string.smart_editor_unit_percent
+                                    SmartEditorNumber.Confirmations -> R.string.smart_editor_confirmations
+                                },
+                            ),
+                        )
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = if (field == SmartEditorNumber.Streams) KeyboardType.Number else KeyboardType.Decimal),
                     singleLine = true,
                     isError = error != null,

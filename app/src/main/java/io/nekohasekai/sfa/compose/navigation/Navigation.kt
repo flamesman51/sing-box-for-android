@@ -41,12 +41,12 @@ import io.nekohasekai.sfa.compose.screen.settings.TailscaleTerminalConfigScreen
 import io.nekohasekai.sfa.compose.screen.settings.TailscaleThemePickerScreen
 import io.nekohasekai.sfa.compose.screen.smart.SMART_INSIGHTS_ROUTE
 import io.nekohasekai.sfa.compose.screen.smart.SmartCountryPickerScreen
-import io.nekohasekai.sfa.compose.screen.smart.SmartInsightsScreen
-import io.nekohasekai.sfa.compose.screen.smart.SmartSettingsScreen
 import io.nekohasekai.sfa.compose.screen.smart.SmartCustomProfileScreen
+import io.nekohasekai.sfa.compose.screen.smart.SmartInsightsScreen
 import io.nekohasekai.sfa.compose.screen.smart.SmartLocalProfileRoute
 import io.nekohasekai.sfa.compose.screen.smart.SmartPolicyStatusProvider
 import io.nekohasekai.sfa.compose.screen.smart.SmartProfilePickerScreen
+import io.nekohasekai.sfa.compose.screen.smart.SmartSettingsScreen
 import io.nekohasekai.sfa.compose.screen.smart.smartInsightsRoute
 import io.nekohasekai.sfa.compose.screen.tools.CrashReportDetailScreen
 import io.nekohasekai.sfa.compose.screen.tools.CrashReportFileContentScreen

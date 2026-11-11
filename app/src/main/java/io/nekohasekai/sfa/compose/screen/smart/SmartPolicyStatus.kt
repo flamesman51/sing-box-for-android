@@ -5,12 +5,12 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.compositionLocalOf
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -46,8 +46,7 @@ private val LocalSmartPolicyRuntime = compositionLocalOf { SmartPolicyRuntime() 
 private val smartPolicyReconciler = SmartPolicyReconcileTracker()
 
 @Composable
-internal fun rememberSmartPolicySnapshot(serviceStatus: Status): SmartPolicySnapshot =
-    smartPolicySnapshotForTarget(serviceStatus, smartPolicyIsRemote(), LocalSmartPolicyRuntime.current.snapshot)
+internal fun rememberSmartPolicySnapshot(serviceStatus: Status): SmartPolicySnapshot = smartPolicySnapshotForTarget(serviceStatus, smartPolicyIsRemote(), LocalSmartPolicyRuntime.current.snapshot)
 
 @Composable
 internal fun smartStoredPolicy(): String = LocalSmartPolicyRuntime.current.stored

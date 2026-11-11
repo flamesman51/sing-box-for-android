@@ -20,34 +20,49 @@ internal fun smartProfileCatalog(data: String): List<SmartProfileEntry> = Json.p
     SmartProfileEntry(
         name,
         buildJsonObject {
-            put("preference", buildJsonObject {
-                put("profile", name)
-                put("rank", row.getValue("rank"))
-                put("min_stability", row.getValue("min_stability"))
-                put("speed_floor_hysteresis", row.getValue("hysteresis"))
-                put("switch", buildJsonObject {
-                    put("improvement", row.getValue("improvement"))
-                    put("dwell", row.getValue("dwell"))
-                    put("confirmations", row.getValue("confirmations"))
-                    put("confirmation_interval", row.getValue("confirmation_interval"))
-                    put("tier_restore", row.getValue("tier_restore"))
-                    put("speed_margin", row.getValue("speed_margin"))
-                })
-            })
-            put("throughput", buildJsonObject {
-                put("target_mbps", row.getValue("target_mbps"))
-                put("enabled", row.getValue("throughput_enabled"))
-                put("streams", row.getValue("streams"))
-            })
-            put("probe", buildJsonObject {
-                put("heartbeat_interval", row.getValue("heartbeat_interval"))
-                put("standby_interval", row.getValue("standby_interval"))
-                put("background_interval", row.getValue("background_interval"))
-            })
+            put(
+                "preference",
+                buildJsonObject {
+                    put("profile", name)
+                    put("rank", row.getValue("rank"))
+                    put("min_stability", row.getValue("min_stability"))
+                    put("speed_floor_hysteresis", row.getValue("hysteresis"))
+                    put(
+                        "switch",
+                        buildJsonObject {
+                            put("improvement", row.getValue("improvement"))
+                            put("dwell", row.getValue("dwell"))
+                            put("confirmations", row.getValue("confirmations"))
+                            put("confirmation_interval", row.getValue("confirmation_interval"))
+                            put("tier_restore", row.getValue("tier_restore"))
+                            put("speed_margin", row.getValue("speed_margin"))
+                        },
+                    )
+                },
+            )
+            put(
+                "throughput",
+                buildJsonObject {
+                    put("target_mbps", row.getValue("target_mbps"))
+                    put("enabled", row.getValue("throughput_enabled"))
+                    put("streams", row.getValue("streams"))
+                },
+            )
+            put(
+                "probe",
+                buildJsonObject {
+                    put("heartbeat_interval", row.getValue("heartbeat_interval"))
+                    put("standby_interval", row.getValue("standby_interval"))
+                    put("background_interval", row.getValue("background_interval"))
+                },
+            )
             put("interrupt_on_failover", row.getValue("interrupt_on_failover"))
-            put("udp", buildJsonObject {
-                put("quic_policy", row.getValue("quic_policy"))
-            })
+            put(
+                "udp",
+                buildJsonObject {
+                    put("quic_policy", row.getValue("quic_policy"))
+                },
+            )
         },
     )
 }
